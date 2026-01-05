@@ -17,6 +17,7 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
 import { Avatar, Container } from '@mui/material';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -57,9 +58,10 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 const PrimarySearchAppBar = () => {
+    const router = useRouter();
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const pages = [
-        { title: 'Playlists', path: '/playlists' },
+        { title: 'Playlists', path: '/playlist' },
         { title: "Like", path: '/like' },
         { title: 'Upload', path: "/upload" }
     ];
@@ -89,6 +91,10 @@ const PrimarySearchAppBar = () => {
     const handleMobileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
         setMobileMoreAnchorEl(event.currentTarget);
     };
+
+    const handleRedirectHome = () => {
+        router.push("/");
+    }
 
     const menuId = 'primary-search-account-menu';
     const renderMenu = (
@@ -189,21 +195,17 @@ const PrimarySearchAppBar = () => {
                 <AppBar position="static" sx={{ bgcolor: 'gray' }}>
                     <Container>
                         <Toolbar>
-                            <IconButton
-                                size="large"
-                                edge="start"
-                                color="inherit"
-                                aria-label="open drawer"
-                                sx={{ mr: 2 }}
-                            >
-                                <span style={{ fontSize: "20px" }}>Sound Cloud</span>
-                            </IconButton>
                             <Typography
                                 variant="h6"
                                 noWrap
                                 component="div"
-                                sx={{ display: { xs: 'none', sm: 'block' } }}
+
+                                sx={{ display: { xs: 'none', sm: 'block' }, marginRight: "50px", cursor: "pointer" }}
+                                onClick={() => {
+                                    handleRedirectHome()
+                                }}
                             >
+                                Sound Cloud
                             </Typography>
                             <Search style={{
                                 width: "500px"
