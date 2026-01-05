@@ -15,7 +15,7 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { Container } from '@mui/material';
+import { Avatar, Container } from '@mui/material';
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -90,7 +90,7 @@ const PrimarySearchAppBar = () => {
         <Menu
             anchorEl={anchorEl}
             anchorOrigin={{
-                vertical: 'top',
+                vertical: 'bottom',
                 horizontal: 'right',
             }}
             id={menuId}
@@ -199,17 +199,20 @@ const PrimarySearchAppBar = () => {
                                         <Typography sx={{ textAlign: 'center' }}>{page}</Typography>
                                     </MenuItem>
                                 ))}
-                                <IconButton
+                                <Avatar
+                                    onClick={handleProfileMenuOpen}
+
+                                >B</Avatar>
+                                {/* <IconButton
                                     size="large"
                                     edge="end"
                                     aria-label="account of current user"
                                     aria-controls={menuId}
                                     aria-haspopup="true"
-                                    onClick={handleProfileMenuOpen}
                                     color="inherit"
                                 >
                                     <AccountCircle />
-                                </IconButton>
+                                </IconButton> */}
                             </Box>
                             <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
                                 <IconButton
