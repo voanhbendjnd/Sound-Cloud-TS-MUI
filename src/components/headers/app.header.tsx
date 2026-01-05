@@ -16,6 +16,7 @@ import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
 import { Avatar, Container } from '@mui/material';
+import Link from 'next/link';
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -57,7 +58,11 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 const PrimarySearchAppBar = () => {
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
-    const pages = ['Playlists', 'Like', 'Upload'];
+    const pages = [
+        { title: 'Playlists', path: '/playlists' },
+        { title: "Like", path: '/like' },
+        { title: 'Upload', path: "/upload" }
+    ];
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
     };
@@ -102,8 +107,27 @@ const PrimarySearchAppBar = () => {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
-            <MenuItem onClick={handleMenuClose}>Profile</MenuItem>
-            <MenuItem onClick={handleMenuClose}>My account</MenuItem>
+            <MenuItem>
+                <Link href="/profile"
+                    style={{
+                        textDecoration: 'none',
+                        color: 'unset',
+                    }}>
+                    Profile
+
+                </Link>
+            </MenuItem>
+
+            <MenuItem >
+                <Link href="/logout"
+                    style={{
+                        textDecoration: 'none',
+                        color: 'unset',
+                    }}
+                >
+                    My account
+                </Link>
+            </MenuItem>
         </Menu>
     );
 
@@ -195,8 +219,16 @@ const PrimarySearchAppBar = () => {
                             <Box sx={{ flexGrow: 1 }} />
                             <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
                                 {pages.map((page) => (
-                                    <MenuItem key={page} onClick={handleCloseNavMenu}>
-                                        <Typography sx={{ textAlign: 'center' }}>{page}</Typography>
+                                    <MenuItem key={page.title} onClick={handleCloseNavMenu}>
+                                        <Link href={page.path}
+                                            style={{
+                                                textDecoration: 'none',
+                                                color: 'inherit',
+                                                display: 'block'
+                                            }}
+                                        >
+                                            <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
+                                        </Link>
                                     </MenuItem>
                                 ))}
                                 <Avatar
