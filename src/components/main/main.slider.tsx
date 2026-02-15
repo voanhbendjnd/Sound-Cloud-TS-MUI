@@ -2,6 +2,10 @@
 import React from "react";
 import Slider from "react-slick";
 import { Settings } from "react-slick"
+// @ts-expect-error - slick-carousel lacks type declarations
+import "slick-carousel/slick/slick.css";
+// @ts-expect-error - slick-carousel lacks type declarations
+import "slick-carousel/slick/slick-theme.css";
 const MainSlider = () => {
     const settings: Settings = {
         dots: true,
