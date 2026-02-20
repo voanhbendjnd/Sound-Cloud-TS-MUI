@@ -92,6 +92,30 @@ const MainSlider = () => {
                 </Slider>
                 <Divider />
             </div>
+            <h2>Trending</h2>
+            <div>
+                <Slider {...settings}>
+                    <div className="abc">
+                        <h3>Track 1</h3>
+                    </div>
+                    <div className="abc">
+                        <h3>Track 2</h3>
+                    </div>
+                    <div className="abc">
+                        <h3>Track 3</h3>
+                    </div>
+                    <div className="abc">
+                        <h3>Track 4</h3>
+                    </div>
+                    <div className="abc">
+                        <h3>Track 5</h3>
+                    </div>
+                    <div className="abc">
+                        <h3>Track 6</h3>
+                    </div>
+                </Slider>
+                <Divider />
+            </div>
         </Box>
 
 

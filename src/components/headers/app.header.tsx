@@ -57,7 +57,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
     },
 }));
 
-const PrimarySearchAppBar = () => {
+const AppHeader = () => {
     const router = useRouter();
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const pages = [
@@ -271,4 +271,4 @@ const PrimarySearchAppBar = () => {
     )
 }
 
-export default PrimarySearchAppBar
+export default AppHeader;
