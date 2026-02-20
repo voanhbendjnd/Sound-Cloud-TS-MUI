@@ -7,6 +7,7 @@ import 'react-h5-audio-player/lib/styles.css';
 const AppFooter = () => {
     const hasMounted = useHasMounted();
     if (!hasMounted) return (<></>)
+    console.log(">>> Check backend: ", process.env.BE_URL);
     return (
         <div>
             <AppBar position="fixed" color="primary" sx={{ top: 'auto', bottom: 0, background: "#f2f2f2" }}>
