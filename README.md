@@ -4,3 +4,4 @@ npm i --save-dev @types/react-slick
 npm install slick-carousel
 npm install --save-dev @types/slick-carousel
 npm i --save-exact react-h5-audio-player@3.8.6
+npm i --save-exact query-string@8.1.0
