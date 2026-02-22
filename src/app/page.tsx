@@ -23,13 +23,14 @@ export default async function HomePage() {
   const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
     url: "http://localhost:8080/api/v1/tracks",
     method: "GET",
-    // body: { page: 1, size: 10 }
   });
-  console.log(">>> Check response new: ", res.data?.result)
+  console.log(">>> Check response new year: ", res.data?.result)
   return (
     <div>
       <Container>
-        <MainSlider />
+        <MainSlider
+          data={res?.data?.result ? res.data.result : []}
+        />
       </Container>
     </div>
   )

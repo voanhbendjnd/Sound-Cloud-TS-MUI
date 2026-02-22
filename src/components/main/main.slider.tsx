@@ -9,8 +9,11 @@ import "slick-carousel/slick/slick-theme.css";
 import { Box, Button, Divider } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-
-const MainSlider = () => {
+interface IProps {
+    data: ITrack[]
+}
+const MainSlider = (props: IProps) => {
+    console.log(">>> check data: ", props.data)
 
     const NextArrow = (props: any) => {
         return (
