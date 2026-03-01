@@ -29,6 +29,7 @@ export default async function HomePage() {
     <div>
       <Container>
         <MainSlider
+          title="Trending"
           data={res?.data?.result ? res.data.result : []}
         />
       </Container>

@@ -2,26 +2,27 @@
 import React from "react";
 import Slider from "react-slick";
 import { Settings } from "react-slick"
-// @ts-expect-error - slick-carousel lacks type declarations
 import "slick-carousel/slick/slick.css";
-// @ts-expect-error - slick-carousel lacks type declarations
 import "slick-carousel/slick/slick-theme.css";
 import { Box, Button, Divider } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 interface IProps {
-    data: ITrack[]
+    data: ITrack[],
+    title: string,
 }
 const MainSlider = (props: IProps) => {
-    console.log(">>> check data: ", props.data)
+    // console.log(">>> check data: ", props.data)
+    const { data, title } = props;
 
     const NextArrow = (props: any) => {
         return (
-            <Button variant="outlined" onClick={props.onClick}
+            <Button onClick={props.onClick}
+                color="inherit" variant="contained"
                 sx={{
                     position: "absolute",
                     right: 0,
-                    top: "50%",
+                    top: "25%",
                     zIndex: 2,
                     minWidth: 30,
                     width: 35,
@@ -34,11 +35,13 @@ const MainSlider = (props: IProps) => {
     }
     const PreArrow = (props: any) => {
         return (
-            <Button variant="outlined" onClick={props.onClick}
+            <Button
+                color="inherit" variant="contained"
+                onClick={props.onClick}
                 sx={{
                     position: "absolute",
                     left: 0,
-                    top: "50%",
+                    top: "25%",
                     zIndex: 2,
                     minWidth: 30,
                     width: 35,
@@ -55,6 +58,7 @@ const MainSlider = (props: IProps) => {
         speed: 500,
         slidesToShow: 5,
         slidesToScroll: 1,
+        vertical: false,
         nextArrow: <NextArrow />,
         prevArrow: <PreArrow />
 
@@ -62,60 +66,58 @@ const MainSlider = (props: IProps) => {
     return (
         <Box sx={{
             margin: "0 50px",
-            ".abc": {
-                padding: "0 10px"
+
+            ".slick-slider": {
+                display: "block"
             },
-            "h3": {
-                border: "1px solid #ccc",
-                padding: "20px",
-                height: "200px",
+
+            ".slick-track": {
+                display: "flex"
+            },
+
+            ".slick-slide": {
+                display: "flex",
+                justifyContent: "center"
+            },
+
+            ".track": {
+                padding: "0 10px",
+                textAlign: "center"
+            },
+
+            ".img": {
+                height: 150,
+                width: 150,
+                objectFit: "cover"
             }
         }}>
             <h2>Multiple tracks</h2>
             <div>
                 <Slider {...settings}>
-                    <div className="abc">
-                        <h3>Track 1</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 2</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 3</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 4</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 5</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 6</h3>
-                    </div>
+                    {data.map(track => {
+                        return (
+                            <div className="track" key={track.id}>
+                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/images/img-tracks/${track.imgUrl}`} />
+                                <h4>{track.title}</h4>
+                                <h5>{track.description}</h5>
+                            </div>
+                        )
+                    })}
                 </Slider>
                 <Divider />
             </div>
             <h2>Trending</h2>
             <div>
                 <Slider {...settings}>
-                    <div className="abc">
-                        <h3>Track 1</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 2</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 3</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 4</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 5</h3>
-                    </div>
-                    <div className="abc">
-                        <h3>Track 6</h3>
-                    </div>
+                    {data.map(track => {
+                        return (
+                            <div className="track" key={track.id}>
+                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/images/img-tracks/${track.imgUrl}`} />
+                                <h4>{track.title}</h4>
+                                <h5>{track.description}</h5>
+                            </div>
+                        )
+                    })}
                 </Slider>
                 <Divider />
             </div>
