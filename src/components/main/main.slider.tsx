@@ -7,6 +7,7 @@ import "slick-carousel/slick/slick-theme.css";
 import { Box, Button, Divider } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import Link from "next/link";
 interface IProps {
     data: ITrack[],
     title: string,
@@ -98,8 +99,10 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/images/img-tracks/${track.imgUrl}`} />
-                                <h4>{track.title}</h4>
-                                <h5>{track.description}</h5>
+                                <Link href={`/track/${track.id}`}>
+                                    <h4>{track.title}</h4>
+
+                                </Link>                                <h5>{track.description}</h5>
                             </div>
                         )
                     })}
@@ -114,6 +117,24 @@ const MainSlider = (props: IProps) => {
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/images/img-tracks/${track.imgUrl}`} />
                                 <h4>{track.title}</h4>
+                                <h5>{track.description}</h5>
+                            </div>
+                        )
+                    })}
+                </Slider>
+                <Divider />
+            </div>
+            <h2>POP</h2>
+            <div>
+                <Slider {...settings}>
+                    {data.map(track => {
+                        return (
+                            <div className="track" key={track.id}>
+                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/images/img-tracks/${track.imgUrl}`} />
+                                <Link href={`/track/${track.id}`}>
+                                    <h4>{track.title}</h4>
+
+                                </Link>
                                 <h5>{track.description}</h5>
                             </div>
                         )
