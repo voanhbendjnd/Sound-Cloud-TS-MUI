@@ -1,39 +1,54 @@
-'use client'
-import { useWaveSurfer } from "@/utils/customerHook";
+"use client";
+
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useMemo } from "react";
-import WaveSurfer from "wavesurfer.js";
-import { WaveSurferOptions } from "wavesurfer.js";
+import { useWaveSurfer } from "@/utils/customerHook";
 
 const WaveTrack = () => {
-    const searchParams = useSearchParams();
-    const fileName = searchParams.get('audio');
-    const containerRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const fileName = searchParams.get("audio");
+  const containerRef = useRef<HTMLDivElement>(null);
 
-    const optionsMemo = useMemo(() => ({
-        waveColor: 'rgb(175, 169, 175)',
-        progressColor: 'rgb(85, 83, 85)',
-        url: fileName ? `/api?audio=${fileName}` : '',
-    }), [fileName]);
+  const optionsMemo = useMemo(
+    () => ({
+      waveColor: "rgb(175, 169, 175)",
+      progressColor: "rgb(85, 83, 85)",
+      url: fileName ? `/api?audio=${fileName}` : "",
+    }),
+    [fileName]
+  );
 
-    const waveSurfer = useWaveSurfer(containerRef, optionsMemo);
+  const waveSurfer = useWaveSurfer(containerRef, optionsMemo);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-    const handlePlayPause = () => {
-        if (waveSurfer) waveSurfer.playPause();
+  useEffect(() => {
+    if (!waveSurfer) return;
+
+    setIsPlaying(false);
+
+    const subscriptions = [
+      waveSurfer.on("play", () => setIsPlaying(true)),
+      waveSurfer.on("pause", () => setIsPlaying(false)),
+    ];
+    return () => {
+      subscriptions.forEach((unsub) => unsub());
     };
+  }, [waveSurfer]);
+  const onPlayClick = useCallback(() => {
+    if (!waveSurfer) return;
+    waveSurfer.isPlaying() ? waveSurfer.pause() : waveSurfer.play();
+  }, [waveSurfer]);
 
-    return (
-        <div>
-        <div ref= { containerRef } style = {{ minHeight: '128px' }
-} />
-    < button
-onClick = { handlePlayPause }
-className = "mt-4 px-4 py-2 bg-purple-600 text-white rounded"
-    >
-    Play / Pause
-    </button>
+  return (
+    <div>
+      <div ref={containerRef}>
+        Wave Track
+      </div>
+      <button onClick={onPlayClick}>
+        {isPlaying ? "Pause" : "Play"}
+      </button>
     </div>
-    )
-}
+  );
+};
 
 export default WaveTrack;
