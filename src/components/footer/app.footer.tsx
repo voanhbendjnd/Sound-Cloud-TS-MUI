@@ -1,5 +1,5 @@
 'use client'
-import { useHasMounted } from "@/utils/customerHook";
+import { useHasMounted } from "@/utils/customHook";
 import { AppBar, Container } from "@mui/material";
 import AudioPlayer from 'react-h5-audio-player';
 // @ts-expect-error - slick-carousel lacks type declarations
