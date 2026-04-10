@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation';
+import { useWaveSurfer } from "@/utils/customHook";
 import { WaveSurferOptions } from 'wavesurfer.js';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
 import './wave.scss';
-import {useWaveSurfer} from "@/utils/customHook";
+import {Tooltip} from "@mui/material";
 
 const WaveTrack = () => {
     const searchParams = useSearchParams()
@@ -54,8 +57,8 @@ const WaveTrack = () => {
     // Initialize wavesurfer when the container mounts
     // or any of the props change
     useEffect(() => {
-        if (!wavesurfer) return
-        setIsPlaying(false)
+        if (!wavesurfer) return;
+        setIsPlaying(false);
 
         const hover = hoverRef.current!;
         const waveform = containerRef.current!;
@@ -70,6 +73,9 @@ const WaveTrack = () => {
             wavesurfer.on('timeupdate', (currentTime) => {
                 setTime(formatTime(currentTime));
             }),
+            wavesurfer.once('interaction', () => {
+                wavesurfer.play()
+            })
         ]
 
         return () => {
@@ -90,29 +96,131 @@ const WaveTrack = () => {
         const paddedSeconds = `0${secondsRemainder}`.slice(-2)
         return `${minutes}:${paddedSeconds}`
     }
+    const arrComments = [
+        {
+            id: 1,
+            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
+            moment: 10,
+            user: "username 1",
+            content: "just a comment1"
+        },
+        {
+            id: 2,
+            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
+            moment: 30,
+            user: "username 2",
+            content: "just a comment3"
+        },
+        {
+            id: 3,
+            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
+            moment: 50,
+            user: "username 3",
+            content: "just a comment3"
+        },
+    ]
+    const calculateLeft =(moment: number)=>{
+        const hardCodeDuration = 312;
+        const percent = (moment/hardCodeDuration) * 100;
+        return `${percent}%`
+    }
 
     return (
-        <div style={{ marginTop: 100 }}>
-            <div ref={containerRef} className="wave-form-container">
-                <div className="time" >{time}</div>
-                <div className="duration" >{duration}</div>
-                <div ref={hoverRef} className="hover-wave"></div>
-                <div className="overlay"
+        <div style={{ marginTop: 20 }}>
+            <div
+                className="wave-background">
+                <div className="left">
+                    <div className="info" style={{ display: "flex" }}>
+                        <div>
+                            <div className="wave-button"
+                                onClick={() => onPlayClick()}>
+                                {isPlaying === true ?
+                                    <PauseIcon
+                                        sx={{ fontSize: 30, color: "white" }}
+                                    />
+                                    :
+                                    <PlayArrowIcon
+                                        sx={{ fontSize: 30, color: "white" }}
+                                    />
+                                }
+                            </div>
+                        </div>
+                        <div style={{ marginLeft: 20 }}>
+                            <div style={{
+                                padding: "0 5px",
+                                background: "#333",
+                                fontSize: 30,
+                                width: "fit-content",
+                                color: "white"
+                            }}>
+                                Spring song
+                            </div>
+                            <div style={{
+                                padding: "0 5px",
+                                marginTop: 10,
+                                background: "#333",
+                                fontSize: 20,
+                                width: "fit-content",
+                                color: "white"
+                            }}
+                            >
+                                Next js
+                            </div>
+                        </div>
+                    </div>
+                    <div ref={containerRef} className="wave-form-container">
+                        <div className="time" >{time}</div>
+                        <div className="duration" >{duration}</div>
+                        <div ref={hoverRef} className="hover-wave"></div>
+                        <div className="overlay"
+                             style={{
+                                 position: "absolute",
+                                 height: "30px",
+                                 width: "100%",
+                                 bottom: "0",
+                                 // background: "#ccc"
+                                 backdropFilter: "brightness(0.5)"
+                             }}
+                        ></div>
+                        <div className="comments" >
+                            {
+                                arrComments.map(it =>{
+                                    return (
+                                        <Tooltip title={it.content} arrow>
+                                            <img src={it.avatar} alt={it.avatar} key={it.id}
+                                                 onPointerMove={(e)=>{
+                                                     const hover = hoverRef.current!;
+                                                     hover.style.width= calculateLeft(it.moment)
+                                                 }}
+                                                 style={{left:calculateLeft(it.moment)}}
+                                            />
+                                        </Tooltip>
+
+                                    )
+                                })
+                            }
+                            {/*<img src={`http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`}  alt={`http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`}/>*/}
+                        </div>
+
+                    </div>
+                </div>
+                <div className="right"
                      style={{
-                         position: "absolute",
-                         height: "30px",
-                         width: "100%",
-                         bottom: "0",
-                         background: "#ccc"
+                         width: "25%",
+                         padding: 15,
+                         display: "flex",
+                         alignItems: "center"
                      }}
-                ></div>
-
+                >
+                    <div style={{
+                        background: "#ccc",
+                        width: 250,
+                        height: 250
+                    }}>
+                    </div>
+                </div>
             </div>
-            <button onClick={() => onPlayClick()}>
-                {isPlaying === true ? "Pause" : "Play"}
-            </button>
-        </div>
-
+        </div >
     )
 }
 
