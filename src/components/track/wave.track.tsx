@@ -3,20 +3,21 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWaveSurfer } from "@/utils/customerHook";
+import {WaveSurferOptions} from "wavesurfer.js";
 
 const WaveTrack = () => {
   const searchParams = useSearchParams();
   const fileName = searchParams.get("audio");
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const optionsMemo = useMemo(
-    () => ({
-      waveColor: "rgb(175, 169, 175)",
-      progressColor: "rgb(85, 83, 85)",
-      url: fileName ? `/api?audio=${fileName}` : "",
-    }),
-    [fileName]
-  );
+  const optionsMemo = useMemo(():Omit<WaveSurferOptions, 'container'> => {
+      return {
+          waveColor: "rgb(175, 169, 175)",
+          progressColor: "rgb(85, 83, 85)",
+          url: `/api?audio=${fileName}`,
+          barWidth: 2
+      }
+    }, [fileName]);
 
   const waveSurfer = useWaveSurfer(containerRef, optionsMemo);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
