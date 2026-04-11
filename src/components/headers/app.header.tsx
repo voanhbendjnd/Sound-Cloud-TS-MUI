@@ -15,9 +15,10 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { Avatar, Container } from '@mui/material';
+import { Avatar, Container, Button } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useSession, signIn, signOut } from "next-auth/react";
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -58,6 +59,7 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 const AppHeader = () => {
+    const { data: session } = useSession();
     const router = useRouter();
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const pages = [
@@ -124,15 +126,11 @@ const AppHeader = () => {
                 </Link>
             </MenuItem>
 
-            <MenuItem >
-                <Link href="/logout"
-                    style={{
-                        textDecoration: 'none',
-                        color: 'unset',
-                    }}
-                >
-                    My account
-                </Link>
+            <MenuItem onClick={() => {
+                signOut();
+                handleMenuClose();
+            }}>
+                Logout
             </MenuItem>
         </Menu>
     );
@@ -219,34 +217,41 @@ const AppHeader = () => {
                                 />
                             </Search>
                             <Box sx={{ flexGrow: 1 }} />
-                            <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px" }}>
                                 {pages.map((page) => (
-                                    <MenuItem key={page.title} onClick={handleCloseNavMenu}>
-                                        <Link href={page.path}
-                                            style={{
-                                                textDecoration: 'none',
-                                                color: 'inherit',
-                                                display: 'block'
-                                            }}
-                                        >
-                                            <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
-                                        </Link>
-                                    </MenuItem>
+                                    <Link key={page.title} href={page.path}
+                                        style={{
+                                            textDecoration: 'none',
+                                            color: 'inherit',
+                                            display: 'block'
+                                        }}
+                                    >
+                                        <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
+                                    </Link>
                                 ))}
-                                <Avatar
-                                    onClick={handleProfileMenuOpen}
 
-                                >B</Avatar>
-                                {/* <IconButton
-                                    size="large"
-                                    edge="end"
-                                    aria-label="account of current user"
-                                    aria-controls={menuId}
-                                    aria-haspopup="true"
-                                    color="inherit"
-                                >
-                                    <AccountCircle />
-                                </IconButton> */}
+                                {session ?
+                                    <Avatar
+                                        onClick={handleProfileMenuOpen}
+                                        sx={{ cursor: "pointer" }}
+                                    >
+                                        {session.user?.name?.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                    :
+                                    <Button>
+                                        <Link href={"/api/auth/signin"}>
+                                            Login
+                                        </Link>
+                                    </Button>
+
+                                    // <Button
+                                    //     variant="contained"
+                                    //     sx={{ bgcolor: '#f50', '&:hover': { bgcolor: '#e40' } }}
+                                    //     onClick={() => signIn("github")}
+                                    // >
+                                    //     Login with GitHub
+                                    // </Button>
+                                }
                             </Box>
                             <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
                                 <IconButton

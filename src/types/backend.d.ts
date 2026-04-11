@@ -24,6 +24,17 @@ declare global{
         },
         result: T[]
     }
+
+    interface ILoginRes {
+        accessToken: string;
+        refreshToken: string;
+        user: {
+            id: string;
+            email: string;
+            name: string;
+            role: string;
+        }
+    }
     interface ITrack{
         "id": string;
         "title": string;
