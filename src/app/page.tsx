@@ -3,6 +3,8 @@ import { Container } from '@mui/material';
 import * as React from 'react';
 // import { sendRequestJS } from './../utils/old.api';
 import { sendRequest } from '@/utils/api';
+import {getServerSession} from "next-auth";
+import {authOption} from "@/app/api/auth/[...nextauth]/route";
 export default async function HomePage() {
   // const res = await fetch("http://localhost:8080/api/v1/tracks", {
   //   method: "GET",
@@ -16,6 +18,8 @@ export default async function HomePage() {
   //   // })
   // })
   // console.log("Check data server: ", await res.json());
+  const session = await getServerSession(authOption);
+  console.log('>>> Session', session);
   interface IUser {
     name: String;
     age: number;

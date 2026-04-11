@@ -33,6 +33,9 @@ declare global{
             email: string;
             name: string;
             role: string;
+            avatar: string;
+            type:string;
+            username: string;
         }
     }
     interface ITrack{

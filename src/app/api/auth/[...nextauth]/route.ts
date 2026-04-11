@@ -32,6 +32,7 @@ export const authOption: AuthOptions = {
                 })
                 if (res.data) {
                     token.accessToken = res.data.accessToken;
+
                     token.user = res.data.user;
                 }
             }
