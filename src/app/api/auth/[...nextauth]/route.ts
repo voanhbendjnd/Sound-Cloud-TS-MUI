@@ -20,19 +20,16 @@ export const authOption: AuthOptions = {
         async jwt({ token, user, account, profile, trigger }) {
             if (trigger === "signIn" && account?.provider === "github") {
                 const res = await sendRequest<IBackendRes<ILoginRes>>({
-                    url: "http://localhost:8080/api/v1/auth/github-login",
+                    url: "http://localhost:8080/api/v1/auth/social-login",
                     method: "POST",
                     body: {
                         accessToken: account.access_token,
-                        // email: user.email,
-                        // name: user.name,
                         type: "GITHUB",
-                        // avatar: user.image
                     }
                 })
                 if (res.data) {
-                    token.accessToken = res.data.accessToken;
-
+                    token.access_token = res.data.accessToken;
+                    token.refresh_token = res.data.refreshToken;
                     token.user = res.data.user;
                 }
             }
@@ -40,8 +37,9 @@ export const authOption: AuthOptions = {
         },
         session({ session, token, user }) {
             if (token) {
-                session.access_token = token.accessToken;
-                session.user = token.user as any;
+                session.user = token.user;
+                session.access_token = token.access_token;
+                session.refresh_token = token.refresh_token;
             }
             return session;
         }
