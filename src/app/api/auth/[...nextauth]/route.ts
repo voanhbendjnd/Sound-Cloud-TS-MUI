@@ -4,7 +4,7 @@ import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials";
 
-export const authOption: AuthOptions = {
+export const authOptions: AuthOptions = {
     secret: process.env.NO_SECRET,
     providers: [
         CredentialsProvider({
@@ -79,7 +79,10 @@ export const authOption: AuthOptions = {
             }
             return session;
         }
-    }
+    },
+    // pages:{
+    //     signIn: "/auth/signIn"
+    // }
 }
-const handler = NextAuth(authOption)
+const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST }

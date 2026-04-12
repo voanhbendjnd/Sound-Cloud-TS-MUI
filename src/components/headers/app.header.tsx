@@ -238,7 +238,7 @@ const AppHeader = () => {
                                         {session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>
                                     :
-                                        <Link href={"#"} onClick={()=>{signIn()}}>
+                                        <Link href="/auth/signin">
                                             Login
                                         </Link>
 
