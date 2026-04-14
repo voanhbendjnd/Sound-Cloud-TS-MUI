@@ -27,6 +27,9 @@ export default async function HomePage() {
   const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
     url: "http://localhost:8080/api/v1/tracks",
     method: "GET",
+    nextOption: {
+      cache: 'no-store'
+    }
   });
   console.log(">>> Check response new year: ", res.data?.result)
   return (

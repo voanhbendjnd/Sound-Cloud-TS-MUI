@@ -1,5 +1,5 @@
 'use client'
-import { Avatar, Box, Button, Divider, Grid, TextField, Typography } from "@mui/material";
+import {Alert, Avatar, Box, Button, Divider, Grid, Snackbar, TextField, Typography} from "@mui/material";
 import LockIcon from '@mui/icons-material/Lock';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -22,7 +22,8 @@ const AuthSignIn = (props: any) => {
 
     const [isErrorUsername, setIsErrorUsername] = useState<boolean>(false);
     const [isErrorPassword, setIsErrorPassword] = useState<boolean>(false);
-
+    const [openMessage, setOpenMessage] = useState<boolean>(false);
+    const [resMessage, setResMessage] = useState<string>("");
     const [errorUsername, setErrorUsername] = useState<string>("");
     const [errorPassword, setErrorPassword] = useState<string>("");
 
@@ -52,7 +53,8 @@ const AuthSignIn = (props: any) => {
            router.push("/")
         }
         else{
-            alert(res.error)
+            setOpenMessage(true)
+            setResMessage(res.error);
         }
     }
 
@@ -126,7 +128,11 @@ const AuthSignIn = (props: any) => {
                             type={showPassword ? "text" : "password"}
                             error={isErrorPassword}
                             helperText={errorPassword}
-
+                            onKeyDown={(e)=>{
+                                if(e.key === "Enter"){
+                                    handleSubmit()
+                                }
+                            }}
                             InputProps={{
                                 endAdornment: <InputAdornment position="end">
                                     <IconButton onClick={() => setShowPassword(!showPassword)}>
@@ -183,7 +189,20 @@ const AuthSignIn = (props: any) => {
                     </div>
                 </Grid>
             </Grid>
+                <Snackbar
+                open={openMessage}
+                // autoHideDuration={6000}
+                anchorOrigin={{vertical: "top", horizontal: "center"}}
+                >
+                    <Alert
+                        onClose={()=>{
+                            setOpenMessage(false)
+                        }}
+                        severity="warning">
+                        {resMessage}
+                    </Alert>
 
+                </Snackbar>
         </Box>
 
     )

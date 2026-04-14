@@ -65,7 +65,8 @@ const AppHeader = () => {
     const pages = [
         { title: 'Playlists', path: '/playlist' },
         { title: "Like", path: '/like' },
-        { title: 'Upload', path: "/upload" }
+        { title: 'Upload', path: "/upload" },
+        { title: 'Dashboard', path: "/dashboard/user" }
     ];
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
@@ -115,6 +116,16 @@ const AppHeader = () => {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
+            {session?.user.role === 'SUPER_ADMIN' ?
+                <MenuItem>
+                    <Link href="/dashboard/user" style={{                        textDecoration: 'none',
+                        color: 'unset',}}>
+                        Admin
+                    </Link>
+                </MenuItem>
+                :
+                null
+            }
             <MenuItem>
                 <Link href="/profile"
                     style={{
@@ -238,7 +249,8 @@ const AppHeader = () => {
                                         {session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>
                                     :
-                                        <Link href="/auth/signin">
+                                        <Link href="/auth/signin" style={{                        textDecoration: 'none',
+                                            color: 'unset',}}>
                                             Login
                                         </Link>
 
