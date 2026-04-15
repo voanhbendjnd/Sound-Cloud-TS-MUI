@@ -3,6 +3,7 @@ import { Container } from '@mui/material';
 import * as React from 'react';
 // import { sendRequestJS } from './../utils/old.api';
 import { sendRequest } from '@/utils/api';
+import '@/styles/app.css'
 import {getServerSession} from "next-auth";
 // import {authOptions} from "@/app/api/auth/[...nextauth]/route";
 export default async function HomePage() {
@@ -33,7 +34,7 @@ export default async function HomePage() {
   });
   console.log(">>> Check response new year: ", res.data?.result)
   return (
-    <div>
+    <div style={{ backgroundColor: '#212121' ,paddingTop:50}}>
       <Container>
         <MainSlider
           title="Trending"

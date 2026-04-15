@@ -5,6 +5,8 @@ export const trackKeys = {
     all: ['tracks'] as const,
     lists: () => [...trackKeys.all, 'list'] as const,
     list: (filters: any) => [...trackKeys.lists(), filters] as const,
+    userLists: (userId: string | number) => [...trackKeys.all, 'user', userId] as const,
+    userList: (userId: string | number, filters: any) => [...trackKeys.userLists(userId), filters] as const,
     details: () => [...trackKeys.all, 'detail'] as const,
     detail: (id: string | number) => [...trackKeys.details(), id] as const,
 };
@@ -24,13 +26,31 @@ export const useTracks = (params: { current: number; pageSize: number; filter?: 
             return axiosInstance.get<any, IBackendRes<IModelPaginate<ITrack>>>(`/api/v1/tracks?${queryParams.toString()}`);
         },
     });
-};
+}
+
 
 export const useTrack = (id: string | number | null) => {
     return useQuery({
         queryKey: trackKeys.detail(id!),
         queryFn: () => axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${id}`),
         enabled: !!id,
+    });
+};
+
+export const useUserTracks = (userId: string | number, params: { current: number; pageSize: number; filter?: string; sort?: string }) => {
+    return useQuery({
+        queryKey: trackKeys.userList(userId, params),
+        queryFn: async () => {
+            const { current, pageSize, filter, sort } = params;
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', current.toString());
+            queryParams.append('size', pageSize.toString());
+            if (filter) queryParams.append('filter', filter);
+            if (sort) queryParams.append('sort', sort);
+
+            return axiosInstance.get<any, IBackendRes<IModelPaginate<ITrack>>>(`/api/v1/tracks/users/${userId}?${queryParams.toString()}`);
+        },
+        enabled: !!userId,
     });
 };
 

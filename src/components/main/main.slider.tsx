@@ -8,6 +8,7 @@ import { Box, Button, Divider } from "@mui/material";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Link from "next/link";
+import './home.css'
 interface IProps {
     data: ITrack[],
     title: string,
@@ -18,8 +19,7 @@ const MainSlider = (props: IProps) => {
 
     const NextArrow = (props: any) => {
         return (
-            <Button onClick={props.onClick}
-                color="inherit" variant="contained"
+            <Button onClick={props.onClick} variant="contained"
                 sx={{
                     position: "absolute",
                     right: 0,
@@ -27,6 +27,7 @@ const MainSlider = (props: IProps) => {
                     zIndex: 2,
                     minWidth: 30,
                     width: 35,
+                    backgroundColor: "#282828",
                 }}
             >
                 <ChevronRightIcon />
@@ -37,7 +38,7 @@ const MainSlider = (props: IProps) => {
     const PreArrow = (props: any) => {
         return (
             <Button
-                color="inherit" variant="contained"
+                variant="contained"
                 onClick={props.onClick}
                 sx={{
                     position: "absolute",
@@ -46,6 +47,8 @@ const MainSlider = (props: IProps) => {
                     zIndex: 2,
                     minWidth: 30,
                     width: 35,
+                    backgroundColor: "#282828",
+
                 }}
             >
                 <ChevronLeftIcon />
@@ -66,6 +69,7 @@ const MainSlider = (props: IProps) => {
     };
     return (
         <Box sx={{
+           backgroundColor: '#212121',
             margin: "0 50px",
 
             ".slick-slider": {
@@ -99,7 +103,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}?audio=${track.trackUrl}`}>
+                                <Link href={`/track/${track.id}?audio=${track.trackUrl}`} style={{textDecoration: 'none'}}>
                                     <h4>{track.title}</h4>
 
                                 </Link>
@@ -117,7 +121,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}`}>
+                                <Link href={`/track/${track.id}`}style={{textDecoration: 'none'}}>
                                     <h4>{track.title}</h4>
 
                                 </Link>                                <h5>{track.description}</h5>
@@ -134,7 +138,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}`}>
+                                <Link href={`/track/${track.id}`} style={{textDecoration: 'none'}}>
                                     <h4>{track.title}</h4>
 
                                 </Link>

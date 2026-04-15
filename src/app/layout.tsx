@@ -9,6 +9,7 @@ import NextAuthWrapper from '@/lib/next.auth.wrapper';
 import QueryProvider from '@/lib/query.provider';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import {TrackContextProvider} from "@/lib/track.wrapper";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -17,19 +18,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ThemeRegistry>
                     <NextAuthWrapper>
                         <QueryProvider>
-                            {children}
-                            <ToastContainer
-                                position="top-right"
-                                autoClose={5000}
-                                hideProgressBar={false}
-                                newestOnTop={false}
-                                closeOnClick
-                                rtl={false}
-                                pauseOnFocusLoss
-                                draggable
-                                pauseOnHover
-                                theme="light"
-                            />
+                            <TrackContextProvider>
+                                {children}
+                                <ToastContainer
+                                    position="top-right"
+                                    autoClose={5000}
+                                    hideProgressBar={false}
+                                    newestOnTop={false}
+                                    closeOnClick
+                                    rtl={false}
+                                    pauseOnFocusLoss
+                                    draggable
+                                    pauseOnHover
+                                    theme="light"
+                                />
+                            </TrackContextProvider>
                         </QueryProvider>
                     </NextAuthWrapper>
                 </ThemeRegistry>

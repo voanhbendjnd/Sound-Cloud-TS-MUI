@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
+import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -17,8 +18,8 @@ const WaveTrack = () => {
 
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
-
-
+    const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
+    const isMatched = currentTrack.trackUrl === fileName;
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient, progressGradient;
         if (typeof window !== "undefined") {
@@ -52,43 +53,97 @@ const WaveTrack = () => {
         }
     }, []);
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
-
-    // Initialize wavesurfer when the container mounts
-    // or any of the props change
+    // Sync play/pause from global state
     useEffect(() => {
         if (!wavesurfer) return;
-        setIsPlaying(false);
+        wavesurfer.setVolume(0);
 
         const hover = hoverRef.current!;
         const waveform = containerRef.current!;
-        waveform.addEventListener('pointermove', (e) => (hover.style.width = `${e.offsetX}px`))
+        const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
+        waveform.addEventListener('pointermove', handlePointerMove);
 
         const subscriptions = [
-            wavesurfer.on('play', () => setIsPlaying(true)),
-            wavesurfer.on('pause', () => setIsPlaying(false)),
-            wavesurfer.on('decode', (duration) => {
-                setDuration(formatTime(duration));
-            }),
-            wavesurfer.on('timeupdate', (currentTime) => {
-                setTime(formatTime(currentTime));
-            }),
-            wavesurfer.once('interaction', () => {
-                wavesurfer.play()
+            wavesurfer.on('decode', (d) => setDuration(formatTime(d))),
+            wavesurfer.on('interaction', (newTime) => {
+                if (isMatched && audioRef.current) {
+                    audioRef.current.currentTime = newTime;
+                    savedTimes.current[fileName || ''] = newTime;
+                    audioRef.current.play();
+                }
             })
-        ]
+        ];
 
         return () => {
-            subscriptions.forEach((unsub) => unsub())
-        }
-    }, [wavesurfer])
+            waveform.removeEventListener('pointermove', handlePointerMove);
+            subscriptions.forEach((unsub) => unsub());
+        };
+    }, [wavesurfer, isMatched, audioRef, fileName, savedTimes]);
 
-    // On play button click
+    // Visually sync wavesurfer with global audio play progress
+    useEffect(() => {
+        if (!wavesurfer || !isMatched || !audioRef.current) return;
+        
+        const syncWavesurfer = () => {
+            if (audioRef.current) {
+                const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
+                if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
+                setTime(formatTime(audioRef.current.currentTime));
+            }
+        };
+
+        const audioEl = audioRef.current;
+        audioEl.addEventListener('timeupdate', syncWavesurfer);
+        audioEl.addEventListener('seeked', syncWavesurfer);
+
+        // Initial sync
+        syncWavesurfer();
+
+        return () => {
+            audioEl.removeEventListener('timeupdate', syncWavesurfer);
+            audioEl.removeEventListener('seeked', syncWavesurfer);
+        };
+    }, [wavesurfer, isMatched, audioRef]);
+
     const onPlayClick = useCallback(() => {
-        if (wavesurfer) {
-            wavesurfer.isPlaying() ? wavesurfer.pause() : wavesurfer.play();
+        if (isMatched) {
+            // Toggle
+            const willPlay = !currentTrack.isPlaying;
+            setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
+            if (willPlay && audioRef.current) {
+                audioRef.current.play();
+            } else if (!willPlay && audioRef.current) {
+                audioRef.current.pause();
+                savedTimes.current[fileName || ''] = audioRef.current.currentTime;
+            }
+        } else {
+            // Save old track's time
+            if (currentTrack.trackUrl && audioRef.current) {
+                savedTimes.current[currentTrack.trackUrl] = audioRef.current.currentTime;
+            }
+
+            // Start new track (mock track object for footer)
+            setCurrentTrack({
+                id: fileName, // mock fallback
+                trackUrl: fileName,
+                title: "Unknown", // Can be fetched
+                uploader: { name: "Unknown" },
+                isPlaying: true
+            } as any);
+
+            // Wait for audio ready to restore saved playback time
+            if (audioRef.current) {
+                const onLoadedData = () => {
+                    const savedTime = savedTimes.current[fileName || ''] || 0;
+                    audioRef.current!.currentTime = savedTime;
+                    wavesurfer?.setTime(savedTime);
+                    audioRef.current!.play();
+                    audioRef.current!.removeEventListener('loadeddata', onLoadedData);
+                }
+                audioRef.current.addEventListener('loadeddata', onLoadedData);
+            }
         }
-    }, [wavesurfer]);
+    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
@@ -134,7 +189,7 @@ const WaveTrack = () => {
                         <div>
                             <div className="wave-button"
                                 onClick={() => onPlayClick()}>
-                                {isPlaying === true ?
+                                {currentTrack.isPlaying && isMatched ?
                                     <PauseIcon
                                         sx={{ fontSize: 30, color: "white" }}
                                     />

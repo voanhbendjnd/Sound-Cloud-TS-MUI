@@ -45,8 +45,8 @@ declare global{
         "category": string;
         "imgUrl": string;
         "trackUrl": string;
-        "countLike": string;
-        "countPlay": string;
+        "countLike": number;
+        "countPlay": number;
         "uploader": {
             "id": string;
             "email": string;
@@ -97,5 +97,14 @@ declare global{
             password:string;
             confirm_password:string;
         }
+    }
+    interface ITrackContext{
+        currentTrack: IShareTrack;
+        setCurrentTrack: (track: IShareTrack) => void;
+        audioRef: React.MutableRefObject<HTMLAudioElement | null>;
+        savedTimes: React.MutableRefObject<Record<string, number>>;
+    }
+    interface IShareTrack extends ITrack{
+        isPlaying: boolean;
     }
 }

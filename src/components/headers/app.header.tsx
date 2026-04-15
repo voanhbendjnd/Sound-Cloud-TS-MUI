@@ -118,7 +118,8 @@ const AppHeader = () => {
         >
             {session?.user.role === 'SUPER_ADMIN' ?
                 <MenuItem>
-                    <Link href="/dashboard/user" style={{                        textDecoration: 'none',
+                    <Link href="/dashboard/user" style={{
+                        textDecoration: 'none',
                         color: 'unset',}}>
                         Admin
                     </Link>
@@ -127,7 +128,7 @@ const AppHeader = () => {
                 null
             }
             <MenuItem>
-                <Link href="/profile"
+                <Link href={`/profile/${session?.user.id}`}
                     style={{
                         textDecoration: 'none',
                         color: 'unset',
@@ -201,7 +202,7 @@ const AppHeader = () => {
         <div>
             <Box sx={{ flexGrow: 1 }}>
 
-                <AppBar position="static" sx={{ bgcolor: 'gray' }}>
+                <AppBar position="static" sx={{ backgroundColor: '#030303' }}>
                     <Container>
                         <Toolbar>
                             <Typography
