@@ -6,6 +6,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import FirstTabs from "@/components/track/steps/first.tab";
+import SecondTabs from "@/components/track/steps/second.tab";
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -36,6 +37,7 @@ function a11yProps(index: number) {
 
 const UploadTabs = () => {
     const [value, setValue] = React.useState(0);
+    const [trackAudio, setTrackAudio] = React.useState<File | null>(null);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
@@ -45,15 +47,15 @@ const UploadTabs = () => {
         <Box sx={{ width: '100%', border:"1px solid #ccc", mt:5 }}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-                    <Tab label="Tracks" {...a11yProps(0)} />
-                    <Tab label="Basic information" {...a11yProps(1)} />
+                    <Tab label="Tracks" {...a11yProps(0)} disabled={value !== 0} />
+                    <Tab label="Basic information" {...a11yProps(1)} disabled={value !== 1} />
                 </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>
-                <FirstTabs/>
+                <FirstTabs setValue={setValue} setTrackAudio={setTrackAudio} trackAudio={trackAudio} />
             </CustomTabPanel>
             <CustomTabPanel value={value} index={1}>
-                Item Two
+                <SecondTabs setValue={setValue} trackAudio={trackAudio} setTrackAudio={setTrackAudio} />
             </CustomTabPanel>
         </Box>
     );

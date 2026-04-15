@@ -8,7 +8,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { useCreateTrack, useUpdateTrack } from '@/hooks/use-track';
+import {useCreateTrack, useCreateTrackByAdmin, useUpdateTrack} from '@/hooks/use-track';
 import { useAllCategories } from '@/hooks/use-category';
 import { toast } from 'react-toastify';
 
@@ -61,7 +61,7 @@ const TrackModal = (props: IProps) => {
         }
     }, [dataAllCategories, dataUpdate, setValue]);
 
-    const createTrackMutation = useCreateTrack();
+    const createTrackMutation = useCreateTrackByAdmin();
     const updateTrackMutation = useUpdateTrack();
 
     useEffect(() => {
@@ -115,7 +115,7 @@ const TrackModal = (props: IProps) => {
         formData.append('categoryId', data.categoryId.toString());
         
         if (imgFile) formData.append('img', imgFile);
-        if (trackFile) formData.append('track', trackFile);
+        if (trackFile) formData.append('trackUrl', trackFile);
 
         if (dataUpdate) {
             formData.append('id', dataUpdate.id.toString());

@@ -65,7 +65,7 @@ const AppHeader = () => {
     const pages = [
         { title: 'Playlists', path: '/playlist' },
         { title: "Like", path: '/like' },
-        { title: 'Upload', path: "/upload" },
+        { title: 'Upload', path: "/track/upload" },
         { title: 'Dashboard', path: "/dashboard/user" }
     ];
     const handleCloseNavMenu = () => {

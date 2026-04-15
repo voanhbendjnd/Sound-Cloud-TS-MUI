@@ -39,11 +39,34 @@ export const useCreateTrack = () => {
     return useMutation({
         mutationFn: (formData: FormData) => 
             axiosInstance.post('/api/v1/tracks', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
         },
+    });
+};
+export const useCreateTrackByAdmin = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (formData: FormData) =>
+            axiosInstance.post('/api/v1/tracks/admin', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+        },
+    });
+};
+
+
+export const useUploadTempTrack = (onUploadProgress?: (progressEvent: any) => void) => {
+    return useMutation({
+        mutationFn: (formData: FormData) => 
+            axiosInstance.post<any, string>('/api/v1/tracks/upload-temp', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress
+            }),
     });
 };
 

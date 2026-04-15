@@ -36,11 +36,26 @@ function InputFileUpload() {
         </Button>
     );
 }
-const FirstTabs = () => {
-    const onDrop= useCallback((acceptedFiles : FileWithPath[]) => {
+interface IProps {
+    setValue: (v: number) => void;
+    setTrackAudio: (v: File) => void;
+    trackAudio: File | null;
+}
 
-    }, [])
-    const {acceptedFiles, getRootProps, getInputProps} = useDropzone({onDrop});
+const FirstTabs = (props: IProps) => {
+    const {setValue, setTrackAudio} = props;
+    const onDrop = useCallback((acceptedFiles : FileWithPath[]) => {
+        if(acceptedFiles && acceptedFiles[0]){
+            setTrackAudio(acceptedFiles[0]);
+            setValue(1);
+        }
+    }, [setValue, setTrackAudio])
+    const {acceptedFiles, getRootProps, getInputProps} = useDropzone({
+        onDrop,
+        accept:{
+            'audio/*':['.mp3', '.m4a', '.wav']
+        }
+    });
     const files = acceptedFiles.map((file: FileWithPath) => (
         <li key={file.path}>
             {file.path} - {file.size} bytes
