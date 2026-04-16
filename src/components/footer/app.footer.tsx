@@ -56,9 +56,8 @@ const AppFooter = () => {
                             fontSize: '28px',
                         },
                         '& .rhap_play-pause-button': { 
-                            fontSize: '40px',
-                            color: 'black',
-                            backgroundColor: 'white',
+                            fontSize: '45px',
+                            color: 'white',
                             borderRadius: '50%',
                             width: '40px',
                             height: '40px',

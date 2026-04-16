@@ -1,8 +1,8 @@
-import {sendRequest} from "@/utils/api";
+import { sendRequest } from "@/utils/api";
 import ProfileTrack from "@/components/track/profile.track";
 import { Container, Typography, Box } from "@mui/material";
 
-const ProfilePage = async({params}:{params:{slug:string}}) => {
+const ProfilePage = async ({ params }: { params: { slug: string } }) => {
     // Send public API request
     const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
         url: `http://localhost:8080/api/v1/tracks/users/${params.slug}?page=1&size=20`,

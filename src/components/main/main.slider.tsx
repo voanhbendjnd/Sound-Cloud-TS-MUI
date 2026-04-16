@@ -69,7 +69,7 @@ const MainSlider = (props: IProps) => {
     };
     return (
         <Box sx={{
-           backgroundColor: '#212121',
+            backgroundColor: '#212121',
             margin: "0 50px",
 
             ".slick-slider": {
@@ -103,7 +103,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}?audio=${track.trackUrl}`} style={{textDecoration: 'none'}}>
+                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}&autoPlay=true`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>
@@ -121,7 +121,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}`}style={{textDecoration: 'none'}}>
+                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}&autoPlay=true`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>                                <h5>{track.description}</h5>
@@ -138,7 +138,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}`} style={{textDecoration: 'none'}}>
+                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}&autoPlay=true`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>

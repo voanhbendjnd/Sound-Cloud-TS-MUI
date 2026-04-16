@@ -84,6 +84,7 @@ export const authOptions: AuthOptions = {
                 session.user = token.user;
                 session.access_token = token.access_token;
                 session.refresh_token = token.refresh_token;
+                session.expires_in = token.access_expire;
                 session.error = token.error;
             }
             return session;

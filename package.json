@@ -20,6 +20,7 @@
     "dayjs": "^1.11.20",
     "next": "13.4.19",
     "next-auth": "4.23.1",
+    "node-vibrant": "^4.0.4",
     "query-string": "8.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

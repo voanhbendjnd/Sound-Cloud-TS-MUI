@@ -17,7 +17,8 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import {useTrackContext} from "@/lib/track.wrapper";
+import { useTrackContext } from "@/lib/track.wrapper";
+import Link from "next/link";
 
 dayjs.extend(relativeTime);
 
@@ -46,7 +47,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         return {
             waveColor: gradient || '#999',
             progressColor: '#f50',
-            height: 100,
+            height: 60,
             barWidth: 2,
             barGap: 1,
             barRadius: 2,
@@ -84,30 +85,46 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         };
     }, [wavesurfer, isMatched, audioRef, track.id, savedTimes]);
 
-    // Visually sync wavesurfer with global audio play progress
+    // Pause this wavesurfer when another track is playing
     useEffect(() => {
-        if (!wavesurfer || !isMatched || !audioRef.current) return;
-        
-        const syncWavesurfer = () => {
-            if (audioRef.current) {
-                const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
-                if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
-                setTime(formatTime(audioRef.current.currentTime));
+        if (!wavesurfer) return;
+
+        // If another track is playing and this is not the current track, pause this wavesurfer
+        if (currentTrack.trackUrl && currentTrack.isPlaying && !isMatched) {
+            wavesurfer.pause();
+        }
+
+        // If this track becomes the current one, sync and potentially play
+        if (isMatched && currentTrack.isPlaying) {
+            const syncWavesurfer = () => {
+                if (audioRef.current) {
+                    const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
+                    if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
+                    setTime(formatTime(audioRef.current.currentTime));
+                }
+            };
+
+            const audioEl = audioRef.current;
+            if (audioEl) {
+                audioEl.addEventListener('timeupdate', syncWavesurfer);
+                audioEl.addEventListener('seeked', syncWavesurfer);
+
+                // Initial sync in case it's already ahead
+                syncWavesurfer();
+
+                return () => {
+                    audioEl.removeEventListener('timeupdate', syncWavesurfer);
+                    audioEl.removeEventListener('seeked', syncWavesurfer);
+                };
             }
-        };
+            return () => { };
+        }
 
-        const audioEl = audioRef.current;
-        audioEl.addEventListener('timeupdate', syncWavesurfer);
-        audioEl.addEventListener('seeked', syncWavesurfer);
-
-        // Intial sync in case it's already ahead
-        syncWavesurfer();
-
-        return () => {
-            audioEl.removeEventListener('timeupdate', syncWavesurfer);
-            audioEl.removeEventListener('seeked', syncWavesurfer);
-        };
-    }, [wavesurfer, isMatched, audioRef]);
+        // If this track is paused and it's the current track, pause wavesurfer
+        if (isMatched && !currentTrack.isPlaying) {
+            wavesurfer.pause();
+        }
+    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef]);
 
     const onPlayClick = useCallback(() => {
         if (isMatched) {
@@ -116,30 +133,42 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
+                // Also play wavesurfer
+                if (wavesurfer) {
+                    wavesurfer.play();
+                }
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
+                // Also pause wavesurfer
+                if (wavesurfer) {
+                    wavesurfer.pause();
+                }
                 savedTimes.current[track.id] = audioRef.current.currentTime;
             }
         } else {
-            // Save old track's time
+            // Save old track's time if exists
             if (currentTrack.id && audioRef.current) {
                 savedTimes.current[currentTrack.id] = audioRef.current.currentTime;
             }
 
-            // Start new track
+            // Set current track first to ensure footer appears
             setCurrentTrack({ ...track, isPlaying: true } as any);
 
-            // Wait for audio ready to restore saved playback time
-            if (audioRef.current) {
-                const onLoadedData = () => {
-                    const savedTime = savedTimes.current[track.id] || 0;
-                    audioRef.current!.currentTime = savedTime;
-                    wavesurfer?.setTime(savedTime);
-                    audioRef.current!.play();
-                    audioRef.current!.removeEventListener('loadeddata', onLoadedData);
-                }
-                audioRef.current.addEventListener('loadeddata', onLoadedData);
+            // Play immediately using wavesurfer (don't wait for footer)
+            if (wavesurfer) {
+                const savedTime = savedTimes.current[track.id] || 0;
+                wavesurfer.setTime(savedTime);
+                wavesurfer.play();
             }
+
+            // Also setup footer audio when ready (async)
+            setTimeout(() => {
+                if (audioRef.current) {
+                    const savedTime = savedTimes.current[track.id] || 0;
+                    audioRef.current.currentTime = savedTime;
+                    audioRef.current.play().catch(e => console.log('Footer audio play failed:', e));
+                }
+            }, 100);
         }
     }, [isMatched, currentTrack, track, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
 
@@ -155,10 +184,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             {/* Left Image */}
             <Box sx={{ width: 160, height: 160, mr: 2, flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img 
-                    src={`http://localhost:8080/api/v1/files/img-tracks/${track.imgUrl}`} 
-                    alt={track.title} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                <img
+                    src={`http://localhost:8080/api/v1/files/img-tracks/${track.imgUrl}`}
+                    alt={track.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
             </Box>
 
@@ -188,9 +217,12 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             <Typography variant="body2" sx={{ color: '#ccc', mb: 0.5 }}>
                                 {track.uploader.name}
                             </Typography>
-                            <Typography variant="h6" sx={{ color: 'white', lineHeight: 1 }}>
-                                {track.title}
-                            </Typography>
+                            <Link style={{ textDecoration: "none" }} href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`}>
+                                <Typography variant="h6" sx={{ color: 'white', lineHeight: 1 }}>
+                                    {track.title}
+                                </Typography>
+                            </Link>
+
                         </Box>
                     </Box>
                     {/* Time Ago */}
@@ -202,17 +234,17 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 </Box>
 
                 {/* Waveform */}
-                <Box sx={{ position: 'relative', flexGrow: 1, my: 1, display: 'flex', alignItems: 'flex-end', minHeight: 100 }}>
+                <Box sx={{ position: 'relative', flexGrow: 1, my: 1, display: 'flex', alignItems: 'flex-end', minHeight: 60 }}>
                     <Box ref={containerRef} sx={{ width: '100%' }}>
-                        <Box ref={hoverRef} sx={{ 
-                            position: 'absolute', 
-                            left: 0, 
-                            top: 0, 
-                            zIndex: 10, 
-                            pointerEvents: 'none', 
+                        <Box ref={hoverRef} sx={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            zIndex: 10,
+                            pointerEvents: 'none',
                             backgroundColor: 'rgba(255,255,255,0.2)',
-                            height: '100%', 
-                            borderRight: '1px solid white' 
+                            height: '100%',
+                            borderRight: '1px solid white'
                         }} />
                     </Box>
                     <Box sx={{ position: 'absolute', bottom: 5, right: 0, background: 'rgba(0,0,0,0.8)', px: 0.5, py: 0.2, fontSize: 12, color: '#ccc' }}>
@@ -222,16 +254,16 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
                 {/* Actions bottom */}
                 <Box sx={{ display: 'flex', gap: 1, pt: 1, alignItems: 'center' }}>
-                    <Button variant="outlined" size="small" startIcon={<FavoriteIcon fontSize="small"/>} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#f50' } }}>
+                    <Button variant="outlined" size="small" startIcon={<FavoriteIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#f50' } }}>
                         {track.countLike || 0}
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small"/>} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                    <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Repost
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small"/>} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                    <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Share
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<ContentCopyIcon fontSize="small"/>} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                    <Button variant="outlined" size="small" startIcon={<ContentCopyIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Copy Link
                     </Button>
                     <Button variant="outlined" size="small" sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
