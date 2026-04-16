@@ -12,14 +12,19 @@ interface IUser{
 declare module "next-auth/jwt"{
     interface JWT{
         access_token:string;
-        refresh_token:string
+        refresh_token:string;
+        access_expire:number;
+        error?:string;
         user: IUser;
+
     }
 }
 declare module "next-auth"{
     interface Session{
         access_token:string;
-        refresh_token:string
+        refresh_token:string;
+        expires_in:number;
+        error?:string;
         user: IUser;
     }
 

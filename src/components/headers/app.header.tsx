@@ -17,8 +17,9 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
 import { Avatar, Container, Button } from '@mui/material';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import {redirect, useRouter} from 'next/navigation';
 import { useSession, signIn, signOut } from "next-auth/react";
+import {useEffect} from "react";
 
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
@@ -60,6 +61,11 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 const AppHeader = () => {
     const { data: session } = useSession();
+    useEffect(()=>{
+        if(session?.error === "RefreshAccessTokenError"){
+            signOut({callbackUrl:"/auth/signin", redirect: true});
+        }
+    }, [session]);
     const router = useRouter();
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const pages = [

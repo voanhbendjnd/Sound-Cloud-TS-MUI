@@ -6,7 +6,10 @@ const ProfilePage = async({params}:{params:{slug:string}}) => {
     // Send public API request
     const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
         url: `http://localhost:8080/api/v1/tracks/users/${params.slug}?page=1&size=20`,
-        method: "GET"
+        method: "GET",
+        nextOption: {
+            cache: 'no-store'
+        }
     });
 
     const tracks = res?.data?.result ?? [];

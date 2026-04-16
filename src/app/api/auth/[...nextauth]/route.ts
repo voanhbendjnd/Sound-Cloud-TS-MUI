@@ -3,6 +3,7 @@ import { AuthOptions } from "next-auth";
 import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials";
+import {JWT} from "next-auth/jwt";
 
 export const authOptions: AuthOptions = {
     secret: process.env.NO_SECRET,
@@ -46,43 +47,76 @@ export const authOptions: AuthOptions = {
     ],
     callbacks: {
         async jwt({ token, user, account, profile, trigger }) {
-            if (trigger === "signIn" && account?.provider !== "credentials") {
-                const res = await sendRequest<IBackendRes<ILoginRes>>({
-                    url: "http://localhost:8080/api/v1/auth/social-login",
-                    method: "POST",
-                    body: {
-                        accessToken: account?.access_token,
-                        type: account?.provider?.toLocaleUpperCase(),
+            if (trigger === "signIn") {
+                if(account?.provider !== "credentials"){
+                    const res = await sendRequest<IBackendRes<ILoginRes>>({
+                        url: "http://localhost:8080/api/v1/auth/social-login",
+                        method: "POST",
+                        body: {
+                            accessToken: account?.access_token,
+                            type: account?.provider?.toLocaleUpperCase(),
+                        }
+                    })
+                    if (res.data) {
+                        token.access_token = res.data.access_token;
+                        token.refresh_token = res.data.refresh_token;
+                        token.user = res.data.user;
+                        token.access_expire = Date.now() + (res.data.expires_in * 1000) - 60000;
                     }
-                })
-                if (res.data) {
-                    token.access_token = res.data.access_token;
-                    token.refresh_token = res.data.refresh_token;
-                    token.user = res.data.user;
+                } else if(user){
+                    const res = user as unknown as ILoginRes;
+                    token.access_token = res.access_token;
+                    token.refresh_token = res.refresh_token;
+                    token.user = res.user;
+                    token.access_expire = Date.now() + (res.expires_in * 1000) - 60000;
                 }
+                return token;
             }
-            if(trigger === "signIn" && account?.provider === "credentials"){
-                //@ts-ignore
-                token.access_token = user.access_token;
-                //@ts-ignore
-                token.refresh_token = user.refresh_token;
-                //@ts-ignore
-                token.user = user.user;
+
+
+            if(token.access_expire &&  Date.now() < (token.access_expire as number)){
+                return token;
             }
-            return token;
+            return await refreshAccessToken(token);
         },
-        session({ session, token, user }) {
+        async session({ session, token }) {
             if (token) {
                 session.user = token.user;
                 session.access_token = token.access_token;
                 session.refresh_token = token.refresh_token;
+                session.error = token.error;
             }
             return session;
         }
     },
-    // pages:{
-    //     signIn: "/auth/signIn"
-    // }
 }
 const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST }
+
+
+
+async function refreshAccessToken(token : JWT){
+    try{
+        const res = await sendRequest<IBackendRes<ILoginRes>>({
+            url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/auth/refresh`,
+            method: 'GET',
+            headers: {
+                "Cookie": `refresh_token=${token.refresh_token}`
+            }
+        });
+        if(res.data) {
+            return {
+                ...token,
+                access_token: res.data.access_token,
+                refresh_token: res.data.refresh_token,
+                access_expire: Date.now() + (res.data.expires_in * 1000) - 60000,
+            }
+        }
+    }catch(error){
+        return {
+            ...token,
+            error: "RefreshAccessTokenError"
+        }
+    }
+    return token;
+}
