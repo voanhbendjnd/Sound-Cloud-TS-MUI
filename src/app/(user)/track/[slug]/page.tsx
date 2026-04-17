@@ -4,17 +4,24 @@ import WaveTrack from '@/components/track/wave.track';
 import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
 import CommentSection from "@/components/track/comment.section";
+import {redirect} from "next/navigation";
 const DetailTrackPage = async (props: any) => {
     const { params } = props;
     // const searchParams = useSearchParams()
     // const search = searchParams.get('audio')
+    const slug = params?.slug; // Lấy slug từ dynamic route
+    const trackId = Number(slug); // Ép kiểu sang số
+
+    if (isNaN(trackId)) {
+       redirect('/');
+    }
     const resComments = await sendRequest<IBackendRes<IModelPaginate<IComment>>>({
         url: `http://localhost:8080/api/v1/tracks/comments`,
         method: "GET",
         queryParams: {
             page: 1,
             size: 100,
-            trackId: params.slug,
+            trackId: trackId,
             sort: "updatedAt,desc"
         },
         nextOption: {

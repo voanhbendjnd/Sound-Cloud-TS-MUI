@@ -319,11 +319,18 @@ const WaveTrack = (props: IProps) => {
         },
     ]
 
-    const calculateLeft = (moment: number) => {
-        const totalDuration = wavesurfer?.getDuration() || 1;
+    // const calculateLeft = (moment: number) => {
+    //     const totalDuration = wavesurfer?.getDuration() || 1;
+    //     const percent = (moment / totalDuration) * 100;
+    //     return `${percent}%`;
+    // }
+    const totalDuration = wavesurfer?.getDuration() || 0;
+
+    const calculateLeft = useCallback((moment: number) => {
+        if (totalDuration === 0) return "0%";
         const percent = (moment / totalDuration) * 100;
         return `${percent}%`;
-    }
+    }, [totalDuration]);
 
 
     return (
