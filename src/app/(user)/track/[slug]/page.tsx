@@ -4,7 +4,7 @@ import WaveTrack from '@/components/track/wave.track';
 import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
 import CommentSection from "@/components/track/comment.section";
-import {redirect} from "next/navigation";
+import { redirect } from "next/navigation";
 const DetailTrackPage = async (props: any) => {
     const { params } = props;
     // const searchParams = useSearchParams()
@@ -13,7 +13,7 @@ const DetailTrackPage = async (props: any) => {
     const trackId = Number(slug); // Ép kiểu sang số
 
     if (isNaN(trackId)) {
-       redirect('/');
+        redirect('/');
     }
     const resComments = await sendRequest<IBackendRes<IModelPaginate<IComment>>>({
         url: `http://localhost:8080/api/v1/tracks/comments`,

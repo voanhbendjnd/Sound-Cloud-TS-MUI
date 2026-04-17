@@ -7,9 +7,9 @@ import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
+import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
-import {Avatar, Tooltip} from "@mui/material";
-import {useFetchComments} from "@/hooks/use.comment";
+import { useFetchComments } from "@/hooks/use.comment";
 
 interface IProps {
     comments: IComment[];
@@ -17,7 +17,7 @@ interface IProps {
 
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments} = props;
+    const { comments } = props;
     const fileName = searchParams.get('audio');
     const trackId = searchParams.get('id');
     const autoPlay = searchParams.get('autoPlay') === 'true';
@@ -28,15 +28,30 @@ const WaveTrack = (props: IProps) => {
     const [duration, setDuration] = useState<string>("0:00");
     const [backgroundColor, setBackgroundColor] = useState<string>("linear-gradient(135deg, rgb(106, 112, 67) 0%, rgb(11, 15, 20) 100%)");
     const [trackData, setTrackData] = useState<ITrack | null>(null);
+    const [commentPreview, setCommentPreview] = useState<{
+        show: boolean;
+        position: number;
+        time: number;
+        userAvatar?: string;
+        userName?: string;
+    }>({ show: false, position: 0, time: 0 });
+
+    const [commentInput, setCommentInput] = useState({
+        open: false,
+        content: '',
+        selectedTime: 0
+    });
+
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fileName;
     const { data: resComments } = useFetchComments({
         current: 1,
-        pageSize: 100, // Lấy nhiều một chút để hiện đủ chấm trên Waveform
+        pageSize: 100,
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     });
     const displayComments = resComments?.data?.result ?? props.comments;
+
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
         const secondsRemainder = Math.round(seconds) % 60
@@ -89,6 +104,70 @@ const WaveTrack = (props: IProps) => {
         const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
         waveform.addEventListener('pointermove', handlePointerMove);
 
+        // Handle waveform click for comment positioning
+        const handleWaveformMouseDown = (e: MouseEvent) => {
+            // Only show comment preview on right-click or with modifier key to avoid conflict with seeking
+            if (e.button === 2 || e.ctrlKey || e.shiftKey) { // Right click or Ctrl/Shift + click
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!wavesurfer || !containerRef.current) return;
+
+                const rect = containerRef.current.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickPercent = clickX / rect.width;
+                const clickTime = clickPercent * (wavesurfer.getDuration() || 0);
+
+                console.log('Waveform clicked for comment:', { clickX, clickPercent, clickTime });
+
+                // Get current user info
+                const currentUser = {
+                    name: "Current User",
+                    avatar: "default-avatar"
+                };
+
+                setCommentPreview({
+                    show: true,
+                    position: clickPercent * 100,
+                    time: clickTime,
+                    userName: currentUser.name,
+                    userAvatar: currentUser.avatar
+                });
+            }
+        };
+
+        waveform.addEventListener('mousedown', handleWaveformMouseDown);
+
+        // Also add double-click for comment
+        const handleWaveformDoubleClick = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!wavesurfer || !containerRef.current) return;
+
+            const rect = containerRef.current.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickPercent = clickX / rect.width;
+            const clickTime = clickPercent * (wavesurfer.getDuration() || 0);
+
+            console.log('Waveform double-clicked for comment:', { clickX, clickPercent, clickTime });
+
+            const currentUser = {
+                name: "Current User",
+                avatar: "default-avatar"
+            };
+
+            setCommentPreview({
+                show: true,
+                position: clickPercent * 100,
+                time: clickTime,
+                userName: currentUser.name,
+                userAvatar: currentUser.avatar
+            });
+        };
+
+        waveform.addEventListener('dblclick', handleWaveformDoubleClick);
+
         const subscriptions = [
             wavesurfer.on('decode', (d) => setDuration(formatTime(d))),
             wavesurfer.on('interaction', (newTime) => {
@@ -102,6 +181,8 @@ const WaveTrack = (props: IProps) => {
 
         return () => {
             waveform.removeEventListener('pointermove', handlePointerMove);
+            waveform.removeEventListener('mousedown', handleWaveformMouseDown);
+            waveform.removeEventListener('dblclick', handleWaveformDoubleClick);
             subscriptions.forEach((unsub) => unsub());
         };
     }, [wavesurfer, isMatched, audioRef, fileName, savedTimes]);
@@ -295,35 +376,6 @@ const WaveTrack = (props: IProps) => {
         fetchTrackData();
     }, [trackId, fileName, setCurrentTrack, currentTrack.trackUrl, currentTrack.isPlaying]);
 
-    const arrComments = [
-        {
-            id: 1,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 10,
-            user: "username 1",
-            content: "just a comment1"
-        },
-        {
-            id: 2,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 30,
-            user: "username 2",
-            content: "just a comment3"
-        },
-        {
-            id: 3,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 50,
-            user: "username 3",
-            content: "just a comment3"
-        },
-    ]
-
-    // const calculateLeft = (moment: number) => {
-    //     const totalDuration = wavesurfer?.getDuration() || 1;
-    //     const percent = (moment / totalDuration) * 100;
-    //     return `${percent}%`;
-    // }
     const totalDuration = wavesurfer?.getDuration() || 0;
 
     const calculateLeft = useCallback((moment: number) => {
@@ -332,9 +384,54 @@ const WaveTrack = (props: IProps) => {
         return `${percent}%`;
     }, [totalDuration]);
 
+    // Handle comment preview click
+    const handleCommentPreviewClick = () => {
+        setCommentInput({
+            open: true,
+            content: '',
+            selectedTime: commentPreview.time
+        });
+    };
+
+    // Clear comment preview
+    const clearCommentPreview = () => {
+        setCommentPreview({ show: false, position: 0, time: 0 });
+        setCommentInput({ open: false, content: '', selectedTime: 0 });
+    };
+
+    // Handle comment submission
+    const handleSubmitComment = async () => {
+        if (!commentInput.content.trim()) return;
+
+        try {
+            // Submit comment to API
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: commentInput.content,
+                    moment: commentInput.selectedTime,
+                    trackId: Number(trackId)
+                })
+            });
+
+            if (response.ok) {
+                console.log('Comment submitted successfully');
+                // You might want to refresh comments or update state here
+                // For now, just clear the input
+                clearCommentPreview();
+            } else {
+                console.error('Failed to submit comment');
+            }
+        } catch (error) {
+            console.error('Error submitting comment:', error);
+        }
+    };
 
     return (
-        <div style={{paddingTop:20 }}>
+        <div style={{ paddingTop: 20 }}>
             <div
                 className="wave-background"
                 style={{
@@ -411,12 +508,10 @@ const WaveTrack = (props: IProps) => {
                                 displayComments.map(it => {
                                     const userAvatarSrc = it.user?.avatar
                                         ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
-                                            : undefined;
+                                        : undefined;
                                     return (
-
                                         <Tooltip title={it.content} arrow>
-
-                                            <Avatar className="avatar-user" src={userAvatarSrc}key={it.id}
+                                            <Avatar className="avatar-user" src={userAvatarSrc} key={it.id}
                                                 onPointerMove={(e) => {
                                                     const hover = hoverRef.current!;
                                                     hover.style.width = calculateLeft(it.moment)
@@ -432,6 +527,28 @@ const WaveTrack = (props: IProps) => {
                                     )
                                 })
                             }
+
+                            {/* Comment Preview Avatar */}
+                            {commentPreview.show && (
+                                <Tooltip title="Click to comment here" arrow>
+                                    <Avatar
+                                        className="avatar-preview"
+                                        style={{
+                                            left: `${commentPreview.position}%`,
+                                            borderRadius: '50%',
+                                            position: 'absolute',
+                                            border: '2px solid #ff5500',
+                                            boxShadow: '0 0 10px rgba(255, 85, 0, 0.5)',
+                                            transform: 'translateX(-50%)',
+                                            zIndex: 10,
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={handleCommentPreviewClick}
+                                    >
+                                        {commentPreview.userName?.charAt(0).toUpperCase()}
+                                    </Avatar>
+                                </Tooltip>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -470,6 +587,96 @@ const WaveTrack = (props: IProps) => {
                     </div>
                 </div>
             </div>
+
+            {/* Comment Input Modal */}
+            <Modal
+                open={commentInput.open}
+                onClose={clearCommentPreview}
+                aria-labelledby="comment-modal-title"
+                aria-describedby="comment-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    bgcolor: '#282828',
+                    border: '1px solid #333',
+                    borderRadius: 2,
+                    boxShadow: 24,
+                    p: 4,
+                    minWidth: 400,
+                    color: 'white'
+                }}>
+                    <Typography id="comment-modal-title" variant="h6" sx={{ mb: 2, color: 'white' }}>
+                        Comment at {formatTime(commentInput.selectedTime)}
+                    </Typography>
+                    <TextField
+                        id="comment-modal-description"
+                        multiline
+                        rows={4}
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Write your comment..."
+                        value={commentInput.content}
+                        onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
+                        sx={{
+                            mb: 3,
+                            '& .MuiOutlinedInput-root': {
+                                '& fieldset': {
+                                    borderColor: '#555',
+                                },
+                                '&:hover fieldset': {
+                                    borderColor: '#777',
+                                },
+                                '&.Mui-focused fieldset': {
+                                    borderColor: '#ff5500',
+                                },
+                            },
+                            '& .MuiInputBase-input': {
+                                color: 'white',
+                            },
+                            '& .MuiInputLabel-root': {
+                                color: '#999',
+                            },
+                        }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                            onClick={clearCommentPreview}
+                            sx={{
+                                color: '#999',
+                                borderColor: '#555',
+                                '&:hover': {
+                                    borderColor: '#777',
+                                    bgcolor: 'rgba(255,255,255,0.05)'
+                                }
+                            }}
+                            variant="outlined"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleSubmitComment}
+                            disabled={!commentInput.content.trim()}
+                            sx={{
+                                bgcolor: '#ff5500',
+                                color: 'white',
+                                '&:hover': {
+                                    bgcolor: '#e04800',
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#555',
+                                    color: '#999'
+                                }
+                            }}
+                            variant="contained"
+                        >
+                            Post Comment
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
         </div >
     )
 }

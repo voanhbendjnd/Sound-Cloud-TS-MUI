@@ -4,10 +4,10 @@ import { Box, TextField, Avatar, Typography, Divider, IconButton } from '@mui/ma
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import {useSession} from "next-auth/react";
-import {useTrackContext} from "@/lib/track.wrapper";
-import {SendSharp} from "@mui/icons-material";
-import {useCreateComment, useFetchComments} from "@/hooks/use.comment";
+import { useSession } from "next-auth/react";
+import { useTrackContext } from "@/lib/track.wrapper";
+import { SendSharp } from "@mui/icons-material";
+import { useCreateComment, useFetchComments } from "@/hooks/use.comment";
 
 dayjs.extend(relativeTime);
 
@@ -32,16 +32,16 @@ const CommentSection = (props: IProps) => {
     const { currentTrack, audioRef } = useTrackContext() as ITrackContext;
     const createCommentMutation = useCreateComment(commentParams);
     const handlePostComment = () => {
-        const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime):0;
-        if(!newComment.trim()) return;
+        const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
+        if (!newComment.trim()) return;
         createCommentMutation.mutate(
             {
-               track_id:Number(trackId),
+                track_id: Number(trackId),
                 content: newComment,
                 moment: currentMoment,
             },
             {
-                onSuccess: ()=>{
+                onSuccess: () => {
                     setNewComment("");
                 }
             }
@@ -58,14 +58,14 @@ const CommentSection = (props: IProps) => {
 
     return (
         <Box sx={{ mt: 3, mb: 5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, background: '#121212', p: 1, borderRadius:10}}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, background: '#121212', p: 1, borderRadius: 10 }}>
                 {session ?
                     <Avatar
                     >
                         {session.user?.name?.charAt(0).toUpperCase()}
                     </Avatar>
                     :
-                    <Avatar sx={{width:40, height:40}}>
+                    <Avatar sx={{ width: 40, height: 40 }}>
 
                     </Avatar>}
                 <TextField
@@ -75,7 +75,8 @@ const CommentSection = (props: IProps) => {
                     size="small"
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    sx={{ background: '#303030', '& .MuiOutlinedInput-root': { borderRadius: '1px' },'& .MuiInputBase-input::placeholder': {
+                    sx={{
+                        background: '#303030', '& .MuiOutlinedInput-root': { borderRadius: '1px' }, '& .MuiInputBase-input::placeholder': {
                             color: '#7e7e7e', // Màu xám nhạt cho placeholder
                             opacity: 1,    // Đảm bảo màu hiện rõ trên Chrome
                         },
@@ -83,7 +84,7 @@ const CommentSection = (props: IProps) => {
                     }}
 
                 />
-                <IconButton onClick={handlePostComment} sx={{background: '#303030'}}>
+                <IconButton onClick={handlePostComment} sx={{ background: '#303030' }}>
                     <SendSharp />
                 </IconButton>
             </Box>
@@ -100,7 +101,7 @@ const CommentSection = (props: IProps) => {
                     > {currentTrack.uploader.name.charAt(0).toUpperCase()}
 
                     </Avatar>
-                    <Typography variant="body1" fontWeight="500" sx={{color:"#fff"}}>
+                    <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" }}>
                         {currentTrack.uploader.name || "Unknown Uploader"}
                     </Typography>
                 </Box>
@@ -124,21 +125,23 @@ const CommentSection = (props: IProps) => {
                                 >
                                     {comment.user?.name?.charAt(0).toUpperCase()}
                                 </Avatar>
-                                    <Box sx={{ flex: 1 }}>
-                                    <Box sx={{ display: 'flex',
+                                <Box sx={{ flex: 1 }}>
+                                    <Box sx={{
+                                        display: 'flex',
                                         justifyContent: 'space-between',
-                                        alignItems: 'center' }}>
+                                        alignItems: 'center'
+                                    }}>
                                         <Typography variant="caption" sx={{ color: '#fff' }}>
-                                            <span style={{ color: '#fff', fontWeight:'bold', fontSize:17 }}>
+                                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 17 }}>
                                                 {comment.user.email === session?.user.email ?
                                                     comment.user.name : "You"}
                                             </span>
                                             {comment.moment !== undefined && (
-                                                <span style={{ fontSize:17 }}> at {formatMoment(comment.moment)}
+                                                <span style={{ fontSize: 17 }}> at {formatMoment(comment.moment)}
                                                 </span>
                                             )}
                                         </Typography>
-                                        <Typography variant="caption" color="#fff" sx={{fontWeight: 'bold'}}>
+                                        <Typography variant="caption" color="#fff" sx={{ fontWeight: 'bold' }}>
                                             {dayjs(comment.createdAt).fromNow()}
                                         </Typography>
                                     </Box>
