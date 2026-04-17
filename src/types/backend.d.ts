@@ -53,6 +53,7 @@ declare global{
             "email": string;
             "name": string;
             "role": string;
+            "avatar":string;
         }
         "createdAt": string;
         "updatedAt": string;
@@ -99,6 +100,18 @@ declare global{
         likes_count: number;
         content: string;
         moment: number;
+        user:{
+            id: number;
+            role:string;
+            avatar:string;
+            name:string;
+            email:string;
+        }
+        track:{
+            id: number;
+            imgUrl:string;
+            title:string;
+        }
     }
     interface ICreateUser{
         id:number;

@@ -8,16 +8,13 @@ import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import './wave.scss';
-import {Avatar, Tooltip} from "@mui/material";
-import {useFetchComments} from "@/hooks/use.comment";
-
+import { Tooltip } from "@mui/material";
 interface IProps {
-    comments: IComment[];
+    comments: IComment[]; // Giả định bạn đã có interface IComment
 }
-
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments} = props;
+    const {comments} = props;
     const fileName = searchParams.get('audio');
     const trackId = searchParams.get('id');
     const autoPlay = searchParams.get('autoPlay') === 'true';
@@ -30,20 +27,6 @@ const WaveTrack = (props: IProps) => {
     const [trackData, setTrackData] = useState<ITrack | null>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fileName;
-    const { data: resComments } = useFetchComments({
-        current: 1,
-        pageSize: 100, // Lấy nhiều một chút để hiện đủ chấm trên Waveform
-        trackId: Number(trackId),
-        sort: "updatedAt,desc"
-    });
-    const displayComments = resComments?.data?.result ?? props.comments;
-    const formatTime = (seconds: number) => {
-        const minutes = Math.floor(seconds / 60)
-        const secondsRemainder = Math.round(seconds) % 60
-        const paddedSeconds = `0${secondsRemainder}`.slice(-2)
-        return `${minutes}:${paddedSeconds}`
-    }
-
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient, progressGradient;
         if (typeof window !== "undefined") {
@@ -76,9 +59,7 @@ const WaveTrack = (props: IProps) => {
             url: `/api?audio=${fileName}`,
         }
     }, []);
-
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
-
     // Sync play/pause from global state
     useEffect(() => {
         if (!wavesurfer) return;
@@ -270,10 +251,7 @@ const WaveTrack = (props: IProps) => {
                         const trackData = await response.json();
                         setTrackData(trackData.data);
 
-                        // Check if this track is already playing from another page
-                        const isAlreadyPlaying = currentTrack.trackUrl === fileName && currentTrack.isPlaying;
-
-                        // Set current track with full data (preserve playing state if already playing)
+                        // Set current track with full data
                         const fullTrack = {
                             id: trackData.data.id,
                             trackUrl: fileName,
@@ -281,10 +259,27 @@ const WaveTrack = (props: IProps) => {
                             uploader: trackData.data.uploader,
                             imgUrl: trackData.data.imgUrl,
                             description: trackData.data.description,
-                            isPlaying: isAlreadyPlaying // Preserve existing playing state
+                            isPlaying: autoPlay
                         };
 
                         setCurrentTrack(fullTrack as any);
+
+                        // Auto-play if requested
+                        if (autoPlay && wavesurfer) {
+                            setTimeout(() => {
+                                const savedTime = savedTimes.current[fileName || ''] || 0;
+                                wavesurfer.setTime(savedTime);
+                                wavesurfer.play();
+
+                                // Also play footer audio
+                                setTimeout(() => {
+                                    if (audioRef.current) {
+                                        audioRef.current.currentTime = savedTime;
+                                        audioRef.current.play().catch(e => console.log('Auto-play failed:', e));
+                                    }
+                                }, 200);
+                            }, 500);
+                        }
                     }
                 } catch (error) {
                     console.error('Error fetching track data:', error);
@@ -293,8 +288,14 @@ const WaveTrack = (props: IProps) => {
         };
 
         fetchTrackData();
-    }, [trackId, fileName, setCurrentTrack, currentTrack.trackUrl, currentTrack.isPlaying]);
+    }, [trackId, fileName, autoPlay, setCurrentTrack, wavesurfer, audioRef, savedTimes]);
 
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60)
+        const secondsRemainder = Math.round(seconds) % 60
+        const paddedSeconds = `0${secondsRemainder}`.slice(-2)
+        return `${minutes}:${paddedSeconds}`
+    }
     const arrComments = [
         {
             id: 1,
@@ -318,16 +319,15 @@ const WaveTrack = (props: IProps) => {
             content: "just a comment3"
         },
     ]
-
     const calculateLeft = (moment: number) => {
+        // wavesurfer.getDuration() trả về tổng số giây của bài hát
         const totalDuration = wavesurfer?.getDuration() || 1;
         const percent = (moment / totalDuration) * 100;
         return `${percent}%`;
     }
 
-
     return (
-        <div style={{paddingTop:20 }}>
+        <div style={{}}>
             <div
                 className="wave-background"
                 style={{
@@ -351,7 +351,7 @@ const WaveTrack = (props: IProps) => {
                     <div className="info" style={{ display: "flex" }}>
                         <div>
                             <div className="wave-button"
-                                onClick={() => onPlayClick()}>
+                                 onClick={() => onPlayClick()}>
                                 {currentTrack.isPlaying && isMatched ?
                                     <PauseIcon
                                         sx={{ fontSize: 30, color: "white" }}
@@ -391,52 +391,48 @@ const WaveTrack = (props: IProps) => {
                         <div className="duration" >{duration}</div>
                         <div ref={hoverRef} className="hover-wave"></div>
                         <div className="overlay"
-                            style={{
-                                position: "absolute",
-                                height: "30px",
-                                width: "100%",
-                                bottom: "0",
-                                backdropFilter: "brightness(0.5)"
-                            }}
+                             style={{
+                                 position: "absolute",
+                                 height: "30px",
+                                 width: "100%",
+                                 bottom: "0",
+                                 // background: "#ccc"
+                                 backdropFilter: "brightness(0.5)"
+                             }}
                         ></div>
                         <div className="comments" >
                             {
-                                displayComments.map(it => {
-                                    const userAvatarSrc = it.user?.avatar
-                                        ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
-                                            : undefined;
+                                comments.map(it => {
                                     return (
-
                                         <Tooltip title={it.content} arrow>
-
-                                            <Avatar className="avatar-user" src={userAvatarSrc}key={it.id}
-                                                onPointerMove={(e) => {
-                                                    const hover = hoverRef.current!;
-                                                    hover.style.width = calculateLeft(it.moment)
-                                                }}
-                                                style={{
-                                                    left: calculateLeft(it.moment),
-                                                    borderRadius: '50%',
-                                                    position: 'absolute'
-                                                }} >
-                                                {it.user?.name?.charAt(0).toUpperCase()}
-                                            </Avatar>
+                                            <img src={`http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`} alt='avatar' key={it.id}
+                                                 onPointerMove={(e) => {
+                                                     const hover = hoverRef.current!;
+                                                     hover.style.width = calculateLeft(it.moment)
+                                                 }}
+                                                 style={{
+                                                     left: calculateLeft(it.moment),
+                                                     borderRadius: '50%', // Thay 100 bằng '50%' cho tròn trịa
+                                                     position: 'absolute' // Đảm bảo có absolute để left hoạt động
+                                                 }}                                            />
                                         </Tooltip>
+
                                     )
                                 })
                             }
                         </div>
+
                     </div>
                 </div>
                 <div className="right"
-                    style={{
-                        width: "25%",
-                        padding: 15,
-                        display: "flex",
-                        alignItems: "center",
-                        position: 'relative',
-                        zIndex: 2
-                    }}
+                     style={{
+                         width: "25%",
+                         padding: 15,
+                         display: "flex",
+                         alignItems: "center",
+                         position: 'relative',
+                         zIndex: 2
+                     }}
                 >
                     <div className="track-image-container" style={{
                         width: '250px',
@@ -454,8 +450,8 @@ const WaveTrack = (props: IProps) => {
                             style={{
                                 width: '100%',
                                 height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
+                                objectFit: 'cover', // QUAN TRỌNG: Giữ tỷ lệ, cắt ảnh cho vừa khung chứ không bóp méo
+                                objectPosition: 'center', // Luôn lấy phần giữa của ảnh
                                 display: 'block'
                             }}
                             alt="Track cover"

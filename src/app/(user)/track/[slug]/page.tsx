@@ -3,6 +3,7 @@ import WaveTrack from '@/components/track/wave.track';
 // import { useSearchParams } from 'next/navigation'
 import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
+import CommentSection from "@/components/track/comment.section";
 const DetailTrackPage = async (props: any) => {
     const { params } = props;
     // const searchParams = useSearchParams()
@@ -15,14 +16,25 @@ const DetailTrackPage = async (props: any) => {
             size: 100,
             trackId: params.slug,
             sort: "updatedAt,desc"
+        },
+        nextOption: {
+            cache: 'no-store'
         }
     })
     const comments = resComments.data?.result ?? [];
     return (
-        <div style={{ backgroundColor: '#121212', minHeight: '100vh', width: '100%' }}>
+        <div style={{ backgroundColor: '#121212', minHeight: '100vh' }}>
+            <div style={{ background: '#121212' }}>
+                <Container>
+                    <WaveTrack comments={comments} />
+                </Container>
+            </div>
 
-            <Container>
-                <WaveTrack comments={comments} />
+            <Container sx={{ mt: 3 }}>
+                <CommentSection
+                    comments={comments}
+                    trackId={params.slug}
+                />
             </Container>
         </div>
 
