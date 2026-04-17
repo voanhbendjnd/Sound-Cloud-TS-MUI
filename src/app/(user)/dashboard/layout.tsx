@@ -5,13 +5,13 @@ import {
   Box, Drawer, List, ListItem, ListItemButton, 
   ListItemIcon, ListItemText, Divider, Toolbar 
 } from '@mui/material';
-import { 
-  People as PeopleIcon, 
-  Security as SecurityIcon, 
-  Key as KeyIcon, 
-  MusicNote as MusicIcon,
-  Category as CategoryIcon,
-  Dashboard as DashboardIcon
+import {
+    People as PeopleIcon,
+    Security as SecurityIcon,
+    Key as KeyIcon,
+    MusicNote as MusicIcon,
+    Category as CategoryIcon,
+    Dashboard as DashboardIcon, Lyrics
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -24,6 +24,8 @@ const menuItems = [
   { text: 'Permissions', icon: <KeyIcon />, path: '/dashboard/permission' },
   { text: 'Tracks', icon: <MusicIcon />, path: '/dashboard/track' },
   { text: 'Categories', icon: <CategoryIcon />, path: '/dashboard/category' },
+    { text: 'Comments', icon: <Lyrics/>, path: '/dashboard/comment' },
+
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

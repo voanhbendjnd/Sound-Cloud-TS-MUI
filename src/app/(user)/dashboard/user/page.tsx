@@ -7,9 +7,12 @@ export const metadata = {
 
 const ManageUserPage = () => {
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <UserTable />
-        </Container>
+        <div style={{backgroundColor:'white'}}>
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4}}>
+                <UserTable />
+            </Container>
+        </div>
+
     );
 };
 

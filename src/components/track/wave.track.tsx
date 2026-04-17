@@ -9,9 +9,12 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import './wave.scss';
 import { Tooltip } from "@mui/material";
-
-const WaveTrack = () => {
+interface IProps {
+    comments: IComment[]; // Giả định bạn đã có interface IComment
+}
+const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
+    const {comments} = props;
     const fileName = searchParams.get('audio');
     const trackId = searchParams.get('id');
     const autoPlay = searchParams.get('autoPlay') === 'true';
@@ -317,9 +320,10 @@ const WaveTrack = () => {
         },
     ]
     const calculateLeft = (moment: number) => {
-        const hardCodeDuration = 312;
-        const percent = (moment / hardCodeDuration) * 100;
-        return `${percent}%`
+        // wavesurfer.getDuration() trả về tổng số giây của bài hát
+        const totalDuration = wavesurfer?.getDuration() || 1;
+        const percent = (moment / totalDuration) * 100;
+        return `${percent}%`;
     }
 
     return (
@@ -347,7 +351,7 @@ const WaveTrack = () => {
                     <div className="info" style={{ display: "flex" }}>
                         <div>
                             <div className="wave-button"
-                                onClick={() => onPlayClick()}>
+                                 onClick={() => onPlayClick()}>
                                 {currentTrack.isPlaying && isMatched ?
                                     <PauseIcon
                                         sx={{ fontSize: 30, color: "white" }}
@@ -387,27 +391,30 @@ const WaveTrack = () => {
                         <div className="duration" >{duration}</div>
                         <div ref={hoverRef} className="hover-wave"></div>
                         <div className="overlay"
-                            style={{
-                                position: "absolute",
-                                height: "30px",
-                                width: "100%",
-                                bottom: "0",
-                                // background: "#ccc"
-                                backdropFilter: "brightness(0.5)"
-                            }}
+                             style={{
+                                 position: "absolute",
+                                 height: "30px",
+                                 width: "100%",
+                                 bottom: "0",
+                                 // background: "#ccc"
+                                 backdropFilter: "brightness(0.5)"
+                             }}
                         ></div>
                         <div className="comments" >
                             {
-                                arrComments.map(it => {
+                                comments.map(it => {
                                     return (
                                         <Tooltip title={it.content} arrow>
-                                            <img src={it.avatar} alt={it.avatar} key={it.id}
-                                                onPointerMove={(e) => {
-                                                    const hover = hoverRef.current!;
-                                                    hover.style.width = calculateLeft(it.moment)
-                                                }}
-                                                style={{ left: calculateLeft(it.moment), borderRadius: 100 }}
-                                            />
+                                            <img src={`http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`} alt='avatar' key={it.id}
+                                                 onPointerMove={(e) => {
+                                                     const hover = hoverRef.current!;
+                                                     hover.style.width = calculateLeft(it.moment)
+                                                 }}
+                                                 style={{
+                                                     left: calculateLeft(it.moment),
+                                                     borderRadius: '50%', // Thay 100 bằng '50%' cho tròn trịa
+                                                     position: 'absolute' // Đảm bảo có absolute để left hoạt động
+                                                 }}                                            />
                                         </Tooltip>
 
                                     )
@@ -418,14 +425,14 @@ const WaveTrack = () => {
                     </div>
                 </div>
                 <div className="right"
-                    style={{
-                        width: "25%",
-                        padding: 15,
-                        display: "flex",
-                        alignItems: "center",
-                        position: 'relative',
-                        zIndex: 2
-                    }}
+                     style={{
+                         width: "25%",
+                         padding: 15,
+                         display: "flex",
+                         alignItems: "center",
+                         position: 'relative',
+                         zIndex: 2
+                     }}
                 >
                     <div className="track-image-container" style={{
                         width: '250px',

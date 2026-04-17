@@ -88,6 +88,18 @@ declare global{
         name: string;
         description: string;
     }
+    interface IComment {
+        id: number;
+        createdAt: string;
+        updatedAt: string;
+        createdBy: string;
+        updatedBy: string;
+        track_title: string;
+        user_email: string;
+        likes_count: number;
+        content: string;
+        moment: number;
+    }
     interface ICreateUser{
         id:number;
         name:string;
