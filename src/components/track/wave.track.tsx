@@ -150,7 +150,6 @@ const WaveTrack = (props: IProps) => {
             const clickPercent = clickX / rect.width;
             const clickTime = clickPercent * (wavesurfer.getDuration() || 0);
 
-            console.log('Waveform double-clicked for comment:', { clickX, clickPercent, clickTime });
 
             const currentUser = {
                 name: "Current User",

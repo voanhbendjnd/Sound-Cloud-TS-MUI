@@ -29,7 +29,7 @@ const CommentSection = (props: IProps) => {
     const listComments = resComments?.data?.result ?? props.comments;
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
-    const { currentTrack, audioRef } = useTrackContext() as ITrackContext;
+    const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const createCommentMutation = useCreateComment(commentParams);
     const handlePostComment = () => {
         const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
@@ -49,7 +49,21 @@ const CommentSection = (props: IProps) => {
         setNewComment("");
     }
 
+    const handleJumpToMoment = (moment: number) => {
+        if (audioRef.current) {
+            // 1. Thay đổi thời gian của thẻ audio thực
+            audioRef.current.currentTime = moment;
 
+            // 2. Nếu nhạc đang dừng, bạn có thể chọn tự động phát luôn
+            audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+
+            // 3. (Tùy chọn) Lưu lại thời gian vào savedTimes để đồng bộ
+            const fileName = new URLSearchParams(window.location.search).get('audio');
+            if (fileName) {
+                savedTimes.current[fileName] = moment;
+            }
+        }
+    };
     const formatMoment = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -132,13 +146,24 @@ const CommentSection = (props: IProps) => {
                                         alignItems: 'center'
                                     }}>
                                         <Typography variant="caption" sx={{ color: '#fff' }}>
-                                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 17 }}>
+                                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
                                                 {comment.user.email === session?.user.email ?
-                                                    comment.user.name : "You"}
+                                                    comment.user.name : "You"} at
                                             </span>
                                             {comment.moment !== undefined && (
-                                                <span style={{ fontSize: 17 }}> at {formatMoment(comment.moment)}
-                                                </span>
+                                                <span
+                                                    onClick={() => handleJumpToMoment(comment.moment)}
+                                                    style={{
+                                                        fontSize: 13,
+                                                        marginLeft: 8,
+                                                        cursor: 'pointer',
+                                                        color: '#ccc',
+                                                        textDecoration: 'none'
+                                                    }}
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ff5500'} // Hover đổi màu cam giống SoundCloud
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#ccc'}
+                                                >{formatMoment(comment.moment)}
+    </span>
                                             )}
                                         </Typography>
                                         <Typography variant="caption" color="#fff" sx={{ fontWeight: 'bold' }}>
