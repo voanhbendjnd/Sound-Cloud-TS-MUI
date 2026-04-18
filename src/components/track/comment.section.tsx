@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, TextField, Avatar, Typography, Divider, IconButton } from '@mui/material';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import dayjs from 'dayjs';
@@ -19,18 +19,61 @@ interface IProps {
 const CommentSection = (props: IProps) => {
     const { comments, trackId } = props;
 
+    // Infinite scroll state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [allComments, setAllComments] = useState<IComment[]>(comments);
+    const [hasMore, setHasMore] = useState(true);
+    const observerRef = useRef<HTMLDivElement | null>(null);
+
     const commentParams = {
-        current: 1,
-        pageSize: 100,
+        current: currentPage,
+        pageSize: 10, // Reduced from 100 to enable proper pagination
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     };
-    const { data: resComments } = useFetchComments(commentParams);
-    const listComments = resComments?.data?.result ?? props.comments;
+    const { data: resComments, isLoading } = useFetchComments(commentParams);
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const createCommentMutation = useCreateComment(commentParams);
+
+    // Update allComments when new data is fetched
+    useEffect(() => {
+        if (resComments?.data?.result) {
+            const newComments = resComments.data.result;
+            setAllComments(prev => {
+                // Avoid duplicates
+                const existingIds = new Set(prev.map(c => c.id));
+                const filtered = newComments.filter(c => !existingIds.has(c.id));
+                return [...prev, ...filtered];
+            });
+
+            // Check if there are more pages
+            const meta = resComments.data.meta;
+            if (meta) {
+                setHasMore(meta.page < meta.totalPages);
+            }
+        }
+    }, [resComments]);
+
+    // Intersection Observer for infinite scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    setCurrentPage(prev => prev + 1);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (observerRef.current) {
+            observer.observe(observerRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [hasMore, isLoading]);
+
     const handlePostComment = () => {
         const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
         if (!newComment.trim()) return;
@@ -123,10 +166,10 @@ const CommentSection = (props: IProps) => {
                 {/* Cột phải: Danh sách Comments */}
                 <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" color="#fff" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 0.5, borderBottom: '1px solid #eee', pb: 1 }}>
-                        <ChatBubbleOutlineIcon fontSize="inherit" /> {comments.length} comments
+                        <ChatBubbleOutlineIcon fontSize="inherit" /> {allComments.length} comments
                     </Typography>
 
-                    {listComments.map((comment) => {
+                    {allComments.map((comment) => {
                         const userAvatar = comment.user?.avatar
                             ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
                             : undefined;
@@ -163,7 +206,7 @@ const CommentSection = (props: IProps) => {
                                                     onMouseEnter={(e) => e.currentTarget.style.color = '#ff5500'} // Hover đổi màu cam giống SoundCloud
                                                     onMouseLeave={(e) => e.currentTarget.style.color = '#ccc'}
                                                 >{formatMoment(comment.moment)}
-    </span>
+                                                </span>
                                             )}
                                         </Typography>
                                         <Typography variant="caption" color="#fff" sx={{ fontWeight: 'bold' }}>
@@ -177,6 +220,24 @@ const CommentSection = (props: IProps) => {
                             </Box>
                         );
                     })}
+
+                    {/* Loading indicator */}
+                    {isLoading && (
+                        <Box sx={{ textAlign: 'center', py: 2, color: '#999' }}>
+                            Loading more comments...
+                        </Box>
+                    )}
+
+                    {/* Observer target for infinite scroll */}
+                    {hasMore && !isLoading && (
+                        <div ref={observerRef} style={{ height: '20px' }} />
+                    )}
+
+                    {!hasMore && allComments.length > 0 && (
+                        <Typography variant="body2" sx={{ textAlign: 'center', color: '#666', mt: 2 }}>
+                            No more comments
+                        </Typography>
+                    )}
                 </Box>
             </Box>
         </Box>

@@ -42,6 +42,9 @@ const WaveTrack = (props: IProps) => {
         selectedTime: 0
     });
 
+    const [activeCommentId, setActiveCommentId] = useState<string | number | null>(null);
+    const [hoveredCommentId, setHoveredCommentId] = useState<string | number | null>(null);
+
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fileName;
     const { data: resComments } = useFetchComments({
@@ -93,6 +96,44 @@ const WaveTrack = (props: IProps) => {
     }, []);
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
+
+    // Calculate stacking positions for avatars to avoid overlap
+    const avatarPositions = useMemo(() => {
+        const totalDuration = wavesurfer?.getDuration() || 0;
+        if (totalDuration === 0 || displayComments.length === 0) return {};
+
+        // Sắp xếp comment theo thời gian phát
+        const sortedComments = [...displayComments].sort((a, b) => a.moment - b.moment);
+        const positions: { [key: string]: { top: number; zIndex: number } } = {};
+
+        // Khoảng cách tối thiểu để coi là "trùng nhau"
+        const minDistance = 3;
+
+        sortedComments.forEach((comment, index) => {
+            const leftPercent = (comment.moment / totalDuration) * 100;
+            let topOffset = 45; // Vị trí mặc định (nằm sát đáy waveform)
+            let zIndex = 20;
+
+            // Kiểm tra xem có bao nhiêu comment phía trước nằm sát vách mình
+            let overlapCount = 0;
+            for (let i = index - 1; i >= 0; i--) {
+                const prevLeft = (sortedComments[i].moment / totalDuration) * 100;
+                if (Math.abs(leftPercent - prevLeft) < minDistance) {
+                    overlapCount++;
+                } else {
+                    break; // Hết trùng thì dừng
+                }
+            }
+
+            // Nếu trùng, đẩy cao lên, tối đa 3 tầng
+            topOffset = 45 - (overlapCount % 3) * 15;
+            zIndex = 20 + overlapCount;
+
+            positions[comment.id] = { top: topOffset, zIndex };
+        });
+
+        return positions;
+    }, [wavesurfer, displayComments]);
 
     // Sync play/pause from global state
     useEffect(() => {
@@ -205,10 +246,28 @@ const WaveTrack = (props: IProps) => {
                 }
             };
 
+            // Highlight active comment based on current time
+            const handleTimeUpdate = () => {
+                if (!audioRef.current || !isMatched) return;
+                const currentTime = Math.round(audioRef.current.currentTime);
+
+                // Find comment with moment matching current time
+                const found = displayComments.find(c => Math.round(c.moment) === currentTime);
+
+                if (found) {
+                    setActiveCommentId(found.id);
+                    // Clear highlight after 3 seconds
+                    setTimeout(() => {
+                        setActiveCommentId(null);
+                    }, 3000);
+                }
+            };
+
             const audioEl = audioRef.current;
             if (audioEl) {
                 audioEl.addEventListener('timeupdate', syncWavesurfer);
                 audioEl.addEventListener('seeked', syncWavesurfer);
+                audioEl.addEventListener('timeupdate', handleTimeUpdate);
 
                 // Initial sync
                 syncWavesurfer();
@@ -216,12 +275,13 @@ const WaveTrack = (props: IProps) => {
                 return () => {
                     audioEl.removeEventListener('timeupdate', syncWavesurfer);
                     audioEl.removeEventListener('seeked', syncWavesurfer);
+                    audioEl.removeEventListener('timeupdate', handleTimeUpdate);
                 };
             }
             return () => { };
         }
 
-    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef]);
+    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments]);
 
     const onPlayClick = useCallback(() => {
         if (isMatched && currentTrack.trackUrl) {
@@ -502,24 +562,55 @@ const WaveTrack = (props: IProps) => {
                                 backdropFilter: "brightness(0.5)"
                             }}
                         ></div>
-                        <div className="comments" >
+                        <div className="comments" style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '100%',
+                            pointerEvents: 'none',
+                            zIndex: 20
+                        }}>
                             {
                                 displayComments.map(it => {
                                     const userAvatarSrc = it.user?.avatar
                                         ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
                                         : undefined;
+                                    const isActive = activeCommentId === it.id;
+                                    const isHovered = hoveredCommentId === it.id;
+                                    const shouldShowTooltip = isActive || isHovered;
+                                    const position = avatarPositions[it.id] || { top: 70, zIndex: 20 };
                                     return (
-                                        <Tooltip title={it.content} arrow>
-                                            <Avatar className="avatar-user" src={userAvatarSrc} key={it.id}
+                                        <Tooltip
+                                            key={it.id}
+                                            title={it.content}
+                                            open={shouldShowTooltip}
+                                            arrow
+                                            onMouseEnter={() => setHoveredCommentId(it.id)}
+                                            onMouseLeave={() => setHoveredCommentId(null)}
+                                        >
+                                            <Avatar
+                                                src={userAvatarSrc}
                                                 onPointerMove={(e) => {
                                                     const hover = hoverRef.current!;
                                                     hover.style.width = calculateLeft(it.moment)
                                                 }}
                                                 style={{
                                                     left: calculateLeft(it.moment),
+                                                    top: position.top,
+                                                    width: isActive ? 24 : 20,
+                                                    height: isActive ? 24 : 20,
                                                     borderRadius: '50%',
-                                                    position: 'absolute'
-                                                }} >
+                                                    position: 'absolute',
+                                                    transform: 'translateX(-50%)',
+                                                    border: isActive ? '2px solid #f50' : '1px solid #333',
+                                                    pointerEvents: 'auto',
+                                                    cursor: 'pointer',
+                                                    zIndex: isActive ? 100 : position.zIndex,
+                                                    transition: 'all 0.2s ease',
+                                                    boxShadow: isActive ? '0 0 8px #f50' : 'none',
+                                                }}
+                                            >
                                                 {it.user?.name?.charAt(0).toUpperCase()}
                                             </Avatar>
                                         </Tooltip>

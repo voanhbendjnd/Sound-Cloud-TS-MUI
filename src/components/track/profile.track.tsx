@@ -18,8 +18,8 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTrackContext } from "@/lib/track.wrapper";
 import Link from "next/link";
-import {useCreateComment, useFetchComments} from "@/hooks/use.comment";
-import {toast} from "react-toastify";
+import { useCreateComment, useFetchComments } from "@/hooks/use.comment";
+import { toast } from "react-toastify";
 
 dayjs.extend(relativeTime);
 
@@ -37,6 +37,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
     // Comment states
     const [showComments, setShowComments] = useState<boolean>(false);
+    const [activeCommentId, setActiveCommentId] = useState<string | number | null>(null);
+    const [hoveredCommentId, setHoveredCommentId] = useState<string | number | null>(null);
     const [commentPreview, setCommentPreview] = useState<{
         show: boolean;
         position: number;
@@ -146,7 +148,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     };
 
 
-// 1. Định nghĩa params cho comment (giống như lúc bạn fetch)
+    // 1. Định nghĩa params cho comment (giống như lúc bạn fetch)
     const commentParams = {
         current: 1,
         pageSize: 50,
@@ -154,7 +156,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         sort: "updatedAt,desc"
     };
 
-// 2. Khai báo mutation hook
+    // 2. Khai báo mutation hook
     const createCommentMutation = useCreateComment(commentParams);
     const handleSubmitComment = async () => {
         if (!commentInput.content.trim()) return;
@@ -211,6 +213,43 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
+    // Calculate stacking positions for avatars to avoid overlap
+    const avatarPositions = useMemo(() => {
+        const totalDuration = wavesurfer?.getDuration() || 0;
+        if (totalDuration === 0 || comments.length === 0) return {};
+
+        // Sắp xếp comment theo thời gian phát
+        const sortedComments = [...comments].sort((a, b) => a.moment - b.moment);
+        const positions: { [key: string]: { top: number; zIndex: number } } = {};
+
+        // Khoảng cách tối thiểu để coi là "trùng nhau" (đơn vị pixel hoặc %)
+        const minDistance = 3;
+
+        sortedComments.forEach((comment, index) => {
+            const leftPercent = (comment.moment / totalDuration) * 100;
+            let topOffset = 45; // Vị trí mặc định (nằm sát đáy waveform)
+            let zIndex = 20;
+
+            // Kiểm tra xem có bao nhiêu comment phía trước nằm sát vách mình
+            let overlapCount = 0;
+            for (let i = index - 1; i >= 0; i--) {
+                const prevLeft = (sortedComments[i].moment / totalDuration) * 100;
+                if (Math.abs(leftPercent - prevLeft) < minDistance) {
+                    overlapCount++;
+                } else {
+                    break; // Hết trùng thì dừng
+                }
+            }
+
+            // Nếu trùng, đẩy cao lên (trừ đi để đi ngược lên trên), tối đa 3 tầng để không vượt quá waveform
+            topOffset = 45 - (overlapCount % 3) * 15;
+            zIndex = 20 + overlapCount;
+
+            positions[comment.id] = { top: topOffset, zIndex };
+        });
+
+        return positions;
+    }, [wavesurfer, comments]);
     useEffect(() => {
         if (!wavesurfer) return;
         wavesurfer.setVolume(0);
@@ -245,7 +284,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         };
     }, [wavesurfer, isMatched, audioRef, track.id, savedTimes]);
 
-// TỐI ƯU 1: Logic hiển thị comment nên tách bạch và dọn dẹp triệt để
+    // TỐI ƯU 1: Logic hiển thị comment nên tách bạch và dọn dẹp triệt để
     useEffect(() => {
         // Nếu không còn khớp (isMatched false) hoặc nhạc dừng (isPlaying false)
         if (!isMatched || !currentTrack.isPlaying) {
@@ -276,10 +315,28 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 }
             };
 
+            // Highlight active comment based on current time
+            const handleTimeUpdate = () => {
+                if (!audioRef.current || !isMatched) return;
+                const currentTime = Math.round(audioRef.current.currentTime);
+
+                // Find comment with moment matching current time
+                const found = comments.find(c => Math.round(c.moment) === currentTime);
+
+                if (found) {
+                    setActiveCommentId(found.id);
+                    // Clear highlight after 3 seconds
+                    setTimeout(() => {
+                        setActiveCommentId(null);
+                    }, 3000);
+                }
+            };
+
             const audioEl = audioRef.current;
             if (audioEl) {
                 audioEl.addEventListener('timeupdate', syncWavesurfer);
                 audioEl.addEventListener('seeked', syncWavesurfer);
+                audioEl.addEventListener('timeupdate', handleTimeUpdate);
 
                 // Initial sync in case it's already ahead
                 syncWavesurfer();
@@ -287,6 +344,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 return () => {
                     audioEl.removeEventListener('timeupdate', syncWavesurfer);
                     audioEl.removeEventListener('seeked', syncWavesurfer);
+                    audioEl.removeEventListener('timeupdate', handleTimeUpdate);
                 };
             }
             return () => { };
@@ -296,7 +354,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         if (isMatched && !currentTrack.isPlaying) {
             wavesurfer.pause();
         }
-    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef]);
+    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, comments]);
 
     const onPlayClick = useCallback(() => {
         if (isMatched) {
@@ -413,27 +471,47 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         }} />
 
                         {/* Comment avatars on waveform - Always visible */}
-                        <Box sx={{ position: 'absolute', top: -20, left: 0, right: 0, height: 40, pointerEvents: 'none' }}>
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '100%',
+                            pointerEvents: 'none',
+                            zIndex: 20
+                        }}>
                             {comments.map(comment => {
                                 const userAvatarSrc = comment.user?.avatar
                                     ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
                                     : undefined;
+                                const isActive = activeCommentId === comment.id;
+                                const isHovered = hoveredCommentId === comment.id;
+                                const position = avatarPositions[comment.id] || { top: 40, zIndex: 20 };
+                                const shouldShowTooltip = isActive || isHovered;
                                 return (
-                                    <Tooltip key={comment.id} title={comment.content}>
+                                    <Tooltip
+                                        key={comment.id}
+                                        title={comment.content}
+                                        open={shouldShowTooltip}
+                                        arrow
+                                        onMouseEnter={() => setHoveredCommentId(comment.id)}
+                                        onMouseLeave={() => setHoveredCommentId(null)}
+                                    >
                                         <Avatar
                                             src={userAvatarSrc}
                                             sx={{
                                                 position: 'absolute',
                                                 left: calculateLeft(comment.moment),
-                                                width: 16,
-                                                height: 16,
-                                                fontSize: 10,
+                                                top: position.top,
+                                                width: isActive ? 16 : 12,
+                                                height: isActive ? 16 : 12,
                                                 transform: 'translateX(-50%)',
-                                                border: '1px solid #333',
+                                                border: isActive ? '2px solid #f50' : '1px solid #333',
                                                 pointerEvents: 'auto',
                                                 cursor: 'pointer',
-                                                top:60,
-                                                zIndex:20
+                                                zIndex: isActive ? 100 : position.zIndex,
+                                                transition: 'all 0.2s ease',
+                                                boxShadow: isActive ? '0 0 8px #f50' : 'none',
                                             }}
                                         >
                                             {comment.user?.name?.charAt(0).toUpperCase()}
@@ -505,57 +583,59 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 </Box>
 
                 {/* Write a Comment Input - Show when track is playing */}
-                {isMatched && currentTrack.isPlaying && (
-                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #333' }}>
-                        <TextField
-                            fullWidth
-                            multiline
-                            rows={2}
-                            variant="outlined"
-                            placeholder="Write a comment..."
-                            value={commentInput.content}
-                            onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
-                            sx={{
-                                '& .MuiOutlinedInput-root': {
-                                    '& fieldset': {
-                                        borderColor: '#444',
-                                    },
-                                    '&:hover fieldset': {
-                                        borderColor: '#666',
-                                    },
-                                    '&.Mui-focused fieldset': {
-                                        borderColor: '#f50',
-                                    },
-                                },
-                                '& .MuiInputBase-input': {
-                                    color: 'white',
-                                },
-                            }}
-                        />
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                            <MuiButton
-                                onClick={handleSubmitComment}
-                                disabled={!commentInput.content.trim()}
+                {
+                    isMatched && currentTrack.isPlaying && (
+                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #333' }}>
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={2}
+                                variant="outlined"
+                                placeholder="Write a comment..."
+                                value={commentInput.content}
+                                onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
                                 sx={{
-                                    bgcolor: '#f50',
-                                    color: 'white',
-                                    '&:hover': {
-                                        bgcolor: '#e04800',
+                                    '& .MuiOutlinedInput-root': {
+                                        '& fieldset': {
+                                            borderColor: '#444',
+                                        },
+                                        '&:hover fieldset': {
+                                            borderColor: '#666',
+                                        },
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: '#f50',
+                                        },
                                     },
-                                    '&:disabled': {
-                                        bgcolor: '#555',
-                                        color: '#999'
-                                    }
+                                    '& .MuiInputBase-input': {
+                                        color: 'white',
+                                    },
                                 }}
-                                variant="contained"
-                                size="small"
-                            >
-                                Post Comment
-                            </MuiButton>
+                            />
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                                <MuiButton
+                                    onClick={handleSubmitComment}
+                                    disabled={!commentInput.content.trim()}
+                                    sx={{
+                                        bgcolor: '#f50',
+                                        color: 'white',
+                                        '&:hover': {
+                                            bgcolor: '#e04800',
+                                        },
+                                        '&:disabled': {
+                                            bgcolor: '#555',
+                                            color: '#999'
+                                        }
+                                    }}
+                                    variant="contained"
+                                    size="small"
+                                >
+                                    Post Comment
+                                </MuiButton>
+                            </Box>
                         </Box>
-                    </Box>
-                )}
-            </Box>
+                    )
+                }
+            </Box >
 
             {/* Comment Input Modal for timestamped comments */}
             <Modal
@@ -642,8 +722,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         </MuiButton>
                     </Box>
                 </Box>
-            </Modal>
-        </Box>
+            </Modal >
+        </Box >
     )
 }
 export default ProfileTrack;

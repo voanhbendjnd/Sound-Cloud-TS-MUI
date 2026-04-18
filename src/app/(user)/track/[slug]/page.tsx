@@ -20,7 +20,7 @@ const DetailTrackPage = async (props: any) => {
         method: "GET",
         queryParams: {
             page: 1,
-            size: 100,
+            size: 20,
             trackId: trackId,
             sort: "updatedAt,desc"
         },

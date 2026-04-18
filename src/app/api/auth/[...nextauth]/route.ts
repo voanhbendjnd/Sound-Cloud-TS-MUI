@@ -47,6 +47,7 @@ export const authOptions: AuthOptions = {
     ],
     callbacks: {
         async jwt({ token, user, account, profile, trigger }) {
+            // Initial sign in - set token from login response
             if (trigger === "signIn") {
                 if(account?.provider !== "credentials"){
                     const res = await sendRequest<IBackendRes<ILoginRes>>({
@@ -62,6 +63,7 @@ export const authOptions: AuthOptions = {
                         token.refresh_token = res.data.refresh_token;
                         token.user = res.data.user;
                         token.access_expire = Date.now() + (res.data.expires_in * 1000) - 60000;
+                        token.error = undefined;
                     }
                 } else if(user){
                     const res = user as unknown as ILoginRes;
@@ -69,14 +71,18 @@ export const authOptions: AuthOptions = {
                     token.refresh_token = res.refresh_token;
                     token.user = res.user;
                     token.access_expire = Date.now() + (res.expires_in * 1000) - 60000;
+                    token.error = undefined;
                 }
                 return token;
             }
 
-
-            if(token.access_expire &&  Date.now() < (token.access_expire as number)){
+            // Check if token is about to expire (within 1 minute buffer)
+            // If token is still valid (has more than 1 minute), return it
+            if (token.access_expire && Date.now() < (token.access_expire as number)) {
                 return token;
             }
+
+            // Token has expired or is about to expire, refresh it
             return await refreshAccessToken(token);
         },
         async session({ session, token }) {
