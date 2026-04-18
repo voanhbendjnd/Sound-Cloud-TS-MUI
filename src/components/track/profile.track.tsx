@@ -12,13 +12,14 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import Box from "@mui/material/Box";
+import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography } from "@mui/material";
 import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTrackContext } from "@/lib/track.wrapper";
 import Link from "next/link";
+import {useCreateComment, useFetchComments} from "@/hooks/use.comment";
+import {toast} from "react-toastify";
 
 dayjs.extend(relativeTime);
 
@@ -33,6 +34,159 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
     const isMatched = currentTrack.id === track.id;
+
+    // Comment states
+    const [showComments, setShowComments] = useState<boolean>(false);
+    const [commentPreview, setCommentPreview] = useState<{
+        show: boolean;
+        position: number;
+        time: number;
+        userAvatar?: string;
+        userName?: string;
+    }>({ show: false, position: 0, time: 0 });
+
+    const [commentInput, setCommentInput] = useState({
+        open: false,
+        content: '',
+        selectedTime: 0
+    });
+
+    // Fetch comments for this track
+    const { data: resComments } = useFetchComments({
+        current: 1,
+        pageSize: 50,
+        trackId: Number(track.id),
+        sort: "updatedAt,desc"
+    });
+    const comments = resComments?.data?.result ?? [];
+
+    const formatTimeUtil = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60)
+        const secondsRemainder = Math.round(seconds) % 60
+        const paddedSeconds = `0${secondsRemainder}`.slice(-2)
+        return `${minutes}:${paddedSeconds}`
+    }
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const secondsRemainder = Math.round(seconds) % 60;
+        const paddedSeconds = `0${secondsRemainder}`.slice(-2);
+        return `${minutes}:${paddedSeconds}`;
+    };
+
+    // Comment handlers
+    const handleWaveformMouseDown = (e: MouseEvent) => {
+        if (!showComments) return; // Only allow comments when track is playing
+
+        // Only show comment preview on right-click or with modifier key
+        if (e.button === 2 || e.ctrlKey || e.shiftKey) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!wavesurfer || !containerRef.current) return;
+
+            const rect = containerRef.current.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickPercent = clickX / rect.width;
+            const clickTime = clickPercent * (wavesurfer.getDuration() || 0);
+
+            const currentUser = {
+                name: "Current User",
+                avatar: "default-avatar"
+            };
+
+            setCommentPreview({
+                show: true,
+                position: clickPercent * 100,
+                time: clickTime,
+                userName: currentUser.name,
+                userAvatar: currentUser.avatar
+            });
+        }
+    };
+
+    const handleWaveformDoubleClick = (e: MouseEvent) => {
+        if (!showComments) return; // Only allow comments when track is playing
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!wavesurfer || !containerRef.current) return;
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        const clickPercent = clickX / rect.width;
+        const clickTime = clickPercent * (wavesurfer.getDuration() || 0);
+
+        const currentUser = {
+            name: "Current User",
+            avatar: "default-avatar"
+        };
+
+        setCommentPreview({
+            show: true,
+            position: clickPercent * 100,
+            time: clickTime,
+            userName: currentUser.name,
+            userAvatar: currentUser.avatar
+        });
+    };
+
+    const handleCommentPreviewClick = () => {
+        setCommentInput({
+            open: true,
+            content: '',
+            selectedTime: commentPreview.time
+        });
+    };
+
+    const clearCommentPreview = () => {
+        setCommentPreview({ show: false, position: 0, time: 0 });
+        setCommentInput({ open: false, content: '', selectedTime: 0 });
+    };
+
+
+// 1. Định nghĩa params cho comment (giống như lúc bạn fetch)
+    const commentParams = {
+        current: 1,
+        pageSize: 50,
+        trackId: Number(track.id),
+        sort: "updatedAt,desc"
+    };
+
+// 2. Khai báo mutation hook
+    const createCommentMutation = useCreateComment(commentParams);
+    const handleSubmitComment = async () => {
+        if (!commentInput.content.trim()) return;
+
+        // Ưu tiên thời gian chọn trên waveform (selectedTime), nếu không có mới dùng thời gian thực
+        const momentToPost = commentInput.open
+            ? Math.round(commentInput.selectedTime)
+            : (audioRef.current ? Math.round(audioRef.current.currentTime) : 0);
+
+        createCommentMutation.mutate({
+            content: commentInput.content,
+            moment: momentToPost,
+            track_id: Number(track.id)
+        }, {
+            onSuccess: () => {
+                clearCommentPreview();
+                // Reset text sau khi post thành công
+                setCommentInput(prev => ({ ...prev, content: '' }));
+                toast.success("Post comment success!");
+            },
+            onError: (error: any) => {
+                const msg = error?.response?.data?.message || "Please log in to continue!";
+                toast.warning(msg);
+            }
+        });
+    };
+    const calculateLeft = (moment: number) => {
+        const totalDuration = wavesurfer?.getDuration() || 0;
+        if (totalDuration === 0) return "0%";
+        const percent = (moment / totalDuration) * 100;
+        return `${percent}%`;
+    };
 
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient;
@@ -66,6 +220,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
         waveform.addEventListener('pointermove', handlePointerMove);
 
+        // Add waveform click listeners for comments
+        waveform.addEventListener('mousedown', handleWaveformMouseDown);
+        waveform.addEventListener('dblclick', handleWaveformDoubleClick);
+
         const subscriptions = [
             wavesurfer.on('decode', (duration) => {
                 setDuration(formatTime(duration));
@@ -81,9 +239,23 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         return () => {
             waveform.removeEventListener('pointermove', handlePointerMove);
+            waveform.removeEventListener('mousedown', handleWaveformMouseDown);
+            waveform.removeEventListener('dblclick', handleWaveformDoubleClick);
             subscriptions.forEach((unsub) => unsub());
         };
     }, [wavesurfer, isMatched, audioRef, track.id, savedTimes]);
+
+// TỐI ƯU 1: Logic hiển thị comment nên tách bạch và dọn dẹp triệt để
+    useEffect(() => {
+        // Nếu không còn khớp (isMatched false) hoặc nhạc dừng (isPlaying false)
+        if (!isMatched || !currentTrack.isPlaying) {
+            setShowComments(false);
+            setCommentInput(prev => ({ ...prev, content: '', open: false }));
+            setCommentPreview({ show: false, position: 0, time: 0 });
+        } else {
+            setShowComments(true);
+        }
+    }, [isMatched, currentTrack.isPlaying]);
 
     // Pause this wavesurfer when another track is playing
     useEffect(() => {
@@ -172,13 +344,6 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         }
     }, [isMatched, currentTrack, track, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
 
-    const formatTime = (seconds: number) => {
-        const minutes = Math.floor(seconds / 60);
-        const secondsRemainder = Math.round(seconds) % 60;
-        const paddedSeconds = `0${secondsRemainder}`.slice(-2);
-        return `${minutes}:${paddedSeconds}`;
-    };
-
     return (
         <Box sx={{ display: 'flex', mb: 4, pt: 2, pb: 2, color: 'white', borderBottom: '1px solid #333' }}>
             {/* Left Image */}
@@ -235,7 +400,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
                 {/* Waveform */}
                 <Box sx={{ position: 'relative', flexGrow: 1, my: 1, display: 'flex', alignItems: 'flex-end', minHeight: 60 }}>
-                    <Box ref={containerRef} sx={{ width: '100%' }}>
+                    <Box ref={containerRef} sx={{ width: '100%', position: 'relative' }}>
                         <Box ref={hoverRef} sx={{
                             position: 'absolute',
                             left: 0,
@@ -246,9 +411,66 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             height: '100%',
                             borderRight: '1px solid white'
                         }} />
-                    </Box>
-                    <Box sx={{ position: 'absolute', bottom: 5, right: 0, background: 'rgba(0,0,0,0.8)', px: 0.5, py: 0.2, fontSize: 12, color: '#ccc' }}>
-                        {time} / {duration}
+
+                        {/* Comment avatars on waveform - Always visible */}
+                        <Box sx={{ position: 'absolute', top: -20, left: 0, right: 0, height: 40, pointerEvents: 'none' }}>
+                            {comments.map(comment => {
+                                const userAvatarSrc = comment.user?.avatar
+                                    ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
+                                    : undefined;
+                                return (
+                                    <Tooltip key={comment.id} title={comment.content}>
+                                        <Avatar
+                                            src={userAvatarSrc}
+                                            sx={{
+                                                position: 'absolute',
+                                                left: calculateLeft(comment.moment),
+                                                width: 16,
+                                                height: 16,
+                                                fontSize: 10,
+                                                transform: 'translateX(-50%)',
+                                                border: '1px solid #333',
+                                                pointerEvents: 'auto',
+                                                cursor: 'pointer',
+                                                top:60,
+                                                zIndex:20
+                                            }}
+                                        >
+                                            {comment.user?.name?.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                    </Tooltip>
+                                );
+                            })}
+
+                            {/* Comment preview avatar */}
+                            {commentPreview.show && (
+                                <Box
+                                    onClick={handleCommentPreviewClick}
+                                    sx={{
+                                        position: 'absolute',
+                                        left: `${commentPreview.position}%`,
+                                        top: 0,
+                                        bottom: 0,
+                                        width: '2px',
+                                        bgcolor: '#f50',
+                                        pointerEvents: 'auto',
+                                        cursor: 'pointer',
+                                        '&::after': {
+                                            content: '"+"',
+                                            position: 'absolute',
+                                            top: -20,
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            color: '#f50',
+                                            fontWeight: 'bold'
+                                        }
+                                    }}
+                                />
+                            )}
+                        </Box>
+                        <Box sx={{ position: 'absolute', bottom: 5, right: 0, background: 'rgba(0,0,0,0.8)', px: 0.5, py: 0.2, fontSize: 12, color: '#ccc' }}>
+                            {time} / {duration}
+                        </Box>
                     </Box>
                 </Box>
 
@@ -277,12 +499,150 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                             <ChatBubbleOutlineIcon fontSize="small" />
-                            0
+                            {comments.length}
                         </Box>
                     </Box>
                 </Box>
 
+                {/* Write a Comment Input - Show when track is playing */}
+                {isMatched && currentTrack.isPlaying && (
+                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #333' }}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={2}
+                            variant="outlined"
+                            placeholder="Write a comment..."
+                            value={commentInput.content}
+                            onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    '& fieldset': {
+                                        borderColor: '#444',
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: '#666',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#f50',
+                                    },
+                                },
+                                '& .MuiInputBase-input': {
+                                    color: 'white',
+                                },
+                            }}
+                        />
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+                            <MuiButton
+                                onClick={handleSubmitComment}
+                                disabled={!commentInput.content.trim()}
+                                sx={{
+                                    bgcolor: '#f50',
+                                    color: 'white',
+                                    '&:hover': {
+                                        bgcolor: '#e04800',
+                                    },
+                                    '&:disabled': {
+                                        bgcolor: '#555',
+                                        color: '#999'
+                                    }
+                                }}
+                                variant="contained"
+                                size="small"
+                            >
+                                Post Comment
+                            </MuiButton>
+                        </Box>
+                    </Box>
+                )}
             </Box>
+
+            {/* Comment Input Modal for timestamped comments */}
+            <Modal
+                open={commentInput.open}
+                onClose={clearCommentPreview}
+                aria-labelledby="comment-modal-title"
+                aria-describedby="comment-modal-description"
+            >
+                <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    bgcolor: '#282828',
+                    border: '1px solid #333',
+                    borderRadius: 2,
+                    boxShadow: 24,
+                    p: 4,
+                    minWidth: 400,
+                    color: 'white'
+                }}>
+                    <Typography id="comment-modal-title" variant="h6" sx={{ mb: 2, color: 'white' }}>
+                        Comment at {formatTimeUtil(commentInput.selectedTime)}
+                    </Typography>
+                    <TextField
+                        id="comment-modal-description"
+                        multiline
+                        rows={4}
+                        fullWidth
+                        variant="outlined"
+                        placeholder="Write your comment..."
+                        value={commentInput.content}
+                        onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
+                        sx={{
+                            mb: 3,
+                            '& .MuiOutlinedInput-root': {
+                                '& fieldset': {
+                                    borderColor: '#555',
+                                },
+                                '&:hover fieldset': {
+                                    borderColor: '#777',
+                                },
+                                '&.Mui-focused fieldset': {
+                                    borderColor: '#f50',
+                                },
+                            },
+                            '& .MuiInputBase-input': {
+                                color: 'white',
+                            },
+                        }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                        <MuiButton
+                            onClick={clearCommentPreview}
+                            sx={{
+                                color: '#999',
+                                borderColor: '#555',
+                                '&:hover': {
+                                    borderColor: '#777',
+                                    bgcolor: 'rgba(255,255,255,0.05)'
+                                }
+                            }}
+                            variant="outlined"
+                        >
+                            Cancel
+                        </MuiButton>
+                        <MuiButton
+                            onClick={handleSubmitComment}
+                            disabled={!commentInput.content.trim()}
+                            sx={{
+                                bgcolor: '#f50',
+                                color: 'white',
+                                '&:hover': {
+                                    bgcolor: '#e04800',
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#555',
+                                    color: '#999'
+                                }
+                            }}
+                            variant="contained"
+                        >
+                            Post Comment
+                        </MuiButton>
+                    </Box>
+                </Box>
+            </Modal>
         </Box>
     )
 }
