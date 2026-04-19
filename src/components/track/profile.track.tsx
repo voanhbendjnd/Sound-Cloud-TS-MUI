@@ -156,6 +156,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         sort: "updatedAt,desc"
     };
 
+
     // 2. Khai báo mutation hook
     const createCommentMutation = useCreateComment(commentParams);
     const handleSubmitComment = async () => {
@@ -220,32 +221,42 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         // Sắp xếp comment theo thời gian phát
         const sortedComments = [...comments].sort((a, b) => a.moment - b.moment);
-        const positions: { [key: string]: { top: number; zIndex: number } } = {};
+        const positions: { [key: string]: { top: number; left?: number; zIndex: number } } = {};
 
-        // Khoảng cách tối thiểu để coi là "trùng nhau" (đơn vị pixel hoặc %)
-        const minDistance = 3;
+        // Khoảng cách tối thiểu để coi là "trùng nhau" (tính theo %)
+        const minDistance = 4; // Tăng từ 3 lên 4
+
+        // Pattern cho từng tier để phân bố avatar đều nhau
+        const tierPattern = [
+            { top: 42, left: 0 },          // Tier 0: center bottom
+            { top: 42, left: -4 },        // Tier 1: bottom-left
+            { top: 42, left: 4 },         // Tier 2: bottom-right
+            { top: 42, left: 0 },         // Tier 3: top
+        ];
 
         sortedComments.forEach((comment, index) => {
             const leftPercent = (comment.moment / totalDuration) * 100;
-            let topOffset = 45; // Vị trí mặc định (nằm sát đáy waveform)
+            let tier = 0;
             let zIndex = 20;
 
-            // Kiểm tra xem có bao nhiêu comment phía trước nằm sát vách mình
+            // Check overlap với tất cả comment đã xếp (không chỉ phía trước liền kề)
             let overlapCount = 0;
-            for (let i = index - 1; i >= 0; i--) {
+            for (let i = 0; i < index; i++) {
                 const prevLeft = (sortedComments[i].moment / totalDuration) * 100;
                 if (Math.abs(leftPercent - prevLeft) < minDistance) {
                     overlapCount++;
-                } else {
-                    break; // Hết trùng thì dừng
                 }
             }
 
-            // Nếu trùng, đẩy cao lên (trừ đi để đi ngược lên trên), tối đa 3 tầng để không vượt quá waveform
-            topOffset = 45 - (overlapCount % 3) * 15;
-            zIndex = 20 + overlapCount;
+            // Giới hạn tối đa 4 tier
+            tier = Math.min(overlapCount, 3);
+            zIndex = 20 + tier;
 
-            positions[comment.id] = { top: topOffset, zIndex };
+            positions[comment.id] = {
+                top: tierPattern[tier].top,
+                left: tierPattern[tier].left,
+                zIndex
+            };
         });
 
         return positions;
@@ -482,16 +493,19 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         }}>
                             {comments.map(comment => {
                                 const userAvatarSrc = comment.user?.avatar
+                                    comment.user.type !==  "SYSTEM" ? `${comment.user.avatar}` :
+                                        comment.user.type === "SYSTEM"
                                     ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
                                     : undefined;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;
-                                const position = avatarPositions[comment.id] || { top: 40, zIndex: 20 };
+                                const position = avatarPositions[comment.id] || { top: 42, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
+                                const resContent = comment.user.name +  ': ' + comment.content;
                                 return (
                                     <Tooltip
                                         key={comment.id}
-                                        title={comment.content}
+                                        title={resContent}
                                         open={shouldShowTooltip}
                                         arrow
                                         onMouseEnter={() => setHoveredCommentId(comment.id)}
@@ -505,7 +519,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                                 top: position.top,
                                                 width: isActive ? 16 : 12,
                                                 height: isActive ? 16 : 12,
-                                                transform: 'translateX(-50%)',
+                                                transform: position.left ? `translateX(calc(-50% + ${position.left}px))` : 'translateX(-50%)',
                                                 border: isActive ? '2px solid #f50' : '1px solid #333',
                                                 pointerEvents: 'auto',
                                                 cursor: 'pointer',

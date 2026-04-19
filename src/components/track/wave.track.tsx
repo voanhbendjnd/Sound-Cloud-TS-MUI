@@ -114,32 +114,42 @@ const WaveTrack = (props: IProps) => {
 
         // Sắp xếp comment theo thời gian phát
         const sortedComments = [...displayComments].sort((a, b) => a.moment - b.moment);
-        const positions: { [key: string]: { top: number; zIndex: number } } = {};
+        const positions: { [key: string]: { top: number; left?: number; zIndex: number } } = {};
 
         // Khoảng cách tối thiểu để coi là "trùng nhau" (tính theo %)
-        const minDistance = 3;
+        const minDistance = 4; // Tăng từ 3 lên 4
+
+        // Pattern cho từng tier để phân bố avatar đều nhau
+        const tierPattern = [
+            { top: 65, left: 0 },          // Tier 0: center bottom
+            { top: 65, left: -4 },        // Tier 1: bottom-left
+            { top: 65, left: 4 },         // Tier 2: bottom-right
+            { top: 65, left: 0 },         // Tier 3: top
+        ];
 
         sortedComments.forEach((comment, index) => {
             const leftPercent = (comment.moment / waveDuration) * 100;
-            let topOffset = 45; // Vị trí mặc định (nằm sát đáy waveform)
+            let tier = 0;
             let zIndex = 20;
 
-            // Kiểm tra xem có bao nhiêu comment phía trước nằm sát vách mình
+            // Check overlap với tất cả comment đã xếp (không chỉ phía trước liền kề)
             let overlapCount = 0;
-            for (let i = index - 1; i >= 0; i--) {
+            for (let i = 0; i < index; i++) {
                 const prevLeft = (sortedComments[i].moment / waveDuration) * 100;
                 if (Math.abs(leftPercent - prevLeft) < minDistance) {
                     overlapCount++;
-                } else {
-                    break; // Hết trùng thì dừng
                 }
             }
 
-            // Nếu trùng, đẩy cao lên, tối đa 3 tầng
-            topOffset = 45 - (overlapCount % 3) * 15;
-            zIndex = 20 + overlapCount;
+            // Giới hạn tối đa 4 tier
+            tier = Math.min(overlapCount, 3);
+            zIndex = 20 + tier;
 
-            positions[comment.id] = { top: topOffset, zIndex };
+            positions[comment.id] = {
+                top: tierPattern[tier].top,
+                left: tierPattern[tier].left,
+                zIndex
+            };
         });
 
         return positions;
@@ -658,16 +668,18 @@ const WaveTrack = (props: IProps) => {
                             {
                                 displayComments.map(it => {
                                     const userAvatarSrc = it.user?.avatar
+                                        it.user.type !== "SYSTEM" ? `${it.user.avatar}` : it.user.type === "SYSTEM"
                                         ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
                                         : undefined;
                                     const isActive = activeCommentId === it.id;
                                     const isHovered = hoveredCommentId === it.id;
                                     const shouldShowTooltip = isActive || isHovered;
                                     const position = avatarPositions[it.id] || { top: 70, zIndex: 20 };
+                                    const resCmt = it.user.name + ': ' + it.content;
                                     return (
                                         <Tooltip
                                             key={it.id}
-                                            title={it.content}
+                                            title={resCmt}
                                             open={shouldShowTooltip}
                                             arrow
                                             onMouseEnter={() => setHoveredCommentId(it.id)}
@@ -686,7 +698,7 @@ const WaveTrack = (props: IProps) => {
                                                     height: isActive ? 24 : 20,
                                                     borderRadius: '50%',
                                                     position: 'absolute',
-                                                    transform: 'translateX(-50%)',
+                                                    transform: position.left ? `translateX(calc(-50% + ${position.left}px))` : 'translateX(-50%)',
                                                     border: isActive ? '2px solid #f50' : '1px solid #333',
                                                     pointerEvents: 'auto',
                                                     cursor: 'pointer',

@@ -9,6 +9,7 @@ import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
 import { useCreateComment, useFetchComments, commentKeys } from "@/hooks/use.comment";
 import { useQueryClient } from "@tanstack/react-query";
+import {toast} from "react-toastify";
 
 dayjs.extend(relativeTime);
 
@@ -104,6 +105,7 @@ const CommentSection = (props: IProps) => {
             }
         )
         setNewComment("");
+        toast.success("Post comment success");
     }
 
     const handleJumpToMoment = (moment: number) => {

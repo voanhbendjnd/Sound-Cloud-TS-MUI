@@ -107,6 +107,7 @@ declare global{
             avatar:string;
             name:string;
             email:string;
+            type:string;
         }
         track:{
             id: number;
