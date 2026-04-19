@@ -650,10 +650,12 @@ const WaveTrack = (props: IProps) => {
                         <div className="overlay"
                             style={{
                                 position: "absolute",
-                                height: "30px",
+                                height: "35%",
                                 width: "100%",
                                 bottom: "0",
-                                backdropFilter: "brightness(0.5)"
+                                background: "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 70%, transparent 100%)",
+                                zIndex: 15,
+                                pointerEvents: "none"
                             }}
                         ></div>
                         <div className="comments" style={{
@@ -668,7 +670,7 @@ const WaveTrack = (props: IProps) => {
                             {
                                 displayComments.map(it => {
                                     const userAvatarSrc = it.user?.avatar
-                                        it.user.type !== "SYSTEM" ? `${it.user.avatar}` : it.user.type === "SYSTEM"
+                                    it.user.type !== "SYSTEM" ? `${it.user.avatar}` : it.user.type === "SYSTEM"
                                         ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
                                         : undefined;
                                     const isActive = activeCommentId === it.id;

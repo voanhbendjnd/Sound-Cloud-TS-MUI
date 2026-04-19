@@ -481,6 +481,17 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             borderRight: '1px solid white'
                         }} />
 
+                        {/* Dark overlay under avatars for better visibility */}
+                        <Box sx={{
+                            position: 'absolute',
+                            height: '35%',
+                            width: '100%',
+                            bottom: 0,
+                            background: 'linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 70%, transparent 100%)',
+                            zIndex: 15,
+                            pointerEvents: 'none'
+                        }} />
+
                         {/* Comment avatars on waveform - Always visible */}
                         <Box sx={{
                             position: 'absolute',
@@ -493,15 +504,15 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         }}>
                             {comments.map(comment => {
                                 const userAvatarSrc = comment.user?.avatar
-                                    comment.user.type !==  "SYSTEM" ? `${comment.user.avatar}` :
-                                        comment.user.type === "SYSTEM"
-                                    ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
-                                    : undefined;
+                                comment.user.type !== "SYSTEM" ? `${comment.user.avatar}` :
+                                    comment.user.type === "SYSTEM"
+                                        ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
+                                        : undefined;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;
                                 const position = avatarPositions[comment.id] || { top: 42, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
-                                const resContent = comment.user.name +  ': ' + comment.content;
+                                const resContent = comment.user.name + ': ' + comment.content;
                                 return (
                                     <Tooltip
                                         key={comment.id}
