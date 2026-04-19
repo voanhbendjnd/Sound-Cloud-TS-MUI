@@ -76,13 +76,14 @@ export const authOptions: AuthOptions = {
                 return token;
             }
 
-            // Check if token is about to expire (within 1 minute buffer)
+            // Check if token is expired or about to expire
             // If token is still valid (has more than 1 minute), return it
             if (token.access_expire && Date.now() < (token.access_expire as number)) {
                 return token;
             }
 
             // Token has expired or is about to expire, refresh it
+            // This handles both tokens that are about to expire and already expired
             return await refreshAccessToken(token);
         },
         async session({ session, token }) {

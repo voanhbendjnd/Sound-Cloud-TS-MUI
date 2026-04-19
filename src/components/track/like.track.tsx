@@ -5,6 +5,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import { Headphones } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useLikeTrackMutation } from "@/hooks/use-track";
+import {useSession} from "next-auth/react";
 
 interface IProps {
     trackId: number;
@@ -14,7 +15,7 @@ interface IProps {
 
 const LikeTrack = (props: IProps) => {
     const { trackId, initialLikes, initialIsLiked } = props;
-
+    const { data: session } = useSession();
     // Chỉ cần 2 state này để quản lý hiển thị
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
     const [isLiked, setIsLiked] = useState<boolean>(initialIsLiked);
@@ -41,23 +42,26 @@ const LikeTrack = (props: IProps) => {
 
     return (
         <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
-            <Stack direction="row" spacing={1}>
+            {session ?             <Stack direction="row" spacing={1}>
                 <Chip
                     onClick={handleLikeClick}
                     disabled={mutation.isPending}
                     style={{
-                        color: isLiked ? '#fff' : 'white',
-                        // borderColor: isLiked ? '#ff5500' : 'white',
+                        color: isLiked ? '#f64a00' : 'white',
+                        // borderColor: isLiked ? '#ff0000' : 'white',
                         cursor: mutation.isPending ? 'not-allowed' : 'pointer',
                         opacity: mutation.isPending ? 0.8 : 1
                     }}
-                    icon={<FavoriteIcon style={{ color: isLiked ? '#ff5500' : 'inherit' }} />}
+                    icon={<FavoriteIcon style={{ color: isLiked ? '#f64a00' : 'inherit' }} />}
                     label={isLiked ? "Liked" : "Like"}
                     variant="outlined"
                 />
             </Stack>
+: <></>
+            }
 
             <div style={{ display: 'flex', gap: '10px' }}>
+
                 <Stack direction="row">
                     <Chip
                         sx={{ color: 'white', '& .MuiChip-icon': { color: 'white' } }}

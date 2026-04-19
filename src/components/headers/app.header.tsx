@@ -252,6 +252,7 @@ const AppHeader = () => {
                                     <Avatar
                                         onClick={handleProfileMenuOpen}
                                         sx={{ cursor: "pointer" }}
+                                        src={session.user?.avatar}
                                     >
                                         {session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>

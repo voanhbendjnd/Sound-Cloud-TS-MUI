@@ -9,9 +9,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
-import { useFetchComments } from "@/hooks/use.comment";
+import { useFetchComments, commentKeys } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
 import axiosInstance from "@/utils/axios-instance";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface IProps {
     comments: IComment[];
@@ -46,16 +47,23 @@ const WaveTrack = (props: IProps) => {
 
     const [activeCommentId, setActiveCommentId] = useState<string | number | null>(null);
     const [hoveredCommentId, setHoveredCommentId] = useState<string | number | null>(null);
+    const [isWaveformPlaying, setIsWaveformPlaying] = useState(false);
+    const [waveDuration, setWaveDuration] = useState(0); // Stable duration state for comment positioning
 
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fileName;
+    const queryClient = useQueryClient();
     const { data: resComments } = useFetchComments({
         current: 1,
         pageSize: 100,
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     });
-    const displayComments = resComments?.data?.result ?? props.comments;
+
+    // Single source of truth for comments displayed on waveform
+    const displayComments = useMemo(() => {
+        return resComments?.data?.result ?? comments;
+    }, [resComments?.data?.result, comments]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
@@ -100,26 +108,26 @@ const WaveTrack = (props: IProps) => {
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
     // Calculate stacking positions for avatars to avoid overlap
+    // Uses stable waveDuration state instead of wavesurfer?.getDuration() which can be 0 during recalculation
     const avatarPositions = useMemo(() => {
-        const totalDuration = wavesurfer?.getDuration() || 0;
-        if (totalDuration === 0 || displayComments.length === 0) return {};
+        if (waveDuration === 0 || displayComments.length === 0) return {};
 
         // Sắp xếp comment theo thời gian phát
         const sortedComments = [...displayComments].sort((a, b) => a.moment - b.moment);
         const positions: { [key: string]: { top: number; zIndex: number } } = {};
 
-        // Khoảng cách tối thiểu để coi là "trùng nhau"
+        // Khoảng cách tối thiểu để coi là "trùng nhau" (tính theo %)
         const minDistance = 3;
 
         sortedComments.forEach((comment, index) => {
-            const leftPercent = (comment.moment / totalDuration) * 100;
+            const leftPercent = (comment.moment / waveDuration) * 100;
             let topOffset = 45; // Vị trí mặc định (nằm sát đáy waveform)
             let zIndex = 20;
 
             // Kiểm tra xem có bao nhiêu comment phía trước nằm sát vách mình
             let overlapCount = 0;
             for (let i = index - 1; i >= 0; i--) {
-                const prevLeft = (sortedComments[i].moment / totalDuration) * 100;
+                const prevLeft = (sortedComments[i].moment / waveDuration) * 100;
                 if (Math.abs(leftPercent - prevLeft) < minDistance) {
                     overlapCount++;
                 } else {
@@ -135,7 +143,7 @@ const WaveTrack = (props: IProps) => {
         });
 
         return positions;
-    }, [wavesurfer, displayComments]);
+    }, [waveDuration, displayComments]);
 
     // Sync play/pause from global state
     useEffect(() => {
@@ -144,7 +152,13 @@ const WaveTrack = (props: IProps) => {
 
         const hover = hoverRef.current!;
         const waveform = containerRef.current!;
-        const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
+
+        const handlePointerMove = (e: PointerEvent) => {
+            if (hover) {
+                hover.style.width = `${e.offsetX}px`;
+            }
+        };
+
         waveform.addEventListener('pointermove', handlePointerMove);
 
         // Handle waveform click for comment positioning
@@ -211,14 +225,23 @@ const WaveTrack = (props: IProps) => {
         waveform.addEventListener('dblclick', handleWaveformDoubleClick);
 
         const subscriptions = [
-            wavesurfer.on('decode', (d) => setDuration(formatTime(d))),
+            wavesurfer.on('decode', (d) => {
+                setDuration(formatTime(d));
+                setWaveDuration(d); // Store stable numeric duration for comment positioning
+            }),
             wavesurfer.on('interaction', (newTime) => {
                 if (isMatched && audioRef.current) {
                     audioRef.current.currentTime = newTime;
                     savedTimes.current[fileName || ''] = newTime;
-                    audioRef.current.play();
+                    // Only auto-play on seek if already playing, don't start playback on seek
+                    if (currentTrack.isPlaying) {
+                        audioRef.current.play();
+                        setIsWaveformPlaying(true);
+                    }
                 }
-            })
+            }),
+            wavesurfer.on('play', () => setIsWaveformPlaying(true)),
+            wavesurfer.on('pause', () => setIsWaveformPlaying(false))
         ];
 
         return () => {
@@ -227,7 +250,7 @@ const WaveTrack = (props: IProps) => {
             waveform.removeEventListener('dblclick', handleWaveformDoubleClick);
             subscriptions.forEach((unsub) => unsub());
         };
-    }, [wavesurfer, isMatched, audioRef, fileName, savedTimes]);
+    }, [wavesurfer, isMatched, audioRef, fileName, savedTimes, currentTrack.isPlaying]);
 
     // Pause this wavesurfer when another track is playing
     useEffect(() => {
@@ -236,6 +259,7 @@ const WaveTrack = (props: IProps) => {
         // If another track is playing and this is not the current track, pause this wavesurfer
         if (currentTrack.trackUrl && currentTrack.isPlaying && !isMatched) {
             wavesurfer.pause();
+            setIsWaveformPlaying(false);
         }
 
         // If this track becomes the current one, sync and potentially play
@@ -245,6 +269,15 @@ const WaveTrack = (props: IProps) => {
                     const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
                     if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
                     setTime(formatTime(audioRef.current.currentTime));
+
+                    // Play wavesurfer if it's not playing and audio is playing
+                    if (!wavesurfer.isPlaying() && audioRef.current.currentTime > 0) {
+                        wavesurfer.play();
+                        setIsWaveformPlaying(true);
+                    }
+
+                    // Update state based on actual wavesurfer state
+                    setIsWaveformPlaying(wavesurfer.isPlaying());
                 }
             };
 
@@ -271,8 +304,12 @@ const WaveTrack = (props: IProps) => {
                 audioEl.addEventListener('seeked', syncWavesurfer);
                 audioEl.addEventListener('timeupdate', handleTimeUpdate);
 
-                // Initial sync
+                // Initial sync and play
                 syncWavesurfer();
+                if (!wavesurfer.isPlaying() && audioEl.currentTime > 0) {
+                    wavesurfer.play();
+                    setIsWaveformPlaying(true);
+                }
 
                 return () => {
                     audioEl.removeEventListener('timeupdate', syncWavesurfer);
@@ -292,9 +329,19 @@ const WaveTrack = (props: IProps) => {
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
+                // Also play wavesurfer
+                if (wavesurfer && !wavesurfer.isPlaying()) {
+                    wavesurfer.play();
+                    setIsWaveformPlaying(true);
+                }
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
                 savedTimes.current[fileName || ''] = audioRef.current.currentTime;
+                // Also pause wavesurfer
+                if (wavesurfer && wavesurfer.isPlaying()) {
+                    wavesurfer.pause();
+                    setIsWaveformPlaying(false);
+                }
             }
         } else {
             // Save old track's time if exists
@@ -302,14 +349,15 @@ const WaveTrack = (props: IProps) => {
                 savedTimes.current[currentTrack.trackUrl] = audioRef.current.currentTime;
             }
 
-            // Create new track object with available data
+            // Create new track object using fetched trackData (preferred) or context fallback
+            const source = trackData || currentTrack;
             const newTrack = {
-                id: fileName || `track-${Date.now()}`,
+                id: trackData?.id || fileName || `track-${Date.now()}`,
                 trackUrl: fileName,
-                title: currentTrack.title || "Unknown Track",
-                uploader: currentTrack.uploader || { name: "Unknown Artist" },
-                imgUrl: currentTrack.imgUrl || "",
-                description: currentTrack.description || "",
+                title: source.title || "Unknown Track",
+                uploader: source.uploader || { name: "Unknown Artist" },
+                imgUrl: source.imgUrl || "",
+                description: source.description || "",
                 isPlaying: true
             };
 
@@ -321,6 +369,7 @@ const WaveTrack = (props: IProps) => {
                 const savedTime = savedTimes.current[fileName || ''] || 0;
                 wavesurfer.setTime(savedTime);
                 wavesurfer.play();
+                setIsWaveformPlaying(true);
             }
 
             // Also setup footer audio when ready
@@ -332,12 +381,12 @@ const WaveTrack = (props: IProps) => {
                 }
             }, 100);
         }
-    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
+    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer, trackData]);
 
     // Extract color from track image using Canvas API
     useEffect(() => {
         const extractColor = () => {
-            if (currentTrack?.imgUrl && typeof window !== "undefined") {
+            if (trackData?.imgUrl && typeof window !== "undefined") {
                 const img = new Image();
                 img.crossOrigin = "anonymous";
 
@@ -394,40 +443,30 @@ const WaveTrack = (props: IProps) => {
                     setBackgroundColor("linear-gradient(135deg, rgb(106, 112, 67) 0%, rgb(11, 15, 20) 100%)");
                 };
 
-                img.src = `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${currentTrack.imgUrl}`;
+                img.src = `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${trackData.imgUrl}`;
             }
         };
 
         extractColor();
-    }, [currentTrack?.imgUrl]);
+    }, [trackData?.imgUrl]);
 
     // Fetch track data and handle autoPlay
     useEffect(() => {
         const fetchTrackData = async () => {
             if (trackId && fileName) {
                 try {
-                    // axiosInstance thường đã được config sẵn base URL và interceptor để đính kèm token
                     const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
 
                     if (res.data) {
                         const track = res.data;
                         setTrackData(track);
 
-                        const isAlreadyPlaying = currentTrack.trackUrl === fileName && currentTrack.isPlaying;
+                        // Reset isWaveformPlaying when track changes
+                        setIsWaveformPlaying(false);
 
-                        const fullTrack = {
-                            id: track.id,
-                            trackUrl: fileName,
-                            title: track.title,
-                            uploader: track.uploader,
-                            imgUrl: track.imgUrl,
-                            description: track.description,
-                            countLike: track.countLike, // Đừng quên lấy thêm các field này
-                            isLiked: track.isLiked,     // Để truyền vào LikeTrack
-                            isPlaying: isAlreadyPlaying
-                        };
-
-                        setCurrentTrack(fullTrack as any);
+                        // Không tự động cập nhật currentTrack khi vào trang detail mới
+                        // Chỉ cập nhật khi user chủ động click play (trong onPlayClick)
+                        // Điều này giúp footer không tự động đổi bài khi user chỉ xem trang detail
                     }
                 } catch (error) {
                     console.error('Error fetching track data:', error);
@@ -435,9 +474,18 @@ const WaveTrack = (props: IProps) => {
             }
         };
         fetchTrackData();
-    }, [trackId, fileName, setCurrentTrack, currentTrack.isPlaying]);
 
-    const totalDuration = wavesurfer?.getDuration() || 0;
+        // GIẢI PHÁP: Chỉ giữ lại trackId và fileName.
+        // Loại bỏ setCurrentTrack (vì nó là hàm ổn định) và currentTrack.isPlaying
+    }, [trackId, fileName]);
+
+    // Sync isWaveformPlaying with actual wavesurfer state
+    useEffect(() => {
+        if (wavesurfer) {
+            setIsWaveformPlaying(wavesurfer.isPlaying());
+        }
+    }, [wavesurfer, fileName]);
+    const totalDuration = waveDuration;
 
     const calculateLeft = useCallback((moment: number) => {
         if (totalDuration === 0) return "0%";
@@ -479,9 +527,42 @@ const WaveTrack = (props: IProps) => {
             });
 
             if (response.ok) {
-                console.log('Comment submitted successfully');
-                // You might want to refresh comments or update state here
-                // For now, just clear the input
+                // Optimistic update: add new comment to React Query cache immediately
+                const newComment: IComment = {
+                    id: Date.now(), // Temporary ID
+                    content: commentInput.content,
+                    moment: commentInput.selectedTime,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    user: {
+                        name: "Current User",
+                        avatar: ""
+                    },
+                    track: { id: Number(trackId), imgUrl: "", title: "" }
+                } as IComment;
+
+                const waveformQueryKey = commentKeys.list({
+                    current: 1,
+                    pageSize: 100,
+                    trackId: Number(trackId),
+                    sort: "updatedAt,desc"
+                });
+
+                // Update React Query cache for immediate display
+                queryClient.setQueryData(waveformQueryKey, (old: any) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        data: {
+                            ...old.data,
+                            result: [newComment, ...old.data.result]
+                        }
+                    };
+                });
+
+                // Invalidate to sync with server (will get real ID, user info, etc.)
+                queryClient.invalidateQueries({ queryKey: waveformQueryKey });
+
                 clearCommentPreview();
             } else {
                 console.error('Failed to submit comment');
@@ -518,7 +599,7 @@ const WaveTrack = (props: IProps) => {
                         <div>
                             <div className="wave-button"
                                 onClick={() => onPlayClick()}>
-                                {currentTrack.isPlaying && isMatched ?
+                                {isWaveformPlaying ?
                                     <PauseIcon
                                         sx={{ fontSize: 30, color: "white" }}
                                     />
@@ -537,7 +618,7 @@ const WaveTrack = (props: IProps) => {
                                 width: "fit-content",
                                 color: "white"
                             }}>
-                                {currentTrack.title}
+                                {trackData?.title || currentTrack.title}
                             </div>
                             <div style={{
                                 padding: "0 5px",
@@ -548,7 +629,7 @@ const WaveTrack = (props: IProps) => {
                                 color: "white"
                             }}
                             >
-                                {currentTrack.uploader.name}
+                                {trackData?.uploader?.name || currentTrack.uploader?.name}
                             </div>
                         </div>
                     </div>
@@ -667,7 +748,7 @@ const WaveTrack = (props: IProps) => {
                         backgroundColor: '#333'
                     }}>
                         <img
-                            src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${currentTrack.imgUrl}`}
+                            src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${trackData?.imgUrl || currentTrack.imgUrl}`}
                             style={{
                                 width: '100%',
                                 height: '100%',
@@ -681,14 +762,14 @@ const WaveTrack = (props: IProps) => {
                 </div>
             </div>
             {trackData && (
-                <div style={{marginTop:15}}>
+                <div style={{ marginTop: 15 }}>
                     <LikeTrack
                         trackId={Number(trackId)}
                         initialLikes={trackData.countLike}
                         initialIsLiked={trackData.isLiked}
                     />
                 </div>
-                )}
+            )}
             {/* Comment Input Modal */}
             <Modal
                 open={commentInput.open}

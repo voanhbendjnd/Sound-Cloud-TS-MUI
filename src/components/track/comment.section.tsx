@@ -7,7 +7,8 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
-import { useCreateComment, useFetchComments } from "@/hooks/use.comment";
+import { useCreateComment, useFetchComments, commentKeys } from "@/hooks/use.comment";
+import { useQueryClient } from "@tanstack/react-query";
 
 dayjs.extend(relativeTime);
 
@@ -35,7 +36,16 @@ const CommentSection = (props: IProps) => {
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
+    const queryClient = useQueryClient();
     const createCommentMutation = useCreateComment(commentParams);
+
+    // Waveform uses a separate query with pageSize 100 — we need to invalidate it too
+    const waveformCommentParams = {
+        current: 1,
+        pageSize: 100,
+        trackId: Number(trackId),
+        sort: "updatedAt,desc"
+    };
 
     // Update allComments when new data is fetched
     useEffect(() => {
@@ -51,7 +61,7 @@ const CommentSection = (props: IProps) => {
             // Check if there are more pages
             const meta = resComments.data.meta;
             if (meta) {
-                setHasMore(meta.page < meta.totalPages);
+                setHasMore(meta.page < meta.pages);
             }
         }
     }, [resComments]);
@@ -86,6 +96,10 @@ const CommentSection = (props: IProps) => {
             {
                 onSuccess: () => {
                     setNewComment("");
+                    // Also invalidate the waveform's comment cache so avatars appear immediately
+                    queryClient.invalidateQueries({
+                        queryKey: commentKeys.list(waveformCommentParams)
+                    });
                 }
             }
         )
@@ -115,38 +129,51 @@ const CommentSection = (props: IProps) => {
 
     return (
         <Box sx={{ mt: 3, mb: 5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, background: '#121212', p: 1, borderRadius: 10 }}>
-                {session ?
-                    <Avatar
-                    >
-                        {session.user?.name?.charAt(0).toUpperCase()}
-                    </Avatar>
-                    :
-                    <Avatar sx={{ width: 40, height: 40 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                {/* Chỉ hiện Avatar khi đã login */}
+                {session && (
+                    <>
+                        <Avatar
+                            src={session.user?.avatar}
+                            sx={{ width: 40, height: 40 }}
+                        >
+                            {session.user?.name?.charAt(0).toUpperCase()}
+                        </Avatar>
 
-                    </Avatar>}
-                <TextField
-                    fullWidth
-                    variant="outlined"
-                    placeholder="Write a comment"
-                    size="small"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    sx={{
-                        background: '#303030', '& .MuiOutlinedInput-root': { borderRadius: '1px' }, '& .MuiInputBase-input::placeholder': {
-                            color: '#7e7e7e', // Màu xám nhạt cho placeholder
-                            opacity: 1,    // Đảm bảo màu hiện rõ trên Chrome
-                        },
-                        '& .MuiInputBase-input': { color: '#fff' }, // Thêm dòng này
-                    }}
+                        <TextField
+                            fullWidth
+                            variant="outlined"
+                            placeholder="Write a comment"
+                            size="small"
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            sx={{
+                                background: '#303030',
+                                '& .MuiOutlinedInput-root': { borderRadius: '1px' },
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: '#7e7e7e',
+                                    opacity: 1,
+                                },
+                                '& .MuiInputBase-input': { color: '#fff' },
+                            }}
+                        />
 
-                />
-                <IconButton onClick={handlePostComment} sx={{ background: '#303030' }}>
-                    <SendSharp />
-                </IconButton>
-            </Box>
+                        <IconButton
+                            onClick={handlePostComment}
+                            sx={{ background: '#303030' }}
+                            disabled={!session} // Khóa nút gửi nếu chưa login
+                        >
+                            <SendSharp sx={{ color: session ? '#f50' : '#7e7e7e' }} />
+                        </IconButton>
+                    </>
 
-            <Divider sx={{ my: 4 }} />
+
+                )}
+
+                {/* Thanh Input luôn hiện (hoặc tùy bạn muốn login mới hiện) */}
+
+            </div>
+            <Divider sx={{ my: 4,  color: 'orange' }} />
 
             <Box sx={{ display: 'flex', gap: 4 }}>
                 {/* Cột trái: Thông tin Uploader */}
