@@ -112,3 +112,30 @@ export const useDeleteTrack = () => {
         },
     });
 };
+// Định nghĩa Interface trả về từ Backend (ResTrackLike.java)
+export interface IResTrackLike {
+    countLikes: number;
+    isLiked: boolean;
+}
+
+export const useLikeTrackMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (trackId: number) => {
+            // BE của bạn nhận trackId để xử lý Like/Unlike
+            return axiosInstance.post<any, IBackendRes<IResTrackLike>>(`/api/v1/tracks/likes`, { trackId });
+        },
+        onSuccess: (res, trackId) => {
+            // 1. Invalidate dữ liệu chi tiết của chính bài track đó để cập nhật UI mới nhất
+            queryClient.invalidateQueries({ queryKey: trackKeys.detail(trackId) });
+
+            // 2. Nếu bạn có danh sách track, cũng cần làm mới để số like đồng bộ
+            queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
+
+            // Note: Nếu bạn muốn tối ưu hiệu năng cực cao (Optimistic Updates)
+            // để số nhảy ngay lập tức trước khi BE trả về, có thể cấu hình thêm onMutate.
+            // Nhưng với app SoundCloud này, invalidate là đủ an toàn và chính xác.
+        },
+    });
+};

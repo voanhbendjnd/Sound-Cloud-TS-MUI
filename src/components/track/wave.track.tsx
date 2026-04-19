@@ -10,6 +10,8 @@ import PauseIcon from '@mui/icons-material/Pause';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
 import { useFetchComments } from "@/hooks/use.comment";
+import LikeTrack from "@/components/track/like.track";
+import axiosInstance from "@/utils/axios-instance";
 
 interface IProps {
     comments: IComment[];
@@ -404,24 +406,25 @@ const WaveTrack = (props: IProps) => {
         const fetchTrackData = async () => {
             if (trackId && fileName) {
                 try {
-                    // Fetch track data from API
-                    const response = await fetch(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`);
-                    if (response.ok) {
-                        const trackData = await response.json();
-                        setTrackData(trackData.data);
+                    // axiosInstance thường đã được config sẵn base URL và interceptor để đính kèm token
+                    const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
 
-                        // Check if this track is already playing from another page
+                    if (res.data) {
+                        const track = res.data;
+                        setTrackData(track);
+
                         const isAlreadyPlaying = currentTrack.trackUrl === fileName && currentTrack.isPlaying;
 
-                        // Set current track with full data (preserve playing state if already playing)
                         const fullTrack = {
-                            id: trackData.data.id,
+                            id: track.id,
                             trackUrl: fileName,
-                            title: trackData.data.title,
-                            uploader: trackData.data.uploader,
-                            imgUrl: trackData.data.imgUrl,
-                            description: trackData.data.description,
-                            isPlaying: isAlreadyPlaying // Preserve existing playing state
+                            title: track.title,
+                            uploader: track.uploader,
+                            imgUrl: track.imgUrl,
+                            description: track.description,
+                            countLike: track.countLike, // Đừng quên lấy thêm các field này
+                            isLiked: track.isLiked,     // Để truyền vào LikeTrack
+                            isPlaying: isAlreadyPlaying
                         };
 
                         setCurrentTrack(fullTrack as any);
@@ -431,9 +434,8 @@ const WaveTrack = (props: IProps) => {
                 }
             }
         };
-
         fetchTrackData();
-    }, [trackId, fileName, setCurrentTrack, currentTrack.trackUrl, currentTrack.isPlaying]);
+    }, [trackId, fileName, setCurrentTrack, currentTrack.isPlaying]);
 
     const totalDuration = wavesurfer?.getDuration() || 0;
 
@@ -491,6 +493,7 @@ const WaveTrack = (props: IProps) => {
 
     return (
         <div style={{ paddingTop: 20 }}>
+
             <div
                 className="wave-background"
                 style={{
@@ -677,7 +680,15 @@ const WaveTrack = (props: IProps) => {
                     </div>
                 </div>
             </div>
-
+            {trackData && (
+                <div style={{marginTop:15}}>
+                    <LikeTrack
+                        trackId={Number(trackId)}
+                        initialLikes={trackData.countLike}
+                        initialIsLiked={trackData.isLiked}
+                    />
+                </div>
+                )}
             {/* Comment Input Modal */}
             <Modal
                 open={commentInput.open}

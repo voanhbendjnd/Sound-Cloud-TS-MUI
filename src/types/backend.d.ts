@@ -48,6 +48,7 @@ declare global{
         "trackUrl": string;
         "countLike": number;
         "countPlay": number;
+        "isLiked": boolean;
         "uploader": {
             "id": string;
             "email": string;
