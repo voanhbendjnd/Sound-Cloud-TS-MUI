@@ -3,7 +3,7 @@ import { getSession, signOut } from 'next-auth/react';
 
 const axiosInstance = axios.create({
     baseURL: process.env.NEXT_PUBLIC_BE_URL || 'http://localhost:8080',
-    timeout: 10000,
+    timeout: 300000,
 });
 
 let isRefreshing = false;

@@ -28,7 +28,11 @@ export default async function HomePage() {
   const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
     url: "http://localhost:8080/api/v1/tracks",
     method: "GET",
-    nextOption: {
+    queryParams: {
+      page: 1,
+      size: 10,
+      sort: "updatedAt,desc"
+    },    nextOption: {
       cache: 'no-store'
     }
   });

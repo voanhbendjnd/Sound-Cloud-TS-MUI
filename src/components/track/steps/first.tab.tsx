@@ -53,7 +53,7 @@ const FirstTabs = (props: IProps) => {
     const {acceptedFiles, getRootProps, getInputProps} = useDropzone({
         onDrop,
         accept:{
-            'audio/*':['.mp3', '.m4a', '.wav']
+            'audio/*':['.mp3', '.m4a', '.wav', '.flac']
         }
     });
     const files = acceptedFiles.map((file: FileWithPath) => (
