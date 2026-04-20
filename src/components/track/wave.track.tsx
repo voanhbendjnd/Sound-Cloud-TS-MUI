@@ -781,6 +781,7 @@ const WaveTrack = (props: IProps) => {
                         trackId={Number(trackId)}
                         initialLikes={trackData.countLike}
                         initialIsLiked={trackData.isLiked}
+                        initialCountPlays={trackData.countPlay}
                     />
                 </div>
             )}

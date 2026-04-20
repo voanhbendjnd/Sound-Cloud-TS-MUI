@@ -131,6 +131,8 @@ declare global{
         setCurrentTrack: (track: IShareTrack) => void;
         audioRef: React.MutableRefObject<HTMLAudioElement | null>;
         savedTimes: React.MutableRefObject<Record<string, number>>;
+        viewedTracks: Set<string>;
+        markTrackAsViewed: (trackId: string) => void;
     }
     interface IShareTrack extends ITrack{
         isPlaying: boolean;

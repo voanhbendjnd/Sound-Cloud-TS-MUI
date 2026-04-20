@@ -116,6 +116,7 @@ export const useDeleteTrack = () => {
 export interface IResTrackLike {
     countLikes: number;
     isLiked: boolean;
+    countPlays:number;
 }
 
 export const useLikeTrackMutation = () => {
@@ -136,6 +137,21 @@ export const useLikeTrackMutation = () => {
             // Note: Nếu bạn muốn tối ưu hiệu năng cực cao (Optimistic Updates)
             // để số nhảy ngay lập tức trước khi BE trả về, có thể cấu hình thêm onMutate.
             // Nhưng với app SoundCloud này, invalidate là đủ an toàn và chính xác.
+        },
+    });
+};
+
+
+export const useCountTrackMutation = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (trackId: number) => {
+            return axiosInstance.patch<any, IBackendRes<IResTrackLike>>(`/api/v1/tracks/view/increase`, { trackId });
+        },
+        onSuccess: (res, trackId) => {
+            queryClient.invalidateQueries({ queryKey: trackKeys.detail(trackId) });
+            queryClient.invalidateQueries({ queryKey: trackKeys.lists() });
         },
     });
 };

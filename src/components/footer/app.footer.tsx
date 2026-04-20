@@ -13,10 +13,41 @@ import IconButton from "@mui/material/IconButton";
 import AppBar from "@mui/material/AppBar";
 import { Container } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
+import axios from "axios";
+
 const AppFooter = () => {
-    const { currentTrack, setCurrentTrack, audioRef } = useTrackContext() as ITrackContext;
+    const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
     const hasMounted = useHasMounted();
+
+    // Track 30-second rule for view count
+    useEffect(() => {
+        if (!audioRef.current || !currentTrack.id || !currentTrack.isPlaying) return;
+
+        const handleTimeUpdate = () => {
+            const currentTime = audioRef.current?.currentTime || 0;
+            const trackId = currentTrack.id.toString();
+
+            // When reaching 30 seconds and track not yet viewed
+            if (currentTime >= 30 && !viewedTracks.has(trackId)) {
+                // Call API to increase view count
+                axios.patch(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/view/increase`, {
+                    trackId: currentTrack.id
+                }).catch(err => console.error('Failed to increase view count:', err));
+
+                // Mark track as viewed
+                markTrackAsViewed(trackId);
+            }
+        };
+
+        audioRef.current.addEventListener('timeupdate', handleTimeUpdate);
+
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.removeEventListener('timeupdate', handleTimeUpdate);
+            }
+        };
+    }, [currentTrack, viewedTracks, markTrackAsViewed]);
 
     if (!hasMounted) return (<></>)
 

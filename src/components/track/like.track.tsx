@@ -4,24 +4,25 @@ import Stack from '@mui/material/Stack';
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { Headphones } from "@mui/icons-material";
 import { useState, useEffect } from "react";
-import { useLikeTrackMutation } from "@/hooks/use-track";
+import {useCountTrackMutation, useLikeTrackMutation} from "@/hooks/use-track";
 import {useSession} from "next-auth/react";
 
 interface IProps {
     trackId: number;
     initialLikes: number;
     initialIsLiked: boolean;
+    initialCountPlays: number;
 }
 
 const LikeTrack = (props: IProps) => {
-    const { trackId, initialLikes, initialIsLiked } = props;
+    const { trackId, initialLikes, initialIsLiked, initialCountPlays } = props;
     const { data: session } = useSession();
     // Chỉ cần 2 state này để quản lý hiển thị
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
     const [isLiked, setIsLiked] = useState<boolean>(initialIsLiked);
-
+    const [countPlays, setCountPlays] = useState<number>(initialCountPlays);
     const mutation = useLikeTrackMutation();
-
+    const mutationPlayCount = useCountTrackMutation();
     // Đồng bộ lại state khi props thay đổi (ví dụ chuyển bài hát)
     useEffect(() => {
         setCountLikes(initialLikes);
@@ -35,6 +36,15 @@ const LikeTrack = (props: IProps) => {
                 if (res?.data) {
                     setCountLikes(res.data.countLikes);
                     setIsLiked(res.data.isLiked);
+                }
+            }
+        });
+    };
+    const handleIncreaseCountPlay = () => {
+        mutation.mutate(trackId, {
+            onSuccess: (res) => {
+                if (res?.data) {
+                   setCountLikes(res.data.countPlays);
                 }
             }
         });
@@ -66,7 +76,7 @@ const LikeTrack = (props: IProps) => {
                     <Chip
                         sx={{ color: 'white', '& .MuiChip-icon': { color: 'white' } }}
                         icon={<Headphones />}
-                        label="1.2k"
+                        label={countPlays.toLocaleString()}
                     />
                 </Stack>
                 <Stack direction="row">
