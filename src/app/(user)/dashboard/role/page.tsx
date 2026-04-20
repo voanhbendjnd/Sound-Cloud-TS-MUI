@@ -7,9 +7,11 @@ export const metadata = {
 
 const ManageRolePage = () => {
     return (
-        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <RoleTable />
-        </Container>
+        <div style={{ backgroundColor: '#212121', paddingTop: 50 }}>
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                <RoleTable />
+            </Container>
+        </div>
     );
 };
 

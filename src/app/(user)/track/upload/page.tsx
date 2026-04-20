@@ -3,7 +3,7 @@ import { Container } from "@mui/material";
 
 const UploadPage = () => {
     return (
-        <div style={{ backgroundColor: '#212121', paddingTop: 50 }}>
+        <div style={{ backgroundColor: '#121212', paddingTop: 50 }}>
             <Container>
                 <UploadTabs />
             </Container>

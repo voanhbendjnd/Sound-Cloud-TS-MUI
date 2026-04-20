@@ -14,6 +14,7 @@ import AppBar from "@mui/material/AppBar";
 import { Container } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import axios from "axios";
+import Link from "next/link";
 
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
@@ -54,6 +55,7 @@ const AppFooter = () => {
     if (!currentTrack || !currentTrack.trackUrl) {
         return null;
     }
+
 
     return (
         <div style={{ marginTop: 50 }}>
@@ -125,13 +127,15 @@ const AppFooter = () => {
                                 playerRef.current = c;
                                 if (c && c.audio.current) {
                                     audioRef.current = c.audio.current;
+                                    audioRef.current.preload = 'none';
                                 }
                             }}
                             autoPlay={false}
                             showSkipControls={true}
                             showJumpControls={false}
-                            src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/audio-tracks/${currentTrack.trackUrl}`}
+                            src={`${currentTrack.trackUrl}`}
                             volume={0.5}
+                            preload="none"
                             onPlay={() => setCurrentTrack({ ...currentTrack, isPlaying: true })}
                             onPause={() => setCurrentTrack({ ...currentTrack, isPlaying: false })}
                             customProgressBarSection={[
@@ -152,14 +156,17 @@ const AppFooter = () => {
                     {/* Track Info (Right Side) */}
                     <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
                         <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
+                            <Link href={`/track/${currentTrack.id}?audio=${currentTrack.trackUrl}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+
                             {currentTrack.imgUrl && (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
-                                    src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${currentTrack.imgUrl}`}
+                                    src={`${currentTrack.imgUrl}`}
                                     alt={currentTrack.title}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                 />
                             )}
+                            </Link>
                         </Box>
 
                         <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>

@@ -101,7 +101,7 @@ const WaveTrack = (props: IProps) => {
             progressColor: progressGradient,
             height: 100,
             barWidth: 3,
-            url: `/api?audio=${fileName}`,
+            url: fileName,
         }
     }, []);
 
@@ -453,7 +453,7 @@ const WaveTrack = (props: IProps) => {
                     setBackgroundColor("linear-gradient(135deg, rgb(106, 112, 67) 0%, rgb(11, 15, 20) 100%)");
                 };
 
-                img.src = `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${trackData.imgUrl}`;
+                img.src = `${trackData.imgUrl}`;
             }
         };
 
@@ -671,7 +671,7 @@ const WaveTrack = (props: IProps) => {
                                 displayComments.map(it => {
                                     const userAvatarSrc = it.user?.avatar
                                     it.user.type !== "SYSTEM" ? `${it.user.avatar}` : it.user.type === "SYSTEM"
-                                        ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${it.user.avatar}`
+                                        ? `${it.user.avatar}`
                                         : undefined;
                                     const isActive = activeCommentId === it.id;
                                     const isHovered = hoveredCommentId === it.id;
@@ -762,7 +762,7 @@ const WaveTrack = (props: IProps) => {
                         backgroundColor: '#333'
                     }}>
                         <img
-                            src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${trackData?.imgUrl || currentTrack.imgUrl}`}
+                            src={`${trackData?.imgUrl || currentTrack.imgUrl}`}
                             style={{
                                 width: '100%',
                                 height: '100%',

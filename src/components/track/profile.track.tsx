@@ -208,7 +208,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             barWidth: 2,
             barGap: 1,
             barRadius: 2,
-            url: `/api?audio=${track.trackUrl}`,
+            url: track.trackUrl,
         }
     }, [track.trackUrl]);
 
@@ -419,7 +419,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             <Box sx={{ width: 160, height: 160, mr: 2, flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                    src={`http://localhost:8080/api/v1/files/img-tracks/${track.imgUrl}`}
+                    src={`${track.imgUrl}`}
                     alt={track.title}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
@@ -506,7 +506,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                 const userAvatarSrc = comment.user?.avatar
                                 comment.user.type !== "SYSTEM" ? `${comment.user.avatar}` :
                                     comment.user.type === "SYSTEM"
-                                        ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
+                                        ? `${comment.user.avatar}`
                                         : undefined;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;

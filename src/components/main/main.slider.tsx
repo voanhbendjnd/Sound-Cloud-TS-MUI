@@ -102,7 +102,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
+                                <img className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
@@ -120,7 +120,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
+                                <img className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
@@ -137,7 +137,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${track.imgUrl}`} />
+                                <img className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 

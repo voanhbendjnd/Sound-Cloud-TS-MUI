@@ -74,7 +74,7 @@ axiosInstance.interceptors.response.use(
                 // Session refresh failed, logout user
                 processQueue(new Error('Session refresh failed'), null);
                 await signOut({ redirect: false });
-                window.location.href = '/login';
+                window.location.href = '/auth/signin';
                 return Promise.reject(new Error('Session refresh failed'));
             }
 
@@ -91,7 +91,7 @@ axiosInstance.interceptors.response.use(
             console.error('Session refresh error:', refreshError);
             processQueue(refreshError, null);
             await signOut({ redirect: false });
-            window.location.href = '/login';
+            window.location.href = '/auth/signin';
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;

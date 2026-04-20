@@ -1,33 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { 
-  Modal, Box, Typography, TextField, Button, Grid, MenuItem, 
-  FormControl, InputLabel, Select, FormHelperText
+import {
+    Modal, Box, Typography, TextField, Button, Grid, MenuItem,
+    FormControl, InputLabel, Select, FormHelperText
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import {useCreateTrack, useCreateTrackByAdmin, useUpdateTrack} from '@/hooks/use-track';
+import { useCreateTrack, useCreateTrackByAdmin, useUpdateTrack } from '@/hooks/use-track';
 import { useAllCategories } from '@/hooks/use-category';
 import { toast } from 'react-toastify';
 
 const style = {
-  position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 600,
-  bgcolor: 'background.paper',
-  boxShadow: 24,
-  p: 4,
-  borderRadius: 2,
+    position: 'absolute' as 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 600,
+    bgcolor: 'background.paper',
+    boxShadow: 24,
+    p: 4,
+    borderRadius: 2,
 };
 
 const schema = yup.object({
-  title: yup.string().required('Title is required'),
-  description: yup.string().required('Description is required'),
-  categoryId: yup.number().required('Category is required'),
+    title: yup.string().required('Title is required'),
+    description: yup.string().required('Description is required'),
+    categoryId: yup.number().required('Category is required'),
 }).required();
 
 interface IProps {
@@ -67,15 +67,15 @@ const TrackModal = (props: IProps) => {
     useEffect(() => {
         if (dataUpdate) {
             const currentCategory = dataAllCategories?.data?.find(c => c.name === dataUpdate.category);
-            
+
             reset({
                 title: dataUpdate.title,
                 description: dataUpdate.description,
                 categoryId: currentCategory?.id || 0
             });
 
-            setImgPreview(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${dataUpdate.imgUrl}`);
-            setTrackPreview(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/audio-tracks/${dataUpdate.trackUrl}`);
+            setImgPreview(`${dataUpdate.imgUrl}`);
+            setTrackPreview(`${dataUpdate.trackUrl}`);
         } else {
             reset({
                 title: '',
@@ -113,7 +113,7 @@ const TrackModal = (props: IProps) => {
         formData.append('title', data.title);
         formData.append('description', data.description);
         formData.append('categoryId', data.categoryId.toString());
-        
+
         if (imgFile) formData.append('img', imgFile);
         if (trackFile) formData.append('trackUrl', trackFile);
 
@@ -210,11 +210,11 @@ const TrackModal = (props: IProps) => {
                             </Box>
                             <Button variant="outlined" component="label" fullWidth size="small">
                                 Upload Image
-                                <input 
-                                    type="file" 
-                                    hidden 
-                                    accept="image/*" 
-                                    onChange={(e) => setImgFile(e.target.files?.[0] || null)} 
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="image/*"
+                                    onChange={(e) => setImgFile(e.target.files?.[0] || null)}
                                 />
                             </Button>
                         </Grid>
@@ -228,19 +228,19 @@ const TrackModal = (props: IProps) => {
                             </Box>
                             <Button variant="outlined" component="label" fullWidth size="small">
                                 Upload Track
-                                <input 
-                                    type="file" 
-                                    hidden 
-                                    accept="audio/*" 
-                                    onChange={(e) => setTrackFile(e.target.files?.[0] || null)} 
+                                <input
+                                    type="file"
+                                    hidden
+                                    accept="audio/*"
+                                    onChange={(e) => setTrackFile(e.target.files?.[0] || null)}
                                 />
                             </Button>
                         </Grid>
                         <Grid item xs={12} sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                             <Button onClick={handleClose}>Cancel</Button>
-                            <Button 
-                                type="submit" 
-                                variant="contained" 
+                            <Button
+                                type="submit"
+                                variant="contained"
                                 disabled={createTrackMutation.isPending || updateTrackMutation.isPending}
                             >
                                 {createTrackMutation.isPending || updateTrackMutation.isPending ? "Saving..." : "Save"}

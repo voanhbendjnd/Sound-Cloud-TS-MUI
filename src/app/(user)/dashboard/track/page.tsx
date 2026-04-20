@@ -8,7 +8,7 @@ export const metadata = {
 
 const ManageTrackPage = () => {
     return (
-        <div style={{ backgroundColor: '#212121', paddingTop: 50 }}>
+        <div style={{ backgroundColor: '#fff', paddingTop: 50, marginBottom: 100 }}>
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <TrackTable />
             </Container>

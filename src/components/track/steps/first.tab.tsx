@@ -25,6 +25,7 @@ function InputFileUpload() {
             role={undefined}
             variant="contained"
             tabIndex={-1}
+            style={{color:'#fff', backgroundColor:'#ce4812'}}
             startIcon={<CloudUploadIcon />}
         >
             Upload files
@@ -57,7 +58,7 @@ const FirstTabs = (props: IProps) => {
         }
     });
     const files = acceptedFiles.map((file: FileWithPath) => (
-        <li key={file.path}>
+        <li style={{color:'white'}} key={file.path}>
             {file.path} - {file.size} bytes
         </li>
     ));
@@ -70,7 +71,7 @@ const FirstTabs = (props: IProps) => {
                 <p>Drag or click for upload your track</p>
             </div>
             <aside>
-                <h4>Files</h4>
+                <h4 style={{color:'white'}}>Files</h4>
                 <ul>{files}</ul>
             </aside>
         </section>

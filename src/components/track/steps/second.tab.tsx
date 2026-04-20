@@ -154,7 +154,7 @@ const SecondTabs = (props: IProps) => {
     return (
         <div>
             <div>
-                <div>
+                <div style={{color:'white'}}>
                     Uploading track: <strong>{trackAudio ? trackAudio.name : "None"}</strong>
                 </div>
                 {progress > 0 && <LinearProgressWithLabel value={progress} />}
@@ -189,12 +189,38 @@ const SecondTabs = (props: IProps) => {
                 <Grid item xs={6} md={8}>
                     <TextField 
                         id="track-title" 
-                        label="Title" 
-                        variant="standard" 
+                        label="Title"
+                        variant="standard"
                         fullWidth 
                         margin="dense" 
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        sx={{
+                            // 1. Đổi màu Label lúc bình thường
+                            "& .MuiInputLabel-root": {
+                                color: "white",
+                            },
+                            // 2. Đổi màu Label khi đang focus (click vào)
+                            "& .MuiInputLabel-root.Mui-focused": {
+                                color: "white",
+                            },
+                            // 3. Đổi màu Nội dung nhập vào (Input text)
+                            "& .MuiInputBase-input": {
+                                color: "white",
+                            },
+                            // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
+                            "& .MuiInput-underline:before": {
+                                borderBottomColor: "white",
+                            },
+                            // 5. Đổi màu đường gạch chân khi hover
+                            "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                                borderBottomColor: "white",
+                            },
+                            // 6. Đổi màu đường gạch chân khi đang focus
+                            "& .MuiInput-underline:after": {
+                                borderBottomColor: "white",
+                            },
+                        }}
                     />
                     <TextField 
                         id="track-desc" 
@@ -203,10 +229,34 @@ const SecondTabs = (props: IProps) => {
                         fullWidth 
                         margin="dense"
                         value={description}
-                        onChange={(e) => setDescription(e.target.value)}
+                        onChange={(e) => setDescription(e.target.value)}sx={{
+                        // 1. Đổi màu Label lúc bình thường
+                        "& .MuiInputLabel-root": {
+                            color: "white",
+                        },
+                        // 2. Đổi màu Label khi đang focus (click vào)
+                        "& .MuiInputLabel-root.Mui-focused": {
+                            color: "white",
+                        },
+                        // 3. Đổi màu Nội dung nhập vào (Input text)
+                        "& .MuiInputBase-input": {
+                            color: "white",
+                        },
+                        // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
+                        "& .MuiInput-underline:before": {
+                            borderBottomColor: "white",
+                        },
+                        // 5. Đổi màu đường gạch chân khi hover
+                        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                            borderBottomColor: "white",
+                        },
+                        // 6. Đổi màu đường gạch chân khi đang focus
+                        "& .MuiInput-underline:after": {
+                            borderBottomColor: "white",
+                        },
+                    }}
                     />
                     <TextField
-                        sx={{ mt: 3 }}
                         id="track-category"
                         select
                         label="Category"
@@ -214,9 +264,36 @@ const SecondTabs = (props: IProps) => {
                         variant="standard"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
+                        sx={{
+                            mt: 3,
+                            // 1. Đổi màu Label lúc bình thường
+                        "& .MuiInputLabel-root": {
+                            color: "white",
+                        },
+                        // 2. Đổi màu Label khi đang focus (click vào)
+                        "& .MuiInputLabel-root.Mui-focused": {
+                            color: "white",
+                        },
+                        // 3. Đổi màu Nội dung nhập vào (Input text)
+                        "& .MuiInputBase-input": {
+                            color: "white",
+                        },
+                        // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
+                        "& .MuiInput-underline:before": {
+                            borderBottomColor: "white",
+                        },
+                        // 5. Đổi màu đường gạch chân khi hover
+                        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+                            borderBottomColor: "white",
+                        },
+                        // 6. Đổi màu đường gạch chân khi đang focus
+                        "& .MuiInput-underline:after": {
+                            borderBottomColor: "white",
+                        },
+                    }}
                     >
                         {categoryOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}>
+                            <MenuItem key={option.value} value={option.value} style={{backgroundColor:'#fff'}}>
                                 {option.label}
                             </MenuItem>
                         ))}

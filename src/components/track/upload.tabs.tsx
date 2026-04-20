@@ -44,11 +44,11 @@ const UploadTabs = () => {
     };
 
     return (
-        <Box sx={{ width: '100%', border:"1px solid #ccc", mt:5 }}>
+        <Box sx={{ width: '100%', border:"1px solid #ccc", mt:5, backgroundColor:'#121212' }}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-                    <Tab label="Tracks" {...a11yProps(0)} disabled={value !== 0} />
-                    <Tab label="Basic information" {...a11yProps(1)} disabled={value !== 1} />
+                    <Tab style={{color:'white'}} label="Tracks" {...a11yProps(0)} disabled={value !== 0} />
+                    <Tab style={{color:'white'}} label="Basic information" {...a11yProps(1)} disabled={value !== 1} />
                 </Tabs>
             </Box>
             <CustomTabPanel value={value} index={0}>

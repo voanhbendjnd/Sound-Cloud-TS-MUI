@@ -9,7 +9,8 @@ import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
 import { useCreateComment, useFetchComments, commentKeys } from "@/hooks/use.comment";
 import { useQueryClient } from "@tanstack/react-query";
-import {toast} from "react-toastify";
+import { toast } from "react-toastify";
+import Link from "next/link";
 
 dayjs.extend(relativeTime);
 
@@ -175,7 +176,7 @@ const CommentSection = (props: IProps) => {
                 {/* Thanh Input luôn hiện (hoặc tùy bạn muốn login mới hiện) */}
 
             </div>
-            <Divider sx={{ my: 4,  color: 'orange' }} />
+            <Divider sx={{ my: 4, color: 'orange' }} />
 
             <Box sx={{ display: 'flex', gap: 4 }}>
                 {/* Cột trái: Thông tin Uploader */}
@@ -183,7 +184,7 @@ const CommentSection = (props: IProps) => {
                     <Avatar
                         sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
 
-                        src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${currentTrack.uploader.avatar}`}
+                        src={currentTrack.uploader.avatar}
                     > {currentTrack.uploader.name.charAt(0).toUpperCase()}
 
                     </Avatar>
@@ -200,7 +201,7 @@ const CommentSection = (props: IProps) => {
 
                     {allComments.map((comment) => {
                         const userAvatar = comment.user?.avatar
-                            ? `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${comment.user.avatar}`
+                            ? `${comment.user.avatar}`
                             : undefined;
 
                         return (
@@ -218,16 +219,20 @@ const CommentSection = (props: IProps) => {
                                         alignItems: 'center'
                                     }}>
                                         <Typography variant="caption" sx={{ color: '#fff' }}>
+                                            <Link href={`/profile/${comment.user.id}`} style={{ textDecoration: 'none' }}>
+
                                             <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
                                                 {comment.user.email === session?.user.email ?
-                                                    comment.user.name : "You"} at
+                                                    "You": comment.user.name}
                                             </span>
+                                            </Link>
+                                            <span style={{fontSize:13}}> at</span>
                                             {comment.moment !== undefined && (
                                                 <span
                                                     onClick={() => handleJumpToMoment(comment.moment)}
                                                     style={{
                                                         fontSize: 13,
-                                                        marginLeft: 8,
+                                                        marginLeft: 5,
                                                         cursor: 'pointer',
                                                         color: '#ccc',
                                                         textDecoration: 'none'

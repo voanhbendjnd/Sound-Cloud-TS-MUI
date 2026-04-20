@@ -4,11 +4,11 @@
     font-family: sans-serif;
 }
 
-.container > p {
+.container>p {
     font-size: 1rem;
 }
 
-.container > em {
+.container>em {
     font-size: .8rem;
 }
 
@@ -22,7 +22,7 @@
     border-radius: 2px;
     border-color: #eeeeee;
     border-style: dashed;
-    background-color: #fafafa;
+    background-color: #333;
     color: #bdbdbd;
     outline: none;
     transition: border .24s ease-in-out;

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { 
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, 
-  Button, IconButton, Pagination, Box, TextField, InputAdornment, Typography,
-  CircularProgress
+import {
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    Button, IconButton, Pagination, Box, TextField, InputAdornment, Typography,
+    CircularProgress
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Add as AddIcon, Visibility as ViewIcon } from '@mui/icons-material';
 import { useTracks, useDeleteTrack } from '@/hooks/use-track';
@@ -67,8 +67,8 @@ const TrackTable = () => {
         <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
                 <Typography variant="h5">Management Tracks</Typography>
-                <Button 
-                    variant="contained" 
+                <Button
+                    variant="contained"
                     startIcon={<AddIcon />}
                     onClick={() => {
                         setDataUpdate(null);
@@ -139,11 +139,11 @@ const TrackTable = () => {
             </TableContainer>
 
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                <Pagination 
-                    count={data?.data?.meta.pages || 0} 
-                    page={page} 
-                    onChange={(e, v) => setPage(v)} 
-                    color="primary" 
+                <Pagination
+                    count={data?.data?.meta.pages || 0}
+                    page={page}
+                    onChange={(e, v) => setPage(v)}
+                    color="primary"
                 />
             </Box>
 
@@ -161,7 +161,7 @@ const TrackTable = () => {
                         <Stack spacing={2} sx={{ mt: 1 }}>
                             <Box sx={{ textAlign: 'center' }}>
                                 <img
-                                    src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/${viewTrack.imgUrl}`}
+                                    src={`${viewTrack.imgUrl}`}
                                     // src={`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/files/img-tracks/${viewTrack.imgUrl}`}
                                     alt={viewTrack.title}
                                     style={{ width: 200, height: 200, objectFit: 'cover', borderRadius: 8 }}
