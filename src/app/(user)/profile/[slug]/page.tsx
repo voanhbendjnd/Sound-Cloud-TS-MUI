@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { sendRequest } from "@/utils/api";
 import ProfileTrack from "@/components/track/profile.track";
 import { Container, Typography, Box } from "@mui/material";
+import {useSession} from "next-auth/react";
 
 const ProfilePage = ({ params }: { params: { slug: string } }) => {
     const [currentPage, setCurrentPage] = useState(1);
@@ -12,7 +13,7 @@ const ProfilePage = ({ params }: { params: { slug: string } }) => {
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const observerRef = useRef<HTMLDivElement | null>(null);
-
+    const {data:session} = useSession();
     // Fetch tracks for current page
     useEffect(() => {
         const fetchTracks = async () => {
@@ -21,6 +22,9 @@ const ProfilePage = ({ params }: { params: { slug: string } }) => {
                 const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
                     url: `http://localhost:8080/api/v1/tracks/users/${params.slug}?page=${currentPage}&size=10`,
                     method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`,
+                    },
                 });
 
                 const newTracks = res?.data?.result ?? [];

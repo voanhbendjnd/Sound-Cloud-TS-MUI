@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { useSearchParams } from 'next/navigation';
+import {redirect, useRouter, useSearchParams} from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
@@ -9,10 +9,11 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
-import { useFetchComments, commentKeys } from "@/hooks/use.comment";
+import { useFetchComments, commentKeys, useFetchCommentsAxios } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
 import axiosInstance from "@/utils/axios-instance";
 import { useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 
 interface IProps {
     comments: IComment[];
@@ -21,6 +22,7 @@ interface IProps {
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
     const { comments } = props;
+    const router = useRouter();
     const fileName = searchParams.get('audio');
     const trackId = searchParams.get('id');
     const autoPlay = searchParams.get('autoPlay') === 'true';
@@ -53,7 +55,7 @@ const WaveTrack = (props: IProps) => {
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fileName;
     const queryClient = useQueryClient();
-    const { data: resComments } = useFetchComments({
+    const { data: resComments } = useFetchCommentsAxios({
         current: 1,
         pageSize: 100,
         trackId: Number(trackId),
@@ -101,7 +103,7 @@ const WaveTrack = (props: IProps) => {
             progressColor: progressGradient,
             height: 100,
             barWidth: 3,
-            url: fileName,
+            url: fileName!,
         }
     }, []);
 
@@ -368,7 +370,8 @@ const WaveTrack = (props: IProps) => {
                 uploader: source.uploader || { name: "Unknown Artist" },
                 imgUrl: source.imgUrl || "",
                 description: source.description || "",
-                isPlaying: true
+                isPlaying: true,
+                isLiked: source.isLiked || false
             };
 
             // Set current track first to ensure footer appears
@@ -465,28 +468,22 @@ const WaveTrack = (props: IProps) => {
         const fetchTrackData = async () => {
             if (trackId && fileName) {
                 try {
-                    const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
-
-                    if (res.data) {
-                        const track = res.data;
+                    // const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
+                    const res = await axios.get<IBackendRes<ITrack>>(
+                        `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`
+                    );
+                    if (res && res.data) {
+                        const track = res.data.data;
+                        // @ts-ignore
                         setTrackData(track);
-
-                        // Reset isWaveformPlaying when track changes
                         setIsWaveformPlaying(false);
 
-                        // Không tự động cập nhật currentTrack khi vào trang detail mới
-                        // Chỉ cập nhật khi user chủ động click play (trong onPlayClick)
-                        // Điều này giúp footer không tự động đổi bài khi user chỉ xem trang detail
                     }
                 } catch (error) {
-                    console.error('Error fetching track data:', error);
-                }
+                    router.push("/");                }
             }
         };
         fetchTrackData();
-
-        // GIẢI PHÁP: Chỉ giữ lại trackId và fileName.
-        // Loại bỏ setCurrentTrack (vì nó là hàm ổn định) và currentTrack.isPlaying
     }, [trackId, fileName]);
 
     // Sync isWaveformPlaying with actual wavesurfer state
@@ -762,7 +759,7 @@ const WaveTrack = (props: IProps) => {
                         backgroundColor: '#333'
                     }}>
                         <img
-                            src={`${trackData?.imgUrl || currentTrack.imgUrl}`}
+                            src={`${trackData?.imgUrl || currentTrack.imgUrl || '/image/earth.jpg'}`}
                             style={{
                                 width: '100%',
                                 height: '100%',

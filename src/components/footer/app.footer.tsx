@@ -2,7 +2,7 @@
 import { useHasMounted } from "@/utils/customHook";
 import AudioPlayer, { RHAP_UI } from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
-import { useContext, useEffect, useRef } from "react";
+import {useContext, useEffect, useRef, useState} from "react";
 import { TrackContextProvider, useTrackContext } from "@/lib/track.wrapper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -15,13 +15,38 @@ import { Container } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import axios from "axios";
 import Link from "next/link";
+import {useLikeTrackMutation} from "@/hooks/use-track";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import {redirect} from "next/navigation";
+import {useSession} from "next-auth/react";
 
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
     const hasMounted = useHasMounted();
+    const mutation = useLikeTrackMutation();
+    const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
+    const {data:session}= useSession();
+    const handleLikeClick = () => {
+        if(session === null){
+            redirect("/auth/signin")
+        }
+        mutation.mutate(Number(currentTrack.id), {
+            onSuccess: (res) => {
+                if (res?.data) {
+                    setCurrentTrack({
+                        ...currentTrack,
+                        isLiked: res.data.isLiked
+                    });
+                }
+            }
+        });
+    };
 
-    // Track 30-second rule for view count
+    useEffect(() => {
+        setIsLiked(currentTrack.isLiked);
+    }, [currentTrack.id, currentTrack.isLiked]);
     useEffect(() => {
         if (!audioRef.current || !currentTrack.id || !currentTrack.isPlaying) return;
 
@@ -179,8 +204,21 @@ const AppFooter = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                            <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                <FavoriteIcon fontSize="small" />
+                            <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }} >
+                                <Stack direction="row" spacing={1}>
+                                    <Chip
+                                        onClick={handleLikeClick}
+                                        disabled={mutation.isPending}
+                                        style={{
+                                            color: isLiked ? '#f64a00' : 'white',
+                                            // borderColor: isLiked ? '#ff0000' : 'white',
+                                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+                                            opacity: mutation.isPending ? 0.8 : 1
+                                        }}
+                                        icon={
+                                            <FavoriteIcon style={{ color: currentTrack.isLiked ? '#f64a00' : 'inherit' }} />                                    }
+                                    />
+                                </Stack>
                             </IconButton>
                             <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
                                 <PersonAddIcon fontSize="small" />

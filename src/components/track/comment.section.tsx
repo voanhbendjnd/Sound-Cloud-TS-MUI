@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
-import { useCreateComment, useFetchComments, commentKeys } from "@/hooks/use.comment";
+import {useCreateComment, useFetchComments, commentKeys, useFetchCommentsAxios} from "@/hooks/use.comment";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import Link from "next/link";
@@ -17,10 +17,12 @@ dayjs.extend(relativeTime);
 interface IProps {
     comments: IComment[];
     trackId: string | null;
+    avatarUploader: string;
+    nameUploader:string;
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId } = props;
+    const { comments, trackId,avatarUploader, nameUploader } = props;
 
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
@@ -34,7 +36,8 @@ const CommentSection = (props: IProps) => {
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     };
-    const { data: resComments, isLoading } = useFetchComments(commentParams);
+    const { data: resComments, isLoading } = useFetchCommentsAxios(commentParams)
+        // useFetchComments(commentParams);
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
@@ -184,12 +187,12 @@ const CommentSection = (props: IProps) => {
                     <Avatar
                         sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
 
-                        src={currentTrack.uploader.avatar}
-                    > {currentTrack.uploader.name.charAt(0).toUpperCase()}
+                        src={avatarUploader}
+                    > {nameUploader.charAt(0).toUpperCase()}
 
                     </Avatar>
                     <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" }}>
-                        {currentTrack.uploader.name || "Unknown Uploader"}
+                        {nameUploader || "Unknown Uploader"}
                     </Typography>
                 </Box>
 

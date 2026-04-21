@@ -66,6 +66,7 @@ const AppHeader = () => {
             signOut({callbackUrl:"/auth/signin", redirect: true});
         }
     }, [session]);
+
     const router = useRouter();
     const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null);
     const pages = [
@@ -74,6 +75,13 @@ const AppHeader = () => {
         { title: 'Upload', path: "/track/upload" },
         { title: 'Dashboard', path: "/dashboard/user" }
     ];
+    const handleProtectedNavigation = (path: string) => {
+        if (!session) {
+            router.push("/auth/signin");
+        } else {
+            router.push(path);
+        }
+    };
     const handleCloseNavMenu = () => {
         setAnchorElNav(null);
     };
@@ -237,17 +245,18 @@ const AppHeader = () => {
                             <Box sx={{ flexGrow: 1 }} />
                             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px" }}>
                                 {pages.map((page) => (
-                                    <Link key={page.title} href={page.path}
-                                        style={{
-                                            textDecoration: 'none',
-                                            color: 'inherit',
-                                            display: 'block'
+                                    <Typography
+                                        key={page.title}
+                                        onClick={() => handleProtectedNavigation(page.path)} // Dùng onClick thay vì Link
+                                        sx={{
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            '&:hover': { color: '#f50' } // Thêm hiệu ứng cho giống link
                                         }}
                                     >
-                                        <Typography sx={{ textAlign: 'center' }}>{page.title}</Typography>
-                                    </Link>
+                                        {page.title}
+                                    </Typography>
                                 ))}
-
                                 {session ?
                                     <Avatar
                                         onClick={handleProfileMenuOpen}

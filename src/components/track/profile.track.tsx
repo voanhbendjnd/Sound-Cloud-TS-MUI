@@ -12,14 +12,16 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography } from "@mui/material";
+import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography, IconButton, Chip } from "@mui/material";
 import Button from "@mui/material/Button";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTrackContext } from "@/lib/track.wrapper";
 import Link from "next/link";
-import { useCreateComment, useFetchComments } from "@/hooks/use.comment";
+import {useCreateComment, useFetchComments, useFetchCommentsAxios} from "@/hooks/use.comment";
+import { useLikeTrackMutation } from "@/hooks/use-track";
 import { toast } from "react-toastify";
+import { useSession } from "next-auth/react";
 
 dayjs.extend(relativeTime);
 
@@ -31,9 +33,43 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const hoverRef = useRef<HTMLDivElement>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
+    const { data: session } = useSession();
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
     const isMatched = currentTrack.id === track.id;
+    const [isLiked, setIsLiked] = useState<boolean>(track.isLiked || false);
+    const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
+    const mutation = useLikeTrackMutation();
+
+    // Sync isLiked with currentTrack when track ID matches
+    useEffect(() => {
+        if (isMatched) {
+            setIsLiked(currentTrack.isLiked);
+        }
+    }, [currentTrack.id, currentTrack.isLiked, isMatched]);
+
+    const handleLikeClick = () => {
+        if (!session) {
+            toast.warning("Please log in to like tracks!");
+            return;
+        }
+        mutation.mutate(Number(track.id), {
+            onSuccess: (res) => {
+                if (res?.data) {
+                    setCountLikes(res.data.countLikes);
+                    setIsLiked(res.data.isLiked);
+
+                    // Update TrackContext if this is the current track
+                    if (isMatched) {
+                        setCurrentTrack({
+                            ...currentTrack,
+                            isLiked: res.data.isLiked
+                        });
+                    }
+                }
+            }
+        });
+    };
 
     // Comment states
     const [showComments, setShowComments] = useState<boolean>(false);
@@ -54,7 +90,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     });
 
     // Fetch comments for this track
-    const { data: resComments } = useFetchComments({
+    const { data: resComments } = useFetchCommentsAxios({
         current: 1,
         pageSize: 50,
         trackId: Number(track.id),
@@ -579,8 +615,24 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
                 {/* Actions bottom */}
                 <Box sx={{ display: 'flex', gap: 1, pt: 1, alignItems: 'center' }}>
-                    <Button variant="outlined" size="small" startIcon={<FavoriteIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#f50' } }}>
-                        {track.countLike || 0}
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLiked ? '#f64a00' : 'inherit' }} />}
+                        onClick={handleLikeClick}
+                        disabled={mutation.isPending}
+                        sx={{
+                            color: isLiked ? '#f64a00' : 'white',
+                            borderColor: isLiked ? '#f64a00' : '#444',
+                            textTransform: 'none',
+                            padding: '2px 8px',
+                            minWidth: 0,
+                            '&:hover': { borderColor: '#f50' },
+                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+                            opacity: mutation.isPending ? 0.8 : 1
+                        }}
+                    >
+                        {countLikes || 0}
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Repost

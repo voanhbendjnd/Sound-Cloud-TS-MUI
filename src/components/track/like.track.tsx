@@ -4,8 +4,9 @@ import Stack from '@mui/material/Stack';
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { Headphones } from "@mui/icons-material";
 import { useState, useEffect } from "react";
-import {useCountTrackMutation, useLikeTrackMutation} from "@/hooks/use-track";
-import {useSession} from "next-auth/react";
+import { useCountTrackMutation, useLikeTrackMutation } from "@/hooks/use-track";
+import { useSession } from "next-auth/react";
+import { useTrackContext } from "@/lib/track.wrapper";
 
 interface IProps {
     trackId: number;
@@ -17,17 +18,27 @@ interface IProps {
 const LikeTrack = (props: IProps) => {
     const { trackId, initialLikes, initialIsLiked, initialCountPlays } = props;
     const { data: session } = useSession();
+    const { currentTrack, setCurrentTrack } = useTrackContext() as ITrackContext;
+
     // Chỉ cần 2 state này để quản lý hiển thị
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
     const [isLiked, setIsLiked] = useState<boolean>(initialIsLiked);
     const [countPlays, setCountPlays] = useState<number>(initialCountPlays);
-    const mutation = useLikeTrackMutation();
-    const mutationPlayCount = useCountTrackMutation();
-    // Đồng bộ lại state khi props thay đổi (ví dụ chuyển bài hát)
+
+    // Sync with TrackContext when track ID matches
     useEffect(() => {
         setCountLikes(initialLikes);
         setIsLiked(initialIsLiked);
     }, [trackId, initialLikes, initialIsLiked]);
+
+    // Sync isLiked with currentTrack when track ID matches
+    useEffect(() => {
+        if (Number(currentTrack.id) === trackId) {
+            setIsLiked(currentTrack.isLiked);
+        }
+    }, [currentTrack.id, currentTrack.isLiked, trackId]);
+
+    const mutation = useLikeTrackMutation();
 
     const handleLikeClick = () => {
         mutation.mutate(trackId, {
@@ -36,6 +47,14 @@ const LikeTrack = (props: IProps) => {
                 if (res?.data) {
                     setCountLikes(res.data.countLikes);
                     setIsLiked(res.data.isLiked);
+
+                    // Update TrackContext if this is the current track
+                    if (Number(currentTrack.id) === trackId) {
+                        setCurrentTrack({
+                            ...currentTrack,
+                            isLiked: res.data.isLiked
+                        });
+                    }
                 }
             }
         });
@@ -44,7 +63,7 @@ const LikeTrack = (props: IProps) => {
         mutation.mutate(trackId, {
             onSuccess: (res) => {
                 if (res?.data) {
-                   setCountLikes(res.data.countPlays);
+                    setCountPlays(res.data.countPlays);
                 }
             }
         });
@@ -52,22 +71,33 @@ const LikeTrack = (props: IProps) => {
 
     return (
         <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
-            {session ?             <Stack direction="row" spacing={1}>
-                <Chip
-                    onClick={handleLikeClick}
-                    disabled={mutation.isPending}
-                    style={{
-                        color: isLiked ? '#f64a00' : 'white',
-                        // borderColor: isLiked ? '#ff0000' : 'white',
-                        cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                        opacity: mutation.isPending ? 0.8 : 1
-                    }}
-                    icon={<FavoriteIcon style={{ color: isLiked ? '#f64a00' : 'inherit' }} />}
-                    label={isLiked ? "Liked" : "Like"}
-                    variant="outlined"
-                />
-            </Stack>
-: <></>
+            {session ?
+                <Stack direction="row" spacing={1}>
+                    <Chip
+                        onClick={handleLikeClick}
+                        disabled={mutation.isPending}
+                        sx={{
+                            color: isLiked ? '#f64a00' : 'white',
+                            borderColor: isLiked ? '#f64a00' : 'white',
+                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+                            opacity: mutation.isPending ? 0.8 : 1,
+                            '&:hover': {
+                                borderColor: '#f50',
+                                color: isLiked ? '#f50' : '#f50'
+                            },
+                            '& .MuiChip-icon': {
+                                color: isLiked ? '#f64a00' : 'inherit'
+                            },
+                            '&:hover .MuiChip-icon': {
+                                color: '#f50'
+                            }
+                        }}
+                        icon={<FavoriteIcon />}
+                        label={isLiked ? "Liked" : "Like"}
+                        variant="outlined"
+                    />
+                </Stack>
+                : <></>
             }
 
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -76,14 +106,13 @@ const LikeTrack = (props: IProps) => {
                     <Chip
                         sx={{ color: 'white', '& .MuiChip-icon': { color: 'white' } }}
                         icon={<Headphones />}
-                        label={countPlays.toLocaleString()}
-                    />
+                        label={(countPlays ?? 0).toLocaleString()}                    />
                 </Stack>
                 <Stack direction="row">
                     <Chip
                         sx={{ color: 'white', '& .MuiChip-icon': { color: 'white' } }}
                         icon={<FavoriteIcon />}
-                        label={countLikes.toLocaleString()}
+                        label={(countLikes ?? 0).toLocaleString()}
                     />
                 </Stack>
             </div>

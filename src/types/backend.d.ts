@@ -137,4 +137,9 @@ declare global{
     interface IShareTrack extends ITrack{
         isPlaying: boolean;
     }
+
+    interface IUploader{
+        avatar: string;
+        name:string;
+    }
 }
