@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import {redirect, useRouter, useSearchParams} from 'next/navigation';
+import { redirect, useRouter, useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
@@ -480,7 +480,8 @@ const WaveTrack = (props: IProps) => {
 
                     }
                 } catch (error) {
-                    router.push("/");                }
+                    router.push("/");
+                }
             }
         };
         fetchTrackData();

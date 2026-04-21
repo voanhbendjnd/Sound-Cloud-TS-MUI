@@ -3,7 +3,31 @@ import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
 import CommentSection from "@/components/track/comment.section";
 import { redirect } from "next/navigation";
+import type { Metadata, ResolvingMetadata } from 'next'
 
+type Props = {
+    params: { slug: string }
+    searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export async function generateMetadata(
+    { params, searchParams }: Props,
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const safeSlug = encodeURIComponent(params.slug);
+    const audioDecoded = searchParams.audio;
+
+    const audioOriginal = encodeURIComponent(String(audioDecoded));
+    const res = await sendRequest<IBackendRes<ITrack>>({
+        url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${safeSlug}`,
+        method: 'GET',
+    })
+
+    return {
+        title: res.data?.title || "Track Detail", // Thêm fallback để tránh lỗi nếu title rỗng
+        description: `Listening to ${res.data?.title}`
+    }
+}
 const DetailTrackPage = async ({ params, searchParams }: {
     params: { slug: string },
     searchParams: { audio?: string, id?: string }
@@ -45,7 +69,6 @@ const DetailTrackPage = async ({ params, searchParams }: {
         method: "GET",
         queryParams: {
             trackId: trackId,
-            trackUrl: fileName,
             lastId: trackIdLast,
         },
         nextOption: {
@@ -56,6 +79,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
     if (!checkParam || (checkParam as any).statusCode >= 400) {
         redirect('/');
     }
+
     const userUploader = resDataUploader.data as IUploader | undefined;
     const comments = resComments.data?.result ?? [];
     return (

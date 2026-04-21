@@ -24,8 +24,24 @@ const processQueue = (error: any, token: string | null = null) => {
 axiosInstance.interceptors.request.use(
     async (config) => {
         const session: any = await getSession();
+        
         if (session && session.access_token) {
-            config.headers.Authorization = `Bearer ${session.access_token}`;
+            // Check if token is about to expire or already expired
+            const tokenExpiryBuffer = 2 * 60 * 1000; // 2 minutes buffer
+            const timeUntilExpiry = session.expires_in ? (session.expires_in - Date.now()) : Infinity;
+            
+            // If token is expired or about to expire, refresh it proactively
+            if (timeUntilExpiry <= tokenExpiryBuffer) {
+                console.log('Token expiring soon, refreshing proactively...');
+                const updatedSession: any = await getSession();
+                if (updatedSession && updatedSession.access_token) {
+                    config.headers.Authorization = `Bearer ${updatedSession.access_token}`;
+                } else {
+                    config.headers.Authorization = `Bearer ${session.access_token}`;
+                }
+            } else {
+                config.headers.Authorization = `Bearer ${session.access_token}`;
+            }
         }
         return config;
     },
@@ -76,6 +92,15 @@ axiosInstance.interceptors.response.use(
                 await signOut({ redirect: false });
                 window.location.href = '/auth/signin';
                 return Promise.reject(new Error('Session refresh failed'));
+            }
+
+            // Check if refresh token expired (NextAuth sets error when refresh fails)
+            if (updatedSession.error === 'RefreshAccessTokenError') {
+                // Refresh token expired, logout user
+                processQueue(new Error('Refresh token expired'), null);
+                await signOut({ redirect: false });
+                window.location.href = '/auth/signin';
+                return Promise.reject(new Error('Refresh token expired'));
             }
 
             const newAccessToken = updatedSession.access_token;

@@ -2,7 +2,7 @@
 import { useHasMounted } from "@/utils/customHook";
 import AudioPlayer, { RHAP_UI } from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
-import {useContext, useEffect, useRef, useState} from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { TrackContextProvider, useTrackContext } from "@/lib/track.wrapper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -15,11 +15,11 @@ import { Container } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import axios from "axios";
 import Link from "next/link";
-import {useLikeTrackMutation} from "@/hooks/use-track";
+import { useLikeTrackMutation } from "@/hooks/use-track";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
-import {redirect} from "next/navigation";
-import {useSession} from "next-auth/react";
+import { redirect } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
@@ -27,9 +27,9 @@ const AppFooter = () => {
     const hasMounted = useHasMounted();
     const mutation = useLikeTrackMutation();
     const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
-    const {data:session}= useSession();
+    const { data: session } = useSession();
     const handleLikeClick = () => {
-        if(session === null){
+        if (session === null) {
             redirect("/auth/signin")
         }
         mutation.mutate(Number(currentTrack.id), {
@@ -183,14 +183,14 @@ const AppFooter = () => {
                         <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
                             <Link href={`/track/${currentTrack.id}?audio=${currentTrack.trackUrl}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
 
-                            {currentTrack.imgUrl && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={`${currentTrack.imgUrl}`}
-                                    alt={currentTrack.title}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                            )}
+                                {currentTrack.imgUrl && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={`${currentTrack.imgUrl}`}
+                                        alt={currentTrack.title}
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                )}
                             </Link>
                         </Box>
 
@@ -216,7 +216,7 @@ const AppFooter = () => {
                                             opacity: mutation.isPending ? 0.8 : 1
                                         }}
                                         icon={
-                                            <FavoriteIcon style={{ color: currentTrack.isLiked ? '#f64a00' : 'inherit' }} />                                    }
+                                            <FavoriteIcon style={{ color: currentTrack.isLiked ? '#f64a00' : 'inherit' }} />}
                                     />
                                 </Stack>
                             </IconButton>

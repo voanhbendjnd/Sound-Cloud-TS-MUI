@@ -7,7 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
-import {useCreateComment, useFetchComments, commentKeys, useFetchCommentsAxios} from "@/hooks/use.comment";
+import { useCreateComment, useFetchComments, commentKeys, useFetchCommentsAxios } from "@/hooks/use.comment";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-toastify";
 import Link from "next/link";
@@ -18,11 +18,11 @@ interface IProps {
     comments: IComment[];
     trackId: string | null;
     avatarUploader: string;
-    nameUploader:string;
+    nameUploader: string;
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId,avatarUploader, nameUploader } = props;
+    const { comments, trackId, avatarUploader, nameUploader } = props;
 
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
@@ -37,7 +37,7 @@ const CommentSection = (props: IProps) => {
         sort: "updatedAt,desc"
     };
     const { data: resComments, isLoading } = useFetchCommentsAxios(commentParams)
-        // useFetchComments(commentParams);
+    // useFetchComments(commentParams);
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
@@ -224,12 +224,12 @@ const CommentSection = (props: IProps) => {
                                         <Typography variant="caption" sx={{ color: '#fff' }}>
                                             <Link href={`/profile/${comment.user.id}`} style={{ textDecoration: 'none' }}>
 
-                                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-                                                {comment.user.email === session?.user.email ?
-                                                    "You": comment.user.name}
-                                            </span>
+                                                <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
+                                                    {comment.user.email === session?.user.email ?
+                                                        "You" : comment.user.name}
+                                                </span>
                                             </Link>
-                                            <span style={{fontSize:13}}> at</span>
+                                            <span style={{ fontSize: 13 }}> at</span>
                                             {comment.moment !== undefined && (
                                                 <span
                                                     onClick={() => handleJumpToMoment(comment.moment)}
