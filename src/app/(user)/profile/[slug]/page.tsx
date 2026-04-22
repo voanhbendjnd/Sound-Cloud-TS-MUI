@@ -20,11 +20,16 @@ const ProfilePage = ({ params }: { params: { slug: string } }) => {
             setIsLoading(true);
             try {
                 const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
-                    url: `http://localhost:8080/api/v1/tracks/users/${params.slug}?page=${currentPage}&size=10`,
+                    url: `http://localhost:8080/api/v1/tracks/users/${params.slug}`,
                     method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${session?.access_token}`,
+                    queryParams: {
+                        page: currentPage,
+                        size: 5,
+                        sort: "createdAt,desc"
                     },
+                    // headers: {
+                    //     Authorization: `Bearer ${session?.access_token}`,
+                    // },
                 });
 
                 const newTracks = res?.data?.result ?? [];

@@ -24,8 +24,17 @@ export async function generateMetadata(
     })
 
     return {
-        title: res.data?.title || "Track Detail", // Thêm fallback để tránh lỗi nếu title rỗng
-        description: `Listening to ${res.data?.title}`
+        title: res.data?.title || "Track Detail",
+        description: `Listening to ${res.data?.title}`,
+        openGraph:{
+            title:res.data?.title,
+            description:res.data?.description,
+            type:'website',
+            images:[`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
+            audio: audioDecoded,
+
+
+        }
     }
 }
 const DetailTrackPage = async ({ params, searchParams }: {

@@ -1,11 +1,14 @@
 import MainSlider from '@/components/main/main.slider';
 import { Container } from '@mui/material';
 import * as React from 'react';
-// import { sendRequestJS } from './../utils/old.api';
 import { sendRequest } from '@/utils/api';
 import '@/styles/app.css'
 import {getServerSession} from "next-auth";
-// import {authOptions} from "@/app/api/auth/[...nextauth]/route";
+import {Metadata} from "next";
+export const metadata:Metadata ={
+  title:'Discover the top streamed music and songs online DJ music',
+  description:'Home music'
+}
 export default async function HomePage() {
   // const res = await fetch("http://localhost:8080/api/v1/tracks", {
   //   method: "GET",
@@ -25,6 +28,7 @@ export default async function HomePage() {
     name: String;
     age: number;
   }
+
   const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
     url: "http://localhost:8080/api/v1/tracks",
     method: "GET",
