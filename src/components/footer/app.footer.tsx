@@ -20,7 +20,7 @@ import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
 import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
-
+import Image from 'next/image';
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
@@ -185,10 +185,12 @@ const AppFooter = () => {
 
                                 {currentTrack.imgUrl && (
                                     // eslint-disable-next-line @next/next/no-img-element
-                                    <img
+                                    <Image
                                         src={`${currentTrack.imgUrl}`}
                                         alt={currentTrack.title}
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        width={40}
+                                        height={40}
+                                        // style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     />
                                 )}
                             </Link>

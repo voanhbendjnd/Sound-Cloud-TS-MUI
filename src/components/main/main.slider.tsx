@@ -9,6 +9,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Link from "next/link";
 import './home.css'
+import Image from "next/image";
 interface IProps {
     data: ITrack[],
     title: string,
@@ -102,7 +103,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${track.imgUrl}`} />
+                                <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
@@ -120,7 +121,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${track.imgUrl}`} />
+                                <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
@@ -137,7 +138,7 @@ const MainSlider = (props: IProps) => {
                     {data.map(track => {
                         return (
                             <div className="track" key={track.id}>
-                                <img className="img" src={`${track.imgUrl}`} />
+                                <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
                                 <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 

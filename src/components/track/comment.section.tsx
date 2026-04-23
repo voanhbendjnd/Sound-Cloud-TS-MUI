@@ -17,12 +17,11 @@ dayjs.extend(relativeTime);
 interface IProps {
     comments: IComment[];
     trackId: string | null;
-    avatarUploader: string;
-    nameUploader: string;
+    uploader: IUploader;
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId, avatarUploader, nameUploader } = props;
+    const { comments, trackId,uploader } = props;
 
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
@@ -182,19 +181,21 @@ const CommentSection = (props: IProps) => {
             <Divider sx={{ my: 4, color: 'orange' }} />
 
             <Box sx={{ display: 'flex', gap: 4 }}>
-                {/* Cột trái: Thông tin Uploader */}
-                <Box sx={{ width: 150, textAlign: 'center' }}>
-                    <Avatar
-                        sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
+                <Link href={`/profile/${uploader.id}`}>
+                    <Box sx={{ width: 150, textAlign: 'center' }}>
+                        <Avatar
+                            sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
 
-                        src={avatarUploader}
-                    > {nameUploader.charAt(0).toUpperCase()}
+                            src={uploader.avatar}
+                        > {uploader.name.charAt(0).toUpperCase()}
 
-                    </Avatar>
-                    <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" }}>
-                        {nameUploader || "Unknown Uploader"}
-                    </Typography>
-                </Box>
+                        </Avatar>
+                        <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" }}>
+                            {uploader.name || "Unknown Uploader"}
+                        </Typography>
+                    </Box>
+                </Link>
+
 
                 {/* Cột phải: Danh sách Comments */}
                 <Box sx={{ flex: 1 }}>

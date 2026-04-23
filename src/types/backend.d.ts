@@ -141,5 +141,6 @@ declare global{
     interface IUploader{
         avatar: string;
         name:string;
+        id:string;
     }
 }

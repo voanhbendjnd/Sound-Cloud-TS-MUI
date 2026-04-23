@@ -62,7 +62,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
         },
 
     })
-    const resDataUploader = await sendRequest<IBackendRes<IModelPaginate<IComment>>>({
+    const resDataUploader = await sendRequest<IBackendRes<IUploader>>({
         url: `http://localhost:8080/api/v1/tracks/avatar`,
         method: "GET",
         queryParams: {
@@ -101,8 +101,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
 
             <Container sx={{ mt: 3 }}>
                 <CommentSection
-                    avatarUploader={String(userUploader!.avatar)}
-                    nameUploader={(String(userUploader!.name))}
+                    uploader={userUploader!}
                     comments={comments}
                     trackId={params.slug}
                 />

@@ -15,12 +15,12 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { Avatar, Container, Button } from '@mui/material';
+import { Avatar, Container} from '@mui/material';
 import Link from 'next/link';
-import {redirect, useRouter} from 'next/navigation';
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useRouter} from 'next/navigation';
+import { useSession, signOut } from "next-auth/react";
 import {useEffect} from "react";
-
+import Image from 'next/image';
 const Search = styled('div')(({ theme }) => ({
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
@@ -260,10 +260,30 @@ const AppHeader = () => {
                                 {session ?
                                     <Avatar
                                         onClick={handleProfileMenuOpen}
-                                        sx={{ cursor: "pointer" }}
-                                        src={session.user?.avatar}
+                                        sx={{
+                                            cursor: "pointer",
+                                            width: 40, // Đặt kích thước cố định cho Avatar
+                                            height: 40,
+                                            position: 'relative', // Cần thiết để Next Image dùng layout="fill"
+                                            overflow: 'hidden' // Đảm bảo ảnh không tràn ra ngoài vòng tròn
+                                        }}
                                     >
-                                        {session.user?.name?.charAt(0).toUpperCase()}
+                                        {/* 2. Dùng Next Image bên trong Avatar */}
+                                        {session.user?.avatar && (
+                                            <Image
+                                                src={session.user.avatar} // Đường dẫn ảnh
+                                                alt={session.user?.name || "User Avatar"} // Thẻ alt bắt buộc cho SEO/Accessibility
+                                                fill // Ảnh sẽ lấp đầy component Avatar cha
+                                                sizes="40px" // Báo cho Next.js biết kích thước ảnh trên màn hình để tối ưu
+                                                style={{
+                                                    objectFit: 'cover', // Ảnh không bị méo, giữ tỷ lệ
+                                                }}
+                                                // unoptimized={true} // Bật cái này nếu bạn không muốn Next.js tự nén ảnh (Cloudinary đã làm tốt rồi)
+                                            />
+                                        )}
+
+                                        {/* 3. Phần Fallback (MUI tự xử lý nếu không có ảnh src) */}
+                                        {!session.user?.avatar && session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>
                                     :
                                         <Link href="/auth/signin" style={{                        textDecoration: 'none',
