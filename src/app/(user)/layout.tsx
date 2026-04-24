@@ -9,8 +9,6 @@ export const metadata:Metadata ={
     description:'DJ music'
 }
 
-import NextAuthWrapper from '@/lib/next.auth.wrapper';
-import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
