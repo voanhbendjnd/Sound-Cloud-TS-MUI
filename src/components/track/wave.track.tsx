@@ -14,6 +14,7 @@ import LikeTrack from "@/components/track/like.track";
 import axiosInstance from "@/utils/axios-instance";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { useSession } from "next-auth/react";
 
 interface IProps {
     comments: IComment[];
@@ -47,7 +48,7 @@ const WaveTrack = (props: IProps) => {
         content: '',
         selectedTime: 0
     });
-
+    const { data: session } = useSession();
     const [activeCommentId, setActiveCommentId] = useState<string | number | null>(null);
     const [hoveredCommentId, setHoveredCommentId] = useState<string | number | null>(null);
     const [isWaveformPlaying, setIsWaveformPlaying] = useState(false);
@@ -99,14 +100,34 @@ const WaveTrack = (props: IProps) => {
             progressGradient.addColorStop(1, '#F6B094') // Bottom color
         }
 
-        return {
+        // Use pre-computed peaks if available, otherwise load audio file
+        const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: gradient,
             progressColor: progressGradient,
-            height: 100,
-            barWidth: 3,
-            url:fullAudioUrl!,
+            height: 150,
+
+            barWidth: 2.3,
+            barGap: 1.5,
+
+            normalize: true,
+
+            url: fullAudioUrl!,
+        };
+
+        // Add peaks if available from track data
+        if (trackData?.peaks) {
+            try {
+                const rawPeaks = JSON.parse(trackData.peaks);
+                const peaksArray = Array.isArray(rawPeaks) ? rawPeaks : rawPeaks.data;
+
+                options.peaks = [peaksArray];
+
+            } catch (e) {
+                console.warn('Failed to parse peaks data', e);
+            }
         }
-    }, []);
+        return options;
+    }, [fullAudioUrl, trackData?.peaks]);
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
@@ -124,10 +145,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 65, left: 0 },          // Tier 0: center bottom
-            { top: 65, left: -4 },        // Tier 1: bottom-left
-            { top: 65, left: 4 },         // Tier 2: bottom-right
-            { top: 65, left: 0 },         // Tier 3: top
+            { top: 115, left: 0 },          // Tier 0: center bottom
+            { top: 115, left: -4 },        // Tier 1: bottom-left
+            { top: 115, left: 4 },         // Tier 2: bottom-right
+            { top: 115, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -471,7 +492,12 @@ const WaveTrack = (props: IProps) => {
                 try {
                     // const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
                     const res = await axios.get<IBackendRes<ITrack>>(
-                        `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`
+                        `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${session?.access_token}`,
+                            }
+                        }
                     );
                     if (res && res.data) {
                         const track = res.data.data;

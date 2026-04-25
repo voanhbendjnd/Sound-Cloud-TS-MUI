@@ -13,6 +13,9 @@ const ProfilePage = async ({ params }: { params: { slug: string } }) => {
             size: 5,
             sort: "createdAt,desc"
         },
+        nextOption: {
+            cache: 'no-store'
+        },
     });
 
     const initialTracks = res?.data?.result ?? [];

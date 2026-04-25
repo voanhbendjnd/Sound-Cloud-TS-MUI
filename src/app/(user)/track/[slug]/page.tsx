@@ -31,7 +31,7 @@ export async function generateMetadata(
             title: track?.title,
             description: track?.description,
             type: 'website',
-            images:[`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
+            images: [`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
             audio: audioDecoded,
         }
     }
@@ -80,7 +80,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
         method: "GET",
         queryParams: {
             trackId: trackId,
-            lastId:trackIdLast,
+            lastId: trackIdLast,
             trackUrl: fileName,
 
         },

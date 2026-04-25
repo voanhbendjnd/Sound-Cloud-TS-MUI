@@ -30,6 +30,7 @@ export interface ProfileTrackProps {
 }
 
 const ProfileTrack = ({ track }: ProfileTrackProps) => {
+    const [wsReady, setWsReady] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const hoverRef = useRef<HTMLDivElement>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
@@ -228,27 +229,85 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         const percent = (moment / totalDuration) * 100;
         return `${percent}%`;
     };
-
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
-        let gradient;
+        let gradient, progressGradient;
         if (typeof window !== "undefined") {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
-            gradient = ctx.createLinearGradient(0, 0, 0, 150);
-            gradient.addColorStop(0, '#ccc');
-            gradient.addColorStop(1, '#666');
+            // Define the waveform gradient
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
+            gradient.addColorStop(0, '#656666') // Top color
+            gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#656666') // Top color
+            gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
+            gradient.addColorStop(1, '#B1B1B1') // Bottom color
+
+            // Define the progress gradient
+            progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35)
+            progressGradient.addColorStop(0, '#EE772F') // Top color
+            progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#EB4926') // Top color
+            progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
+            progressGradient.addColorStop(1, '#F6B094') // Bottom color
         }
 
-        return {
-            waveColor: gradient || '#999',
-            progressColor: '#f50',
-            height: 60,
+        // Use pre-computed peaks if available, otherwise load audio file
+        const options: Omit<WaveSurferOptions, 'container'> = {
+            waveColor: '#eaeaea',
+            progressColor: progressGradient,
+            height:100,
             barWidth: 2,
             barGap: 1,
-            barRadius: 2,
+            normalize: true,
             url: fullAudioUrl || '',
+
+        };
+
+        // Add peaks if available from track data
+        if (track?.peaks) {
+            try {
+                const rawPeaks = JSON.parse(track.peaks);
+                const peaksArray = Array.isArray(rawPeaks) ? rawPeaks : rawPeaks.data;
+
+                options.peaks = [peaksArray];
+
+            } catch (e) {
+                console.warn('Failed to parse peaks data', e);
+            }
         }
-    }, [fullAudioUrl]);
+        return options;
+    }, [fullAudioUrl
+        , track?.peaks
+    ]);
+
+
+    // const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
+    //     let gradient;
+    //     if (typeof window !== "undefined") {
+    //         const canvas = document.createElement('canvas');
+    //         const ctx = canvas.getContext('2d')!;
+    //         gradient = ctx.createLinearGradient(0, 0, 0, 150);
+    //         gradient.addColorStop(0, '#ccc');
+    //         gradient.addColorStop(1, '#666');
+    //     }
+    //
+    //     return {
+    //         waveColor: gradient || '#999',
+    //         progressColor: '#f50',
+    //         height: 60,
+    //         barWidth: 1.8,
+    //         barGap: 1,
+    //         // barRadius: 2,
+    //
+    //         // barWidth: 2.3,
+    //         // barGap: 1,
+    //
+    //         normalize: true,
+    //         url: fullAudioUrl || '',
+    //     }
+    // }, [fullAudioUrl]);
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
@@ -266,10 +325,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 42, left: 0 },          // Tier 0: center bottom
-            { top: 42, left: -4 },        // Tier 1: bottom-left
-            { top: 42, left: 4 },         // Tier 2: bottom-right
-            { top: 42, left: 0 },         // Tier 3: top
+            { top: 65, left: 0 },          // Tier 0: center bottom
+            { top: 65, left: -4 },        // Tier 1: bottom-left
+            { top: 65, left: 4 },         // Tier 2: bottom-right
+            { top: 65, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -298,7 +357,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         });
 
         return positions;
-    }, [wavesurfer, comments]);
+    }, [wsReady,wavesurfer, comments]);
     useEffect(() => {
         if (!wavesurfer) return;
         wavesurfer.setVolume(0);
@@ -315,9 +374,11 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         const subscriptions = [
             wavesurfer.on('decode', (duration) => {
                 setDuration(formatTime(duration));
-            }),
+                setWsReady(true);
+                           }),
             wavesurfer.on('interaction', (newTime) => {
                 if (isMatched && audioRef.current) {
+
                     audioRef.current.currentTime = newTime;
                     savedTimes.current[track.id] = newTime;
                     audioRef.current.play();
@@ -450,7 +511,6 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             }, 100);
         }
     }, [isMatched, currentTrack, track, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
-
     return (
         <Box sx={{ display: 'flex', mb: 4, pt: 2, pb: 2, color: 'white', borderBottom: '1px solid #333' }}>
             {/* Left Image */}
@@ -548,7 +608,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                         : undefined;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;
-                                const position = avatarPositions[comment.id] || { top: 42, zIndex: 20 };
+                                const position = avatarPositions[comment.id] || { top: 70, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
                                 const resContent = comment.user.name + ': ' + comment.content;
                                 return (

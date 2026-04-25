@@ -21,7 +21,7 @@ interface IProps {
 }
 
 const CommentSection = (props: IProps) => {
-    const { comments, trackId,uploader } = props;
+    const { comments, trackId, uploader } = props;
 
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
@@ -190,14 +190,16 @@ const CommentSection = (props: IProps) => {
                         > {uploader.uploader.name.charAt(0).toUpperCase()}
 
                         </Avatar>
-                        <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" ,  '&:hover': {
+                        <Typography variant="body1" fontWeight="500" sx={{
+                            color: "#fff", '&:hover': {
                                 color: "white", // Chữ sáng lên khi hover
-                                fontSize:'bold'
+                                fontSize: 'bold'
                                 // textDecoration: "underline" // Gạch chân nếu muốn
-                            }}}>
+                            }
+                        }}>
                             {uploader.uploader.name || "Unknown Uploader"}
                         </Typography>
-                </Box>
+                    </Box>
                 </Link>
 
 

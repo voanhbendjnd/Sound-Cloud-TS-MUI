@@ -46,6 +46,7 @@ declare global{
         "category": string;
         "imgUrl": string;
         "trackUrl": string;
+        "peaks": string;
         "countLike": number;
         "countPlay": number;
         "isLiked": boolean;
