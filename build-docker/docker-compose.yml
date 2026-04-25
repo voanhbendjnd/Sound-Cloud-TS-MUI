@@ -1,0 +1,69 @@
+services:
+  nginx:
+    image: nginx:1.23-alpine
+    restart: always
+    volumes:
+      - ./default.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "3000:80"
+    depends_on:
+      - frontend-nextjs
+      - backend-soundcloud
+
+  backend-soundcloud:
+    build:
+      context: ../../SoundCloud-SpringRESTful-API
+      dockerfile: backend.dockerfile
+    environment:
+      - PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/soundcloud
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1607 # Đã đồng bộ với mã 1607 của bạn
+      - SPRING_DATA_REDIS_HOST=redis-db # Trỏ vào container redis bên dưới
+      - SPRING_DATA_REDIS_PORT=6379
+      # Các biến từ launch.json
+      - CLOUD_NAME=dddppjhly
+      - API_KEY_CLOUD=755183448455187
+      - API_SECRET_CLOUD=fjRhyzpRuUEuOaJ-VPqVt6xkjqw
+      - GEMINI_API_KEY=AIzaSyDtRmdAxF8CqoESh2f7dy3DE08uCLateg4
+      - GMAIL_PASSWORD=qrywyweqefmjrqqc
+      - GMAIL=voanhbendjnd@gmail.com
+      - GROD_API_KEY=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
+    restart: always
+    depends_on:
+      - mysql-db
+      - redis-db
+
+  frontend-nextjs:
+    build:
+      context: ..
+      dockerfile: frontend.dockerfile
+      args:
+        # Khi Build (SSR): Next.js gọi Backend bằng tên Service trong Docker mạng nội bộ
+        - NEXT_PUBLIC_BE_URL=http://backend-soundcloud:8080
+    environment:
+      - NODE_ENV=production
+      - NEXTAUTH_SECRET=161803398872309981550653
+      - NEXTAUTH_URL=http://localhost:3000
+      # Quan trọng: NextAuth cần gọi chính nó trong mạng nội bộ Docker
+      - NEXTAUTH_URL_INTERNAL=http://frontend-nextjs:3000
+      # Biến để trình duyệt gọi API lúc runtime qua localhost (nếu bạn mở port 8080)
+      # Hoặc tốt nhất là gọi qua Nginx Proxy
+      - NEXT_PUBLIC_RUNTIME_BE_URL=http://localhost:3000/api_backend
+      - AUTH_TRUST_HOST=true
+
+  mysql-db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_DATABASE=soundcloud
+      - MYSQL_ROOT_PASSWORD=1607 # Khớp với backend
+    volumes:
+      - db_data:/var/lib/mysql
+
+  redis-db: # Thêm Redis vì application.properties của bạn có config Redis
+    image: redis:7-alpine
+    restart: always
+
+volumes:
+  db_data:
