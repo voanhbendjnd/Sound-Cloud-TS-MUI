@@ -8,7 +8,7 @@ export const metadata = {
 
 const ManageCategoryPage = () => {
     return (
-        <div style={{ backgroundColor: '#212121', paddingTop: 50 }}>
+        <div style={{ backgroundColor: '#ffffff', paddingTop: 50 }}>
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <CategoryTable />
             </Container>

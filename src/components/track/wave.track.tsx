@@ -40,7 +40,8 @@ const WaveTrack = (props: IProps) => {
         userAvatar?: string;
         userName?: string;
     }>({ show: false, position: 0, time: 0 });
-
+    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
+    const fullAudioUrl = fileName ? `${baseAudio}${fileName}` : null;
     const [commentInput, setCommentInput] = useState({
         open: false,
         content: '',
@@ -53,7 +54,7 @@ const WaveTrack = (props: IProps) => {
     const [waveDuration, setWaveDuration] = useState(0); // Stable duration state for comment positioning
 
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
-    const isMatched = currentTrack.trackUrl === fileName;
+    const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const queryClient = useQueryClient();
     const { data: resComments } = useFetchCommentsAxios({
         current: 1,
@@ -103,7 +104,7 @@ const WaveTrack = (props: IProps) => {
             progressColor: progressGradient,
             height: 100,
             barWidth: 3,
-            url: fileName!,
+            url:fullAudioUrl!,
         }
     }, []);
 
@@ -244,7 +245,7 @@ const WaveTrack = (props: IProps) => {
             wavesurfer.on('interaction', (newTime) => {
                 if (isMatched && audioRef.current) {
                     audioRef.current.currentTime = newTime;
-                    savedTimes.current[fileName || ''] = newTime;
+                    savedTimes.current[fullAudioUrl || ''] = newTime;
                     // Only auto-play on seek if already playing, don't start playback on seek
                     if (currentTrack.isPlaying) {
                         audioRef.current.play();
@@ -348,7 +349,7 @@ const WaveTrack = (props: IProps) => {
                 }
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
-                savedTimes.current[fileName || ''] = audioRef.current.currentTime;
+                savedTimes.current[fullAudioUrl || ''] = audioRef.current.currentTime;
                 // Also pause wavesurfer
                 if (wavesurfer && wavesurfer.isPlaying()) {
                     wavesurfer.pause();
@@ -365,7 +366,7 @@ const WaveTrack = (props: IProps) => {
             const source = trackData || currentTrack;
             const newTrack = {
                 id: trackData?.id || fileName || `track-${Date.now()}`,
-                trackUrl: fileName,
+                trackUrl: fullAudioUrl,
                 title: source.title || "Unknown Track",
                 uploader: source.uploader || { name: "Unknown Artist" },
                 imgUrl: source.imgUrl || "",
@@ -379,7 +380,7 @@ const WaveTrack = (props: IProps) => {
 
             // Play immediately using wavesurfer
             if (wavesurfer) {
-                const savedTime = savedTimes.current[fileName || ''] || 0;
+                const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
                 wavesurfer.setTime(savedTime);
                 wavesurfer.play();
                 setIsWaveformPlaying(true);
@@ -388,7 +389,7 @@ const WaveTrack = (props: IProps) => {
             // Also setup footer audio when ready
             setTimeout(() => {
                 if (audioRef.current) {
-                    const savedTime = savedTimes.current[fileName || ''] || 0;
+                    const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
                     audioRef.current.currentTime = savedTime;
                     audioRef.current.play().catch(e => console.log('Audio play failed:', e));
                 }

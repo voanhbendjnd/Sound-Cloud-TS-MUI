@@ -28,6 +28,11 @@ const AppFooter = () => {
     const mutation = useLikeTrackMutation();
     const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
     const { data: session } = useSession();
+    const keyword = "upload/";
+
+    const index = currentTrack.trackUrl.indexOf(keyword);
+      const trackUrlCut = currentTrack.trackUrl.substring(index + keyword.length);
+
     const handleLikeClick = () => {
         if (session === null) {
             redirect("/auth/signin")
@@ -181,7 +186,7 @@ const AppFooter = () => {
                     {/* Track Info (Right Side) */}
                     <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
                         <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
-                            <Link href={`/track/${currentTrack.id}?audio=${currentTrack.trackUrl}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+                            <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
 
                                 {currentTrack.imgUrl && (
                                     // eslint-disable-next-line @next/next/no-img-element
@@ -190,37 +195,76 @@ const AppFooter = () => {
                                         alt={currentTrack.title}
                                         width={40}
                                         height={40}
-                                        // style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        style={{
+                                            objectFit: 'cover', // Giúp ảnh không bị móp méo, tự động cắt trung tâm
+                                            borderRadius: '4px' // Thêm bo góc cho đẹp giống SoundCloud
+                                        }}
+                                        unoptimized={true} // Bật cái này nếu link Cloudinary đã tự tối ưu rồi
                                     />
                                 )}
                             </Link>
                         </Box>
 
                         <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
-                            <Typography noWrap sx={{ color: "#aaa", fontSize: 11, mb: 0.2 }}>
-                                {currentTrack.uploader?.name || "Unknown"}
-                            </Typography>
-                            <Typography noWrap sx={{ color: "white", fontSize: 13, fontWeight: 'bold' }}>
-                                {currentTrack.title || "No Track Selected"}
-                            </Typography>
-                        </Box>
+                            {/* Link tới Profile */}
+                            <Link href={`/profile/${currentTrack.uploader.id}`} style={{ textDecoration: 'none' }}>
+                                <Typography
+                                    noWrap
+                                    sx={{
+                                        color: "#aaa",
+                                        fontSize: 11,
+                                        mb: 0.2,
+                                        '&:hover': {
+                                            color: "white", // Chữ sáng lên khi hover
+                                            fontSize:'bold'
+                                            // textDecoration: "underline" // Gạch chân nếu muốn
+                                        }
+                                    }}
+                                >
+                                    {currentTrack.uploader?.name || "Unknown"}
+                                </Typography>
+                            </Link>
 
+                            {/* Link tới Track */}
+                            <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+                                <Typography
+                                    noWrap
+                                    sx={{
+                                        color: "white",
+                                        fontSize: 13,
+                                        fontWeight: 'bold',
+                                        transition: "color 0.2s ease", // Giúp hiệu ứng đổi màu mượt hơn
+                                        '&:hover': {
+                                            color: "#f50", // Đổi sang màu cam đặc trưng của SoundCloud
+                                        }
+                                    }}
+                                >
+                                    {currentTrack.title || "No Track Selected"}
+                                </Typography>
+                            </Link>
+                        </Box>
                         <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                            <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }} >
-                                <Stack direction="row" spacing={1}>
-                                    <Chip
-                                        onClick={handleLikeClick}
-                                        disabled={mutation.isPending}
-                                        style={{
-                                            color: isLiked ? '#f64a00' : 'white',
-                                            // borderColor: isLiked ? '#ff0000' : 'white',
-                                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                                            opacity: mutation.isPending ? 0.8 : 1
-                                        }}
-                                        icon={
-                                            <FavoriteIcon style={{ color: currentTrack.isLiked ? '#f64a00' : 'inherit' }} />}
-                                    />
-                                </Stack>
+                            <IconButton
+                                size="small"
+                                onClick={handleLikeClick}
+                                disabled={mutation.isPending}
+                                sx={{
+                                    color: '#ccc',
+                                    p: 0.5,
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        transform: 'scale(1.2)', // Hiệu ứng động đậy khi đưa chuột vào
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                }}
+                            >
+                                <FavoriteIcon
+                                    sx={{
+                                        fontSize: 'inherit',
+                                        color: currentTrack.isLiked ? '#f64a00' : 'inherit',
+                                        transition: 'color 0.2s ease'
+                                    }}
+                                />
                             </IconButton>
                             <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
                                 <PersonAddIcon fontSize="small" />

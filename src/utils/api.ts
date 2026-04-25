@@ -1,5 +1,6 @@
 import queryString from 'query-string';
 import slugify from "slugify";
+import { isBuildTime } from '@/lib/build-utils';
 
 export const sendRequest = async <T>(props: IRequest) => {
     let {
@@ -11,6 +12,12 @@ export const sendRequest = async <T>(props: IRequest) => {
         headers = {},
         nextOption = {}
     } = props;
+
+    // During build time, use mock fetch instead of real API calls
+    if (isBuildTime) {
+        const { mockSendRequest } = await import('@/lib/api-mock-simple');
+        return mockSendRequest(props);
+    }
 
     const options: any = {
         method: method,
@@ -30,7 +37,7 @@ export const sendRequest = async <T>(props: IRequest) => {
             return res.json() as T;
         } else {
             return res.json().then(function (json) {
-                // to be able to access error status when you catch the error 
+                // to be able to access the error status when you catch the error 
                 return {
                     statusCode: res.status,
                     message: json?.message ?? "",

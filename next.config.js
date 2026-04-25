@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   swcMinify: true,
   modularizeImports: {
     '@mui/icons-material': {
@@ -29,6 +30,10 @@ const nextConfig = {
               },
           ],
       },
+  // Server-side rendering only - no static generation
+  trailingSlash: false,
+  // Disable static generation completely
+  generateEtags: false,
 };
 
 module.exports = nextConfig;

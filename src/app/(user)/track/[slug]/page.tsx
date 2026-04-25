@@ -22,20 +22,32 @@ export async function generateMetadata(
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${safeSlug}`,
         method: 'GET',
     })
+    const track = res?.data as ITrack;
 
     return {
-        title: res.data?.title || "Track Detail",
-        description: `Listening to ${res.data?.title}`,
-        openGraph:{
-            title:res.data?.title,
-            description:res.data?.description,
-            type:'website',
+        title: track?.title || "Track Detail",
+        description: `Listening to ${track?.title}`,
+        openGraph: {
+            title: track?.title,
+            description: track?.description,
+            type: 'website',
             images:[`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
             audio: audioDecoded,
-
-
         }
     }
+    // return {
+    //     title: res.data. || "Track Detail",
+    //     description: `Listening to ${res.data?.title}`,
+    //     openGraph:{
+    //         title:res.data?.title,
+    //         description:res.data?.description,
+    //         type:'website',
+    //         images:[`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
+    //         audio: audioDecoded,
+    //
+    //
+    //     }
+    // }
 }
 const DetailTrackPage = async ({ params, searchParams }: {
     params: { slug: string },
@@ -49,7 +61,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
         redirect('/');
     }
     const resComments = await sendRequest<IBackendRes<IModelPaginate<IComment>>>({
-        url: `http://localhost:8080/api/v1/tracks/comments`,
+        url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/comments`,
         method: "GET",
         queryParams: {
             page: 1,
@@ -62,32 +74,41 @@ const DetailTrackPage = async ({ params, searchParams }: {
         },
 
     })
-    const resDataUploader = await sendRequest<IBackendRes<IUploader>>({
-        url: `http://localhost:8080/api/v1/tracks/avatar`,
+
+    const resDataUploader = await sendRequest<IBackendRes<ITrack>>({
+        url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/uploader`,
         method: "GET",
         queryParams: {
             trackId: trackId,
+            lastId:trackIdLast,
+            trackUrl: fileName,
+
         },
         nextOption: {
             cache: 'no-store'
         },
 
     })
-    const checkParam = await sendRequest<IBackendRes<any>>({
-        url: `http://localhost:8080/api/v1/tracks/isExists`,
-        method: "GET",
-        queryParams: {
-            trackId: trackId,
-            lastId: trackIdLast,
-        },
-        nextOption: {
-            cache: 'no-store'
-        },
+    const uploaderData = resDataUploader?.data as ITrack;
 
-    })
-    if (!checkParam || (checkParam as any).statusCode >= 400) {
+    const originalTrackUrl = `https://res.cloudinary.com/dddppjhly/video/upload/${uploaderData.trackUrl}`;
+
+    // const checkParam = await sendRequest<IBackendRes<any>>({
+    //     url: `http://localhost:8080/api/v1/tracks/isExists`,
+    //     method: "GET",
+    //     queryParams: {
+    //         trackId: trackId,
+    //         lastId: trackIdLast,
+    //     },
+    //     nextOption: {
+    //         cache: 'no-store'
+    //     },
+    //
+    // })
+    if (!resDataUploader || (resDataUploader as any).statusCode >= 400) {
         redirect('/');
     }
+
 
     const userUploader = resDataUploader.data as IUploader | undefined;
     const comments = resComments.data?.result ?? [];
@@ -101,7 +122,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
 
             <Container sx={{ mt: 3 }}>
                 <CommentSection
-                    uploader={userUploader!}
+                    uploader={uploaderData}
                     comments={comments}
                     trackId={params.slug}
                 />

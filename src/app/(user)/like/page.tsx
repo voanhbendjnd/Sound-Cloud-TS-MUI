@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { sendRequest } from "@/utils/api";
 import ProfileTrack from "@/components/track/profile.track";
+import TrackSkeleton from "@/components/track/TrackSkeleton";
 import { Container, Typography, Box, CircularProgress } from "@mui/material";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -13,10 +14,13 @@ const LikePage = () => {
     const [total, setTotal] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     const observerRef = useRef<HTMLDivElement | null>(null);
     const { data: session, status } = useSession();
     const router = useRouter();
+    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
+
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -33,12 +37,12 @@ const LikePage = () => {
             setIsLoading(true);
             try {
                 const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
-                    url: `http://localhost:8080/api/v1/tracks/likes`,
+                    url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/likes`,
                     method: "GET",
                     queryParams: {
                         page: currentPage,
                         size: 5,
-                        sort: "createdAt,desc"
+                        // sort: "createdAt,desc"
                     },
                     headers: {
                         Authorization: `Bearer ${session?.access_token}`,
@@ -64,7 +68,10 @@ const LikePage = () => {
             } catch (error) {
                 console.error('Error fetching tracks:', error);
             } finally {
-                if (isMounted) setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                    setIsInitialLoading(false);
+                }
             }
         };
 
@@ -105,9 +112,19 @@ const LikePage = () => {
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {allTracks.map(track => (
-                        <ProfileTrack key={track.id} track={track} />
-                    ))}
+                    {isInitialLoading ? (
+                        // Show skeleton during initial loading
+                        <>
+                            <TrackSkeleton />
+                            <TrackSkeleton />
+                            <TrackSkeleton />
+                        </>
+                    ) : (
+                        // Show tracks after initial loading completes
+                        allTracks.map(track => (
+                            <ProfileTrack key={track.id} track={track} />
+                        ))
+                    )}
 
                     {/* Sentinel Element */}
                     {hasMore && (

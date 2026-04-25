@@ -1,12 +1,12 @@
 import { sendRequest } from "@/utils/api";
-import { AuthOptions } from "next-auth";
+import {AuthOptions, Session} from "next-auth";
 import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials";
 import {JWT} from "next-auth/jwt";
 
 export const authOptions: AuthOptions = {
-    secret: process.env.NO_SECRET,
+    secret: process.env.NEXTAUTH_SECRET as string,
     providers: [
         CredentialsProvider({
             name: "Gmail",
@@ -16,7 +16,7 @@ export const authOptions: AuthOptions = {
             },
             async authorize(credentials, req) {
                 const res = await sendRequest<IBackendRes<ILoginRes>>({
-                    url: "http://localhost:8080/api/v1/auth/login",
+                    url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/auth/login`,
                     method:"POST",
                     body:{
                         email: credentials?.username,
@@ -51,7 +51,7 @@ export const authOptions: AuthOptions = {
             if (trigger === "signIn") {
                 if(account?.provider !== "credentials"){
                     const res = await sendRequest<IBackendRes<ILoginRes>>({
-                        url: "http://localhost:8080/api/v1/auth/social-login",
+                        url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/auth/social-login`,
                         method: "POST",
                         body: {
                             accessToken: account?.access_token,
@@ -59,10 +59,12 @@ export const authOptions: AuthOptions = {
                         }
                     })
                     if (res.data) {
-                        token.access_token = res.data.access_token;
-                        token.refresh_token = res.data.refresh_token;
-                        token.user = res.data.user;
-                        token.access_expire = Date.now() + (res.data.expires_in * 1000) - 60000;
+                        const data = res.data as Session
+
+                        token.access_token = data.access_token;
+                        token.refresh_token = data.refresh_token;
+                        token.user = data.user;
+                        token.access_expire = Date.now() + (data.expires_in * 1000) - 60000;
                         token.error = undefined;
                     }
                 } else if(user){
@@ -113,11 +115,12 @@ async function refreshAccessToken(token : JWT){
             }
         });
         if(res.data) {
+            const data = res.data as Session
             return {
                 ...token,
-                access_token: res.data.access_token,
-                refresh_token: res.data.refresh_token,
-                access_expire: Date.now() + (res.data.expires_in * 1000) - 60000,
+                access_token: data.access_token,
+                refresh_token: data.refresh_token,
+                access_expire: Date.now() + (data.expires_in * 1000) - 60000,
             }
         }
     }catch(error){

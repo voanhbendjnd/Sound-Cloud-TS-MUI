@@ -296,29 +296,6 @@ const WaveTrack = (props: IProps) => {
         const paddedSeconds = `0${secondsRemainder}`.slice(-2)
         return `${minutes}:${paddedSeconds}`
     }
-    const arrComments = [
-        {
-            id: 1,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 10,
-            user: "username 1",
-            content: "just a comment1"
-        },
-        {
-            id: 2,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 30,
-            user: "username 2",
-            content: "just a comment3"
-        },
-        {
-            id: 3,
-            avatar: "http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg",
-            moment: 50,
-            user: "username 3",
-            content: "just a comment3"
-        },
-    ]
     const calculateLeft = (moment: number) => {
         // wavesurfer.getDuration() trả về tổng số giây của bài hát
         const totalDuration = wavesurfer?.getDuration() || 1;
@@ -405,7 +382,7 @@ const WaveTrack = (props: IProps) => {
                                 comments.map(it => {
                                     return (
                                         <Tooltip title={it.content} arrow>
-                                            <img src={`http://localhost:8080/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`} alt='avatar' key={it.id}
+                                            <img src={`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/files/img-tracks/1771586892954-1503160828434_300.jpg`} alt='avatar' key={it.id}
                                                  onPointerMove={(e) => {
                                                      const hover = hoverRef.current!;
                                                      hover.style.width = calculateLeft(it.moment)

@@ -73,7 +73,7 @@ const AppHeader = () => {
         { title: 'Playlists', path: '/playlist' },
         { title: "Like", path: '/like' },
         { title: 'Upload', path: "/track/upload" },
-        { title: 'Dashboard', path: "/dashboard/user" }
+        // { title: 'Dashboard', path: "/dashboard/user" }
     ];
     const handleProtectedNavigation = (path: string) => {
         if (!session) {
@@ -257,6 +257,23 @@ const AppHeader = () => {
                                         {page.title}
                                     </Typography>
                                 ))}
+                                {session?.user.role === 'SUPER_ADMIN' ?
+                                    <Typography
+                                        key='Dashboard'
+                                        onClick={() => handleProtectedNavigation("/dashboard/user")} // Dùng onClick thay vì Link
+                                        sx={{
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            '&:hover': { color: '#f50' } // Thêm hiệu ứng cho giống link
+                                        }}
+                                    >
+                                        {"Dashboard"}
+                                    </Typography>
+                                    :
+                                    <>
+                                    </>
+                                }
+
                                 {session ?
                                     <Avatar
                                         onClick={handleProfileMenuOpen}

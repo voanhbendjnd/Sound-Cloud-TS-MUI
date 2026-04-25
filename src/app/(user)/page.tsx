@@ -30,7 +30,7 @@ export default async function HomePage() {
   }
 
   const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
-    url: "http://localhost:8080/api/v1/tracks",
+    url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks`,
     method: "GET",
     queryParams: {
       page: 1,
@@ -40,7 +40,6 @@ export default async function HomePage() {
       cache: 'no-store'
     }
   });
-  console.log(">>> Check response new year: ", res.data?.result)
   return (
     <div style={{ backgroundColor: '#212121' ,paddingTop:50}}>
       <Container>

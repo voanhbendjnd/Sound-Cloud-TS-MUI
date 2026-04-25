@@ -36,7 +36,9 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const { data: session } = useSession();
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
-    const isMatched = currentTrack.id === track.id;
+    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
+    const fullAudioUrl = track.trackUrl ? `${baseAudio}${track.trackUrl}` : null;
+    const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const [isLiked, setIsLiked] = useState<boolean>(track.isLiked || false);
     const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
     const mutation = useLikeTrackMutation();
@@ -244,9 +246,9 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             barWidth: 2,
             barGap: 1,
             barRadius: 2,
-            url: track.trackUrl,
+            url: fullAudioUrl || '',
         }
-    }, [track.trackUrl]);
+    }, [fullAudioUrl]);
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
@@ -429,7 +431,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             }
 
             // Set current track first to ensure footer appears
-            setCurrentTrack({ ...track, isPlaying: true } as any);
+            setCurrentTrack({ ...track, trackUrl: fullAudioUrl, isPlaying: true } as any);
 
             // Play immediately using wavesurfer (don't wait for footer)
             if (wavesurfer) {

@@ -17,7 +17,7 @@ dayjs.extend(relativeTime);
 interface IProps {
     comments: IComment[];
     trackId: string | null;
-    uploader: IUploader;
+    uploader: ITrack;
 }
 
 const CommentSection = (props: IProps) => {
@@ -28,7 +28,7 @@ const CommentSection = (props: IProps) => {
     const [allComments, setAllComments] = useState<IComment[]>(comments);
     const [hasMore, setHasMore] = useState(true);
     const observerRef = useRef<HTMLDivElement | null>(null);
-
+    const userId = uploader.uploader.id;
     const commentParams = {
         current: currentPage,
         pageSize: 10, // Reduced from 100 to enable proper pagination
@@ -181,19 +181,23 @@ const CommentSection = (props: IProps) => {
             <Divider sx={{ my: 4, color: 'orange' }} />
 
             <Box sx={{ display: 'flex', gap: 4 }}>
-                <Link href={`/profile/${uploader.id}`}>
+                <Link href={`/profile/${userId}`} style={{ textDecoration: 'none' }}>
                     <Box sx={{ width: 150, textAlign: 'center' }}>
                         <Avatar
                             sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
 
-                            src={uploader.avatar}
-                        > {uploader.name.charAt(0).toUpperCase()}
+                            src={uploader.uploader.avatar}
+                        > {uploader.uploader.name.charAt(0).toUpperCase()}
 
                         </Avatar>
-                        <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" }}>
-                            {uploader.name || "Unknown Uploader"}
+                        <Typography variant="body1" fontWeight="500" sx={{ color: "#fff" ,  '&:hover': {
+                                color: "white", // Chữ sáng lên khi hover
+                                fontSize:'bold'
+                                // textDecoration: "underline" // Gạch chân nếu muốn
+                            }}}>
+                            {uploader.uploader.name || "Unknown Uploader"}
                         </Typography>
-                    </Box>
+                </Box>
                 </Link>
 
 
