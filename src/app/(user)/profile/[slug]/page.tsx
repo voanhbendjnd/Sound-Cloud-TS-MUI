@@ -14,7 +14,8 @@ const ProfilePage = async ({ params }: { params: { slug: string } }) => {
             sort: "createdAt,desc"
         },
         nextOption: {
-            cache: 'no-store'
+            // cache: 'no-store',
+            next:{tags:['track-by-profile']}
         },
     });
 

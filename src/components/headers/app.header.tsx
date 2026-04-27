@@ -1,69 +1,30 @@
 "use client";
 import * as React from 'react';
-import { styled, alpha } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import InputBase from '@mui/material/InputBase';
 import Badge from '@mui/material/Badge';
 import MenuItem from '@mui/material/MenuItem';
 import Menu from '@mui/material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { Avatar, Container} from '@mui/material';
+import { Avatar, Container } from '@mui/material';
 import Link from 'next/link';
-import { useRouter} from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
-import {useEffect} from "react";
+import { useEffect } from "react";
 import Image from 'next/image';
-const Search = styled('div')(({ theme }) => ({
-    position: 'relative',
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: alpha(theme.palette.common.white, 0.15),
-    '&:hover': {
-        backgroundColor: alpha(theme.palette.common.white, 0.25),
-    },
-    marginRight: theme.spacing(2),
-    marginLeft: 0,
-    width: '100%',
-    flexGrow: 1,
-    maxWidth: '600px',
-}));
-
-const SearchIconWrapper = styled('div')(({ theme }) => ({
-    padding: theme.spacing(0, 2),
-    height: '100%',
-    position: 'absolute',
-    pointerEvents: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-}));
-
-const StyledInputBase = styled(InputBase)(({ theme }) => ({
-    color: 'inherit',
-    '& .MuiInputBase-input': {
-        padding: theme.spacing(1, 1, 1, 0),
-        // vertical padding + font size from searchIcon
-        paddingLeft: `calc(1em + ${theme.spacing(4)})`,
-        transition: theme.transitions.create('width'),
-        width: '100%',
-        [theme.breakpoints.up('md')]: {
-            width: '20ch',
-        },
-    },
-}));
+import SearchBar from '@/components/search/search-bar';
 
 const AppHeader = () => {
     const { data: session } = useSession();
-    useEffect(()=>{
-        if(session?.error === "RefreshAccessTokenError"){
-            signOut({callbackUrl:"/auth/signin", redirect: true});
+    useEffect(() => {
+        if (session?.error === "RefreshAccessTokenError") {
+            signOut({ callbackUrl: "/auth/signin", redirect: true });
         }
     }, [session]);
 
@@ -134,7 +95,8 @@ const AppHeader = () => {
                 <MenuItem>
                     <Link href="/dashboard/user" style={{
                         textDecoration: 'none',
-                        color: 'unset',}}>
+                        color: 'unset',
+                    }}>
                         Admin
                     </Link>
                 </MenuItem>
@@ -231,19 +193,9 @@ const AppHeader = () => {
                             >
                                 Sound Cloud
                             </Typography>
-                            <Search style={{
-                                width: "500px"
-                            }}>
-                                <SearchIconWrapper>
-                                    <SearchIcon />
-                                </SearchIconWrapper>
-                                <StyledInputBase
-                                    placeholder="Search…"
-                                    inputProps={{ 'aria-label': 'search' }}
-                                />
-                            </Search>
+                            <SearchBar/>
                             <Box sx={{ flexGrow: 1 }} />
-                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px" }}>
+                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px"}}>
                                 {pages.map((page) => (
                                     <Typography
                                         key={page.title}
@@ -295,7 +247,7 @@ const AppHeader = () => {
                                                 style={{
                                                     objectFit: 'cover', // Ảnh không bị méo, giữ tỷ lệ
                                                 }}
-                                                // unoptimized={true} // Bật cái này nếu bạn không muốn Next.js tự nén ảnh (Cloudinary đã làm tốt rồi)
+                                            // unoptimized={true} // Bật cái này nếu bạn không muốn Next.js tự nén ảnh (Cloudinary đã làm tốt rồi)
                                             />
                                         )}
 
@@ -303,10 +255,12 @@ const AppHeader = () => {
                                         {!session.user?.avatar && session.user?.name?.charAt(0).toUpperCase()}
                                     </Avatar>
                                     :
-                                        <Link href="/auth/signin" style={{                        textDecoration: 'none',
-                                            color: 'unset',}}>
-                                            Login
-                                        </Link>
+                                    <Link href="/auth/signin" style={{
+                                        textDecoration: 'none',
+                                        color: 'unset',
+                                    }}>
+                                        Login
+                                    </Link>
 
                                     // <Button
                                     //     variant="contained"

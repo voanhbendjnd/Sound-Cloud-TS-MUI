@@ -24,7 +24,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
         isPlaying: false,
         isLiked: false,
     }
-    const [currentTrack, setCurrentTrack] = useState<IShareTrack>(initValue);
+    const [currentTrack, setCurrentTrack] = useState<IShareTrack>(initValue as IShareTrack);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const savedTimes = useRef<Record<string, number>>({});
     const [viewedTracks, setViewedTracks] = useState<Set<string>>(new Set());

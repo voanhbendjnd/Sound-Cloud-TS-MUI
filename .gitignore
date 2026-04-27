@@ -39,3 +39,4 @@ frontend.dockerfile
 /Dockerfile
 /.env.production
 /.dockerignore
+/.env.development

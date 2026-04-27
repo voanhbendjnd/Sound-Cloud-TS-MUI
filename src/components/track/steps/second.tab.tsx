@@ -15,6 +15,7 @@ import { useAllCategories } from "@/hooks/use-category";
 import { useCreateTrack, useUploadTempTrack } from '@/hooks/use-track';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import {sendRequest} from "@/utils/api";
 
 function LinearProgressWithLabel(props: LinearProgressProps & { value: number }) {
     return (
@@ -23,7 +24,7 @@ function LinearProgressWithLabel(props: LinearProgressProps & { value: number })
                 <LinearProgress variant="determinate" {...props} />
             </Box>
             <Box sx={{ minWidth: 35 }}>
-                <Typography variant="body2" color="text.secondary">{`${Math.round(
+                <Typography variant="body2" sx={{color:'white'}} color="text.secondary">{`${Math.round(
                     props.value,
                 )}%`}</Typography>
             </Box>
@@ -132,8 +133,8 @@ const SecondTabs = (props: IProps) => {
         formData.append('categoryId', category);
 
         createTrack(formData, {
-            onSuccess: () => {
-                toast.success('Upload success!');
+            onSuccess: async () => {
+                toast.success('Upload new track success!');
                 setTrackAudio(null);
                 setValue(0);
                 setProgress(0);
@@ -143,6 +144,25 @@ const SecondTabs = (props: IProps) => {
                 setTitle('');
                 setDescription('');
                 setCategory('');
+                try {
+                    // Gọi API xóa cache trên server
+                    await sendRequest({
+                        url: `/api/revalidate`,
+                        method: 'POST',
+                        queryParams: {
+                            tag: "track-by-profile",
+                            secret: "16180339887" // Lưu ý: Nên dùng biến môi trường ở đây
+                        }
+                    });
+
+                    // QUAN TRỌNG: Làm mới dữ liệu tại Client sau khi xóa cache server
+                    router.refresh();
+
+                    // Nếu muốn chuyển trang thì mở comment dòng này
+                    // router.push('/dashboard/track');
+                } catch (error) {
+                    console.error("Revalidate failed", error);
+                }
                 // router.push('/dashboard/track');
             },
             onError: () => {
@@ -293,7 +313,8 @@ const SecondTabs = (props: IProps) => {
                     }}
                     >
                         {categoryOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value} style={{backgroundColor:'#fff'}}>
+                            <MenuItem key={option.value} value={option.value}
+                                      style={{backgroundColor:'#fff'}}>
                                 {option.label}
                             </MenuItem>
                         ))}
@@ -301,6 +322,8 @@ const SecondTabs = (props: IProps) => {
                     <Button
                         variant="outlined"
                         onClick={handleSave}
+                        style={{color:'#fff', backgroundColor:'#ce4812'}}
+
                         disabled={isCreatePending || progress < 100 || !uploadedFileName}
                         sx={{ mt: 5 }}
                     >

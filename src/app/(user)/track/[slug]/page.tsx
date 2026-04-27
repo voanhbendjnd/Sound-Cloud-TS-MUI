@@ -91,6 +91,10 @@ const DetailTrackPage = async ({ params, searchParams }: {
     })
     const uploaderData = resDataUploader?.data as ITrack;
 
+    if(uploaderData === undefined) {
+        redirect('/');
+
+    }
     const originalTrackUrl = `https://res.cloudinary.com/dddppjhly/video/upload/${uploaderData.trackUrl}`;
 
     // const checkParam = await sendRequest<IBackendRes<any>>({

@@ -325,10 +325,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 65, left: 0 },          // Tier 0: center bottom
-            { top: 65, left: -4 },        // Tier 1: bottom-left
-            { top: 65, left: 4 },         // Tier 2: bottom-right
-            { top: 65, left: 0 },         // Tier 3: top
+            { top: 72, left: 0 },          // Tier 0: center bottom
+            { top: 72, left: -4 },        // Tier 1: bottom-left
+            { top: 72, left: 4 },         // Tier 2: bottom-right
+            { top: 72, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -578,7 +578,18 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             height: '100%',
                             borderRight: '1px solid white'
                         }} />
-
+                        <div
+                            style={{
+                                position: "absolute",
+                                top: "71%",
+                                left: 0,
+                                right: 0,
+                                height: "2px",
+                                background: "#464646",
+                                zIndex: 15,
+                                pointerEvents: "none"
+                            }}
+                        ></div>
                         {/* Dark overlay under avatars for better visibility */}
                         <Box sx={{
                             position: 'absolute',
@@ -608,7 +619,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                         : undefined;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;
-                                const position = avatarPositions[comment.id] || { top: 70, zIndex: 20 };
+                                const position = avatarPositions[comment.id] || { top: 72, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
                                 const resContent = comment.user.name + ': ' + comment.content;
                                 return (

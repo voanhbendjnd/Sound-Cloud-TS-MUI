@@ -144,4 +144,11 @@ declare global{
         name:string;
         id:string;
     }
+    interface ISearchResult{
+        name: string;
+        id: number;
+        title: string;
+        imgUrl: string;
+        trackUrl:string;
+    }
 }

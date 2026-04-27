@@ -104,13 +104,11 @@ const WaveTrack = (props: IProps) => {
         const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: gradient,
             progressColor: progressGradient,
-            height: 150,
+            height: 200,
 
             barWidth: 2.3,
             barGap: 1.5,
-
             normalize: true,
-
             url: fullAudioUrl!,
         };
 
@@ -145,10 +143,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 115, left: 0 },          // Tier 0: center bottom
-            { top: 115, left: -4 },        // Tier 1: bottom-left
-            { top: 115, left: 4 },         // Tier 2: bottom-right
-            { top: 115, left: 0 },         // Tier 3: top
+            { top: 142, left: 0 },          // Tier 0: center (just below split line)
+            { top: 142, left: -4 },        // Tier 1: bottom-left
+            { top: 142, left: 4 },         // Tier 2: bottom-right
+            { top: 142, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -672,6 +670,19 @@ const WaveTrack = (props: IProps) => {
                         <div className="time" >{time}</div>
                         <div className="duration" >{duration}</div>
                         <div ref={hoverRef} className="hover-wave"></div>
+                        {/* Split line at 50% height */}
+                        <div
+                            style={{
+                                position: "absolute",
+                                top: "71%",
+                                left: 0,
+                                right: 0,
+                                height: "2px",
+                                background: "rgba(255, 255, 255, 0.5)",
+                                zIndex: 15,
+                                pointerEvents: "none"
+                            }}
+                        ></div>
                         <div className="overlay"
                             style={{
                                 position: "absolute",
