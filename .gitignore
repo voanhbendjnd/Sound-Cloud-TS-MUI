@@ -40,3 +40,4 @@ frontend.dockerfile
 /.env.production
 /.dockerignore
 /.env.development
+/build-docker
