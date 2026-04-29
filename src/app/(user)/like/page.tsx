@@ -62,7 +62,8 @@ const LikePage = () => {
 
                     if (meta) {
                         setTotal(meta.total);
-                        setHasMore(meta.page < meta.pages);
+                        const hasNoTracks = newTracks.length === 0 && meta.pages <= 1;
+                        setHasMore(!hasNoTracks && meta.page < meta.pages);
                     }
                 }
             } catch (error) {

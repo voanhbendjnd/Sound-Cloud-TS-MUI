@@ -7,6 +7,9 @@ import { useState, useEffect } from "react";
 import { useCountTrackMutation, useLikeTrackMutation } from "@/hooks/use-track";
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
+import Button from "@mui/material/Button";
+import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
+import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 
 interface IProps {
     trackId: number;
@@ -19,6 +22,7 @@ const LikeTrack = (props: IProps) => {
     const { trackId, initialLikes, initialIsLiked, initialCountPlays } = props;
     const { data: session } = useSession();
     const { currentTrack, setCurrentTrack } = useTrackContext() as ITrackContext;
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
     // Chỉ cần 2 state này để quản lý hiển thị
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
@@ -72,31 +76,37 @@ const LikeTrack = (props: IProps) => {
     return (
         <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
             {session ?
-                <Stack direction="row" spacing={1}>
-                    <Chip
-                        onClick={handleLikeClick}
-                        disabled={mutation.isPending}
-                        sx={{
-                            color: isLiked ? '#f64a00' : 'white',
-                            borderColor: isLiked ? '#f64a00' : 'white',
-                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                            opacity: mutation.isPending ? 0.8 : 1,
-                            '&:hover': {
-                                borderColor: '#f50',
-                                color: isLiked ? '#f50' : '#f50'
-                            },
-                            '& .MuiChip-icon': {
-                                color: isLiked ? '#f64a00' : 'inherit'
-                            },
-                            '&:hover .MuiChip-icon': {
-                                color: '#f50'
-                            }
-                        }}
-                        icon={<FavoriteIcon />}
-                        label={isLiked ? "Liked" : "Like"}
-                        variant="outlined"
-                    />
-                </Stack>
+                <>
+                    <Stack direction="row" spacing={1}>
+                        <Chip
+                            onClick={handleLikeClick}
+                            disabled={mutation.isPending}
+                            sx={{
+                                color: isLiked ? '#f64a00' : 'white',
+                                // borderColor: isLiked ? '#f64a00' : 'white',
+                                cursor: mutation.isPending ? 'not-allowed' : 'pointer',
+                                opacity: mutation.isPending ? 0.8 : 1,
+                                '&:hover': {
+                                    borderColor: '#f50',
+                                    color: isLiked ? '#f50' : '#f50'
+                                },
+                                '& .MuiChip-icon': {
+                                    color: isLiked ? '#f64a00' : 'inherit'
+                                },
+                                '&:hover .MuiChip-icon': {
+                                    color: '#f50'
+                                }
+                            }}
+                            icon={<FavoriteIcon />}
+                            label={isLiked ? "Liked" : "Like"}
+                            variant="outlined"
+                        />
+                        <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />} onClick={() => setShowPlaylistModal(true)} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                            Add to playlist
+                        </Button>
+                    </Stack>
+
+                </>
                 : <></>
             }
 
@@ -116,6 +126,11 @@ const LikeTrack = (props: IProps) => {
                     />
                 </Stack>
             </div>
+            <AddToPlaylistModal
+                open={showPlaylistModal}
+                onClose={() => setShowPlaylistModal(false)}
+                trackId={Number(trackId)}
+            />
         </div>
     );
 }

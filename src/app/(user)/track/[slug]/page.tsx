@@ -1,9 +1,11 @@
-import WaveTrack from '@/components/track/wave.track';
+// import WaveTrackClient from '@/components/track/wave.track.client';
 import { Container } from "@mui/material";
 import { sendRequest } from "@/utils/api";
 import CommentSection from "@/components/track/comment.section";
 import { redirect } from "next/navigation";
+import { useIsLiked } from "@/hooks/use-isliked";
 import type { Metadata, ResolvingMetadata } from 'next'
+import WaveTrack from "@/components/track/wave.track";
 
 type Props = {
     params: { slug: string }
@@ -75,6 +77,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
 
     })
 
+
     const resDataUploader = await sendRequest<IBackendRes<ITrack>>({
         url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/uploader`,
         method: "GET",
@@ -91,7 +94,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
     })
     const uploaderData = resDataUploader?.data as ITrack;
 
-    if(uploaderData === undefined) {
+    if (uploaderData === undefined) {
         redirect('/');
 
     }
@@ -109,6 +112,7 @@ const DetailTrackPage = async ({ params, searchParams }: {
     //     },
     //
     // })
+    // Only redirect if there's a real error (status >= 400), not just missing data
     if (!resDataUploader || (resDataUploader as any).statusCode >= 400) {
         redirect('/');
     }

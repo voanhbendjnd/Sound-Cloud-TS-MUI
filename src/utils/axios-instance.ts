@@ -23,18 +23,34 @@ const processQueue = (error: any, token: string | null = null) => {
 // Request interceptor for adding auth token
 axiosInstance.interceptors.request.use(
     async (config) => {
+        // 1. Kiểm tra whitelist TRƯỚC khi gọi getSession để tối ưu hiệu năng
+        // Dùng so sánh chính xác hoặc regex để tránh trùng lặp giữa /tracks và /tracks/likes
+        const publicEndpoints = [
+            '/api/v1/search',
+            '/api/v1/tracks' // Xóa dấu gạch chéo cuối để khớp chuẩn hơn
+        ];
+
+        // Kiểm tra xem URL hiện tại có phải là endpoint công khai hay không
+        // Logic: Khớp chính xác hoàn toàn hoặc khớp với đường dẫn gốc của tracks
+        const isPublicEndpoint = publicEndpoints.some(endpoint =>
+            config.url === endpoint || config.url === `${endpoint}/`
+        );
+
+        // 2. Lấy session từ NextAuth
         const session: any = await getSession();
-        
-        if (session && session.access_token) {
-            // Check if token is about to expire or already expired
-            const tokenExpiryBuffer = 2 * 60 * 1000; // 2 minutes buffer
+
+        // 3. Logic gắn Token: CHỈ gắn khi KHÔNG phải endpoint công khai VÀ có token hợp lệ
+        if (!isPublicEndpoint && session?.access_token && session.access_token !== "undefined") {
+
+            const tokenExpiryBuffer = 2 * 60 * 1000; // 2 phút
             const timeUntilExpiry = session.expires_in ? (session.expires_in - Date.now()) : Infinity;
-            
-            // If token is expired or about to expire, refresh it proactively
+
+            // Nếu token sắp hết hạn, thử lấy session mới nhất (proactive refresh)
             if (timeUntilExpiry <= tokenExpiryBuffer) {
                 console.log('Token expiring soon, refreshing proactively...');
                 const updatedSession: any = await getSession();
-                if (updatedSession && updatedSession.access_token) {
+
+                if (updatedSession?.access_token && updatedSession.access_token !== "undefined") {
                     config.headers.Authorization = `Bearer ${updatedSession.access_token}`;
                 } else {
                     config.headers.Authorization = `Bearer ${session.access_token}`;
@@ -42,7 +58,12 @@ axiosInstance.interceptors.request.use(
             } else {
                 config.headers.Authorization = `Bearer ${session.access_token}`;
             }
+        } else {
+            // QUAN TRỌNG: Xóa header Authorization nếu là Public hoặc không có Token
+            // Điều này ngăn chặn lỗi "Malformed token" do gửi "Bearer undefined" lên Spring Boot
+            delete config.headers.Authorization;
         }
+
         return config;
     },
     (error) => {
@@ -56,7 +77,7 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // If error is not 401 or request already retried, reject
+        // Nếu không phải lỗi 401 hoặc request đã thử lại rồi thì trả về lỗi luôn
         if (error.response?.status !== 401 || originalRequest._retry) {
             const res = error.response;
             if (res) {
@@ -65,7 +86,7 @@ axiosInstance.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // If already refreshing, queue the request
+        // Nếu đang trong quá trình refresh token, đưa request vào hàng đợi
         if (isRefreshing) {
             return new Promise((resolve, reject) => {
                 failedQueue.push({ resolve, reject });
@@ -77,26 +98,23 @@ axiosInstance.interceptors.response.use(
             });
         }
 
-        // Mark as refreshing
+        // Đánh dấu đang refresh để các request sau không gọi refresh trùng lặp
         originalRequest._retry = true;
         isRefreshing = true;
 
         try {
-            // Force NextAuth session refresh by calling getSession
-            // This will trigger the JWT callback which will refresh the token if expired
+            // NextAuth sẽ tự động gọi JWT callback để refresh token khi getSession được gọi
             const updatedSession: any = await getSession();
-            
-            if (!updatedSession || !updatedSession.access_token) {
-                // Session refresh failed, logout user
+
+            if (!updatedSession || !updatedSession.access_token || updatedSession.access_token === "undefined") {
                 processQueue(new Error('Session refresh failed'), null);
                 await signOut({ redirect: false });
                 window.location.href = '/auth/signin';
                 return Promise.reject(new Error('Session refresh failed'));
             }
 
-            // Check if refresh token expired (NextAuth sets error when refresh fails)
+            // Kiểm tra lỗi đặc biệt từ NextAuth refresh strategy
             if (updatedSession.error === 'RefreshAccessTokenError') {
-                // Refresh token expired, logout user
                 processQueue(new Error('Refresh token expired'), null);
                 await signOut({ redirect: false });
                 window.location.href = '/auth/signin';
@@ -105,14 +123,13 @@ axiosInstance.interceptors.response.use(
 
             const newAccessToken = updatedSession.access_token;
 
-            // Process queued requests with new token
+            // Giải phóng hàng đợi với token mới
             processQueue(null, newAccessToken);
 
-            // Retry original request with new token
+            // Thực hiện lại request ban đầu với token mới
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return axiosInstance(originalRequest);
         } catch (refreshError) {
-            // Refresh error, logout user
             console.error('Session refresh error:', refreshError);
             processQueue(refreshError, null);
             await signOut({ redirect: false });

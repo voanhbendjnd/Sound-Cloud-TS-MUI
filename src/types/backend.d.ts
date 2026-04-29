@@ -149,6 +149,37 @@ declare global{
         id: number;
         title: string;
         imgUrl: string;
-        trackUrl:string;
+    }
+    interface IPlaylist{
+        id: number;
+        title: string;
+        description: string;
+        imgUrl: string;
+        totalTracks: number;
+        isPublic: boolean;
+        createdAt: string;
+        updatedAt: string;
+        user: {
+            id: number;
+            name: string;
+            avatar: string;
+            role: string;
+        }
+    }
+    interface IPlaylistWithTracks{
+        id: number;
+        title: string;
+        totalTracks: number;
+        trackIds: number[];
+    }
+    interface IAddToPlaylistDTO{
+        playlistId: number;
+        isAdded: boolean;
+    }
+    interface ICreatePlaylistDTO{
+        title: string;
+        description?: string;
+        isPublic?: boolean;
+        trackIds?: number[];
     }
 }

@@ -13,14 +13,15 @@ import IconButton from "@mui/material/IconButton";
 import AppBar from "@mui/material/AppBar";
 import { Container } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
-import axios from "axios";
+import axiosInstance from "@/utils/axios-instance";
 import Link from "next/link";
 import { useLikeTrackMutation } from "@/hooks/use-track";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
-import { redirect } from "next/navigation";
+import {redirect, useRouter} from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
+import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
@@ -29,9 +30,10 @@ const AppFooter = () => {
     const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
     const { data: session } = useSession();
     const keyword = "upload/";
-
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const router = useRouter();
     const index = currentTrack.trackUrl.indexOf(keyword);
-      const trackUrlCut = currentTrack.trackUrl.substring(index + keyword.length);
+    const trackUrlCut = currentTrack.trackUrl.substring(index + keyword.length);
 
     const handleLikeClick = () => {
         if (session === null) {
@@ -62,7 +64,7 @@ const AppFooter = () => {
             // When reaching 30 seconds and track not yet viewed
             if (currentTime >= 30 && !viewedTracks.has(trackId)) {
                 // Call API to increase view count
-                axios.patch(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/view/increase`, {
+                axiosInstance.patch(`/api/v1/tracks/view/increase`, {
                     trackId: currentTrack.id
                 }).catch(err => console.error('Failed to increase view count:', err));
 
@@ -216,7 +218,7 @@ const AppFooter = () => {
                                         mb: 0.2,
                                         '&:hover': {
                                             color: "white", // Chữ sáng lên khi hover
-                                            fontSize:'bold'
+                                            fontSize: 'bold'
                                             // textDecoration: "underline" // Gạch chân nếu muốn
                                         }
                                     }}
@@ -246,7 +248,14 @@ const AppFooter = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                             <IconButton
                                 size="small"
-                                onClick={handleLikeClick}
+                                onClick={()=>{
+                                    if(session) {
+                                        handleLikeClick()
+
+                                    }
+                                    else                                             router.push('/auth/signin');
+
+                                }}
                                 disabled={mutation.isPending}
                                 sx={{
                                     color: '#ccc',
@@ -270,13 +279,26 @@ const AppFooter = () => {
                                 <PersonAddIcon fontSize="small" />
                             </IconButton>
                             <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                <PlaylistAddIcon fontSize="small" />
+                                <PlaylistAddIcon
+                                    onClick={() => {
+                                        if (session) {
+                                            setShowPlaylistModal(true);
+                                        } else {
+                                            router.push('/auth/signin');
+                                        }
+                                    }}
+                                fontSize="small" />
                             </IconButton>
                         </Box>
                     </Box>
-
+                    <AddToPlaylistModal
+                        open={showPlaylistModal}
+                        onClose={() => setShowPlaylistModal(false)}
+                        trackId={Number(currentTrack.id)}
+                    />
                 </Container>
             </AppBar>
+
         </div>
     )
 }

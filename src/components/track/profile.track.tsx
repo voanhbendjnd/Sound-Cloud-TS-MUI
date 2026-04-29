@@ -12,6 +12,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography, IconButton, Chip } from "@mui/material";
 import Button from "@mui/material/Button";
 import dayjs from "dayjs";
@@ -20,8 +21,12 @@ import { useTrackContext } from "@/lib/track.wrapper";
 import Link from "next/link";
 import { useCreateComment, useFetchComments, useFetchCommentsAxios } from "@/hooks/use.comment";
 import { useLikeTrackMutation } from "@/hooks/use-track";
+import { useIsLiked } from "@/hooks/use-isliked";
 import { toast } from "react-toastify";
 import { useSession } from "next-auth/react";
+import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
+import axiosInstance from "@/utils/axios-instance";
+import { useRouter } from "next/navigation";
 
 dayjs.extend(relativeTime);
 
@@ -35,32 +40,38 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const hoverRef = useRef<HTMLDivElement>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const { data: session } = useSession();
+    const router = useRouter();
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
     const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
     const fullAudioUrl = track.trackUrl ? `${baseAudio}${track.trackUrl}` : null;
     const isMatched = currentTrack.trackUrl === fullAudioUrl;
-    const [isLiked, setIsLiked] = useState<boolean>(track.isLiked || false);
     const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
     const mutation = useLikeTrackMutation();
+    // Use separate isLiked API for logged-in users
+    const { data: isLiked } = useIsLiked(Number(track.id));
 
     // Sync isLiked with currentTrack when track ID matches
     useEffect(() => {
-        if (isMatched) {
-            setIsLiked(currentTrack.isLiked);
+        if (isMatched && isLiked !== undefined) {
+            setCurrentTrack({
+                ...currentTrack,
+                isLiked: isLiked
+            });
         }
-    }, [currentTrack.id, currentTrack.isLiked, isMatched]);
+    }, [currentTrack.id, isLiked, isMatched]);
 
     const handleLikeClick = () => {
         if (!session) {
-            toast.warning("Please log in to like tracks!");
+            // Redirect to signin with callback URL
+            router.push(`/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`);
             return;
         }
         mutation.mutate(Number(track.id), {
             onSuccess: (res) => {
                 if (res?.data) {
                     setCountLikes(res.data.countLikes);
-                    setIsLiked(res.data.isLiked);
 
                     // Update TrackContext if this is the current track
                     if (isMatched) {
@@ -238,18 +249,18 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
             gradient.addColorStop(0, '#656666') // Top color
             gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#656666') // Top color
-            gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
+            // gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            // gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            // gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
             gradient.addColorStop(1, '#B1B1B1') // Bottom color
 
             // Define the progress gradient
             progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35)
             progressGradient.addColorStop(0, '#EE772F') // Top color
             progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#EB4926') // Top color
-            progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
+            // progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            // progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            // progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
             progressGradient.addColorStop(1, '#F6B094') // Bottom color
         }
 
@@ -257,7 +268,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: '#eaeaea',
             progressColor: progressGradient,
-            height:100,
+            height: 100,
             barWidth: 2,
             barGap: 1,
             normalize: true,
@@ -357,7 +368,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         });
 
         return positions;
-    }, [wsReady,wavesurfer, comments]);
+    }, [wsReady, wavesurfer, comments]);
     useEffect(() => {
         if (!wavesurfer) return;
         wavesurfer.setVolume(0);
@@ -375,7 +386,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             wavesurfer.on('decode', (duration) => {
                 setDuration(formatTime(duration));
                 setWsReady(true);
-                           }),
+            }),
             wavesurfer.on('interaction', (newTime) => {
                 if (isMatched && audioRef.current) {
 
@@ -584,7 +595,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                 top: "71%",
                                 left: 0,
                                 right: 0,
-                                height: "2px",
+                                height: "0.5px",
                                 background: "#464646",
                                 zIndex: 15,
                                 pointerEvents: "none"
@@ -691,7 +702,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                     <Button
                         variant="outlined"
                         size="small"
-                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLiked ? '#f64a00' : 'inherit' }} />}
+                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLiked ? '#f64a00' : '#ffffff' }} />}
                         onClick={handleLikeClick}
                         disabled={mutation.isPending}
                         sx={{
@@ -700,7 +711,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             textTransform: 'none',
                             padding: '2px 8px',
                             minWidth: 0,
-                            '&:hover': { borderColor: '#f50' },
+                            '&:hover': {
+                                borderColor: isLiked ? '#f50' : '#f50',
+                                color: isLiked ? '#f50' : '#f50'
+                            },
                             cursor: mutation.isPending ? 'not-allowed' : 'pointer',
                             opacity: mutation.isPending ? 0.8 : 1
                         }}
@@ -712,6 +726,9 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Share
+                    </Button>
+                    <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />} onClick={() => setShowPlaylistModal(true)} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                        Add to playlist
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<ContentCopyIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Copy Link
@@ -872,8 +889,16 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         </MuiButton>
                     </Box>
                 </Box>
-            </Modal >
-        </Box >
-    )
-}
+            </Modal>
+
+            <AddToPlaylistModal
+                open={showPlaylistModal}
+                onClose={() => setShowPlaylistModal(false)}
+                trackId={Number(track.id)}
+            />
+        </Box>
+    );
+};
 export default ProfileTrack;
+
+

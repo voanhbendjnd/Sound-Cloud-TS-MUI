@@ -1,7 +1,6 @@
 import {categoryKeys} from "@/hooks/use-category";
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import axiosInstance from "@/utils/axios-instance";
-import axios from "axios";
 
 export const commentKeys ={
     all:['comments'] as const,
@@ -43,14 +42,17 @@ export const useFetchComments = (params: { current: number; pageSize: number; tr
         },
     });
 };
-export const useFetchCommentsAxios = (params: { current: number; pageSize: number; trackId: number; sort?: string }) => {
+export const useFetchCommentsAxios = (
+    params: { current: number; pageSize: number; trackId: number; sort?: string },
+    options?: { enabled?: boolean }
+) => {
     return useQuery({
         queryKey: commentKeys.list(params),
+        enabled: options?.enabled ?? true,
         queryFn: async () => {
             const { current, pageSize, trackId, sort } = params;
-            // Gọi trực tiếp từ axios, nó sẽ không có bất kỳ Header Authorization nào
-            const res = await axios.get<IBackendRes<IModelPaginate<IComment>>>(
-                `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/comments`, {
+            const res = await axiosInstance.get<IBackendRes<IModelPaginate<IComment>>>(
+                `/api/v1/tracks/comments`, {
                     params: {
                         page: current,
                         size: pageSize,

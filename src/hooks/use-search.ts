@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
+import axiosInstance from '@/utils/axios-instance';
 
 interface SearchSuggestionsParams {
     query: string;
@@ -19,30 +19,13 @@ export const useSearchSuggestions = ({ query, enabled = true }: SearchSuggestion
         queryKey: ['search-suggestions', query],
         queryFn: async () => {
             if (!query || query.length < 2) return [];
-            const response = await axios.get<
-                ISearchResult[] | IBackendRes<ISearchResult[] | IModelPaginate<ISearchResult>>
-            >(
-                `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/search/suggestions`,
+            const response = await axiosInstance.get<ISearchResult[]>(
+                `/api/v1/search/suggestions`,
                 {
                     params: { q: query }
                 }
             );
-            const payload = response.data;
-
-            if (Array.isArray(payload)) {
-                return payload;
-            }
-
-            if (Array.isArray(payload?.data)) {
-                return payload.data;
-            }
-
-            if (Array.isArray(payload?.data?.result)) {
-                // return payload.data.result
-                return payload?.data!.result
-            }
-
-            return [];
+            return response.data;
         },
         enabled: enabled && query.length >= 2,
         staleTime: 5 * 60 * 1000, // 5 minutes
@@ -56,8 +39,8 @@ export const useSearchResults = ({ query, page, pageSize = 10, enabled = true }:
         queryKey: ['search-results', query, page],
         queryFn: async () => {
             if (!query) return null;
-            const response = await axios.get<IBackendRes<IModelPaginate<ITrack>>>(
-                `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/search`,
+            const response = await axiosInstance.get<IBackendRes<IModelPaginate<ITrack>>>(
+                `/api/v1/search`,
                 {
                     params: {
                         q: query,

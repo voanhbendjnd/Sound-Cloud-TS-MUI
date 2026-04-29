@@ -6,7 +6,6 @@ import { useWaveSurfer } from "@/utils/customHook";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
 import { useFetchComments, commentKeys, useFetchCommentsAxios } from "@/hooks/use.comment";
@@ -15,14 +14,16 @@ import axiosInstance from "@/utils/axios-instance";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useSession } from "next-auth/react";
+import PauseIcon from "@mui/icons-material/Pause";
 
 interface IProps {
     comments: IComment[];
+    isLiked?: boolean;
 }
 
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments } = props;
+    const { comments, isLiked } = props;
     const router = useRouter();
     const fileName = searchParams.get('audio');
     const trackId = searchParams.get('id');
@@ -85,18 +86,18 @@ const WaveTrack = (props: IProps) => {
             gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
             gradient.addColorStop(0, '#656666') // Top color
             gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#656666') // Top color
-            gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
+            // gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            // gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            // gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
             gradient.addColorStop(1, '#B1B1B1') // Bottom color
 
             // Define the progress gradient
             progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35)
             progressGradient.addColorStop(0, '#EE772F') // Top color
             progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#EB4926') // Top color
-            progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
+            // progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
+            // progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
+            // progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
             progressGradient.addColorStop(1, '#F6B094') // Bottom color
         }
 
@@ -391,7 +392,7 @@ const WaveTrack = (props: IProps) => {
                 imgUrl: source.imgUrl || "",
                 description: source.description || "",
                 isPlaying: true,
-                isLiked: source.isLiked || false
+                isLiked: isLiked || source.isLiked || false
             };
 
             // Set current track first to ensure footer appears
@@ -488,14 +489,13 @@ const WaveTrack = (props: IProps) => {
         const fetchTrackData = async () => {
             if (trackId && fileName) {
                 try {
-                    // const res = await axiosInstance.get<any, IBackendRes<ITrack>>(`/api/v1/tracks/${trackId}`);
                     const res = await axios.get<IBackendRes<ITrack>>(
                         `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${session?.access_token}`,
-                            }
-                        }
+                        // {
+                            // headers: {
+                                // Authorization: `Bearer ${session?.access_token}`,
+                            // }
+                        // }
                     );
                     if (res && res.data) {
                         const track = res.data.data;
@@ -677,8 +677,8 @@ const WaveTrack = (props: IProps) => {
                                 top: "71%",
                                 left: 0,
                                 right: 0,
-                                height: "2px",
-                                background: "rgba(255, 255, 255, 0.5)",
+                                height: "1px",
+                                background: "rgb(5 5 5 / 0.5)",
                                 zIndex: 15,
                                 pointerEvents: "none"
                             }}
@@ -816,7 +816,7 @@ const WaveTrack = (props: IProps) => {
                     <LikeTrack
                         trackId={Number(trackId)}
                         initialLikes={trackData.countLike}
-                        initialIsLiked={trackData.isLiked}
+                        initialIsLiked={isLiked || trackData.isLiked}
                         initialCountPlays={trackData.countPlay}
                     />
                 </div>

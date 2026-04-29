@@ -92,7 +92,7 @@ const ProfileTrackList = ({ userId, initialTracks, initialTotal, initialHasMore 
                     Found {total} tracks
                 </Typography>
                 <Box>
-                    {isInitialLoading ? (
+                    {isInitialLoading && allTracks.length > 0  ? (
                         // Show skeleton during initial loading
                         <>
                             <TrackSkeleton />

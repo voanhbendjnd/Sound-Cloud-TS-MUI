@@ -26,7 +26,9 @@ const CommentSection = (props: IProps) => {
     // Infinite scroll state
     const [currentPage, setCurrentPage] = useState(1);
     const [allComments, setAllComments] = useState<IComment[]>(comments);
-    const [hasMore, setHasMore] = useState(true);
+    // SSR page.tsx fetch page=1 với size=20. Client pageSize=10.
+    // Nếu SSR trả về < 10 comment → chắc chắn không còn page tiếp
+    const [hasMore, setHasMore] = useState(comments.length >= 10);
     const observerRef = useRef<HTMLDivElement | null>(null);
     const userId = uploader.uploader.id;
     const commentParams = {
@@ -35,8 +37,9 @@ const CommentSection = (props: IProps) => {
         trackId: Number(trackId),
         sort: "updatedAt,desc"
     };
-    const { data: resComments, isLoading } = useFetchCommentsAxios(commentParams)
-    // useFetchComments(commentParams);
+    const { data: resComments, isLoading, isFetching } = useFetchCommentsAxios(commentParams, {
+        enabled: hasMore, // Không gọi API khi đã hết comment
+    });
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
@@ -53,19 +56,25 @@ const CommentSection = (props: IProps) => {
 
     // Update allComments when new data is fetched
     useEffect(() => {
-        if (resComments?.data?.result) {
-            const newComments = resComments.data.result;
-            setAllComments(prev => {
-                // Avoid duplicates
-                const existingIds = new Set(prev.map(c => c.id));
-                const filtered = newComments.filter(c => !existingIds.has(c.id));
-                return [...prev, ...filtered];
-            });
+        if (resComments?.data) {
+            const { result: newComments, meta } = resComments.data;
 
-            // Check if there are more pages
-            const meta = resComments.data.meta;
             if (meta) {
-                setHasMore(meta.page < meta.pages);
+                // 1. Nếu không có dữ liệu HOẶC đã đến trang cuối cùng thì dừng
+                if (newComments.length === 0 || meta.page >= meta.pages) {
+                    setHasMore(false);
+                } else {
+                    setHasMore(true);
+                }
+            }
+
+            // 2. Chỉ append comment nếu có dữ liệu mới
+            if (newComments.length > 0) {
+                setAllComments(prev => {
+                    const existingIds = new Set(prev.map(c => c.id));
+                    const filtered = newComments.filter(c => !existingIds.has(c.id));
+                    return [...prev, ...filtered];
+                });
             }
         }
     }, [resComments]);
@@ -74,7 +83,7 @@ const CommentSection = (props: IProps) => {
     useEffect(() => {
         const observer = new IntersectionObserver(
             (entries) => {
-                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                if (entries[0].isIntersecting && hasMore && !isFetching) {
                     setCurrentPage(prev => prev + 1);
                 }
             },
@@ -86,7 +95,7 @@ const CommentSection = (props: IProps) => {
         }
 
         return () => observer.disconnect();
-    }, [hasMore, isLoading]);
+    }, [hasMore, isFetching]);
 
     const handlePostComment = () => {
         const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
@@ -266,14 +275,14 @@ const CommentSection = (props: IProps) => {
                     })}
 
                     {/* Loading indicator */}
-                    {isLoading && (
+                    {isFetching && (
                         <Box sx={{ textAlign: 'center', py: 2, color: '#999' }}>
                             Loading more comments...
                         </Box>
                     )}
 
                     {/* Observer target for infinite scroll */}
-                    {hasMore && !isLoading && (
+                    {hasMore && !isFetching && (
                         <div ref={observerRef} style={{ height: '20px' }} />
                     )}
 

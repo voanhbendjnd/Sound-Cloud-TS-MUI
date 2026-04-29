@@ -64,9 +64,7 @@ const SearchBar = () => {
     // <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
 
     const handleSuggestionClick = (suggestion: ISearchResult) => {
-        // const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
-        // const fullAudioUrl = suggestion.trackUrl ? `${baseAudio}${suggestion.trackUrl}` : null;
-        router.push(`/track/${suggestion.id}?audio=${suggestion.trackUrl}&id=${suggestion.id}`);
+        router.push(`/track/${suggestion.id}`);
         setShowSuggestions(false);
         setKeyword('');
     };
@@ -77,7 +75,7 @@ const SearchBar = () => {
     );
 
     return (
-        <Box ref={searchRef} sx={{ position: 'relative', width: '100%', maxWidth: 550, height:'45' }}>
+        <Box ref={searchRef} sx={{ position: 'relative', width: '100%', maxWidth: 550, height: '45' }}>
             <TextField
                 inputRef={inputRef}
                 fullWidth
@@ -246,7 +244,7 @@ const SearchBar = () => {
                         mt: 1,
                         maxHeight: 400,
                         overflow: 'auto',
-                        zIndex:2000,
+                        zIndex: 2000,
                         bgcolor: '#333',
                         '&::-webkit-scrollbar': {
                             display: 'none', // Ẩn thanh cuộn trên Chrome, Safari, Edge
