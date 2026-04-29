@@ -41,3 +41,4 @@ frontend.dockerfile
 /.dockerignore
 /.env.development
 /build-docker
+/build-docker/docker-compose.yml
