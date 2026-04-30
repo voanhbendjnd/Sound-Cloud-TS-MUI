@@ -68,3 +68,21 @@ export const useToggleTrackInPlaylist = () => {
         },
     });
 };
+
+// Fetch playlists with pagination and filter
+export const usePlaylistsPaginated = (params: { 
+    title?: string; 
+    page: number; 
+    size: number 
+}) => {
+    return useQuery({
+        queryKey: ['playlists-paginated', params],
+        queryFn: async () => {
+            const response = await axiosInstance.get<IBackendRes<IModelPaginate<IPlaylist>>>(
+                `/api/v1/playlists/users`,
+                { params }
+            );
+            return response;
+        },
+    });
+};

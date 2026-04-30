@@ -160,7 +160,8 @@ declare global{
         isPublic: boolean;
         createdAt: string;
         updatedAt: string;
-        user: {
+        createdBy?: string;
+        user?: {
             id: number;
             name: string;
             avatar: string;

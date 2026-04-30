@@ -3,7 +3,11 @@ import ProfileTrackList from "@/components/profile/ProfileTrackList";
 import {Container} from "@mui/material";
 import {getServerSession} from "next-auth";
 import {authOptions} from "@/app/api/auth/[...nextauth]/route";
-
+import {Metadata} from "next";
+export const metadata:Metadata ={
+    title:'Profile uploader',
+    description:'Profile page'
+}
 const ProfilePage = async ({ params }: { params: { slug: string } }) => {
     const userId = params.slug;
 
