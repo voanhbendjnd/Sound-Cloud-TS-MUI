@@ -10,20 +10,26 @@ import { useTrackContext } from "@/lib/track.wrapper";
 import Button from "@mui/material/Button";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
+import {useRouter} from "next/navigation";
 
 interface IProps {
     trackId: number;
     initialLikes: number;
     initialIsLiked: boolean;
     initialCountPlays: number;
+    imgUrl:string;
+    uploader:string;
+    title:string;
+    trackUrl:string;
+    uploaderId:string;
 }
 
 const LikeTrack = (props: IProps) => {
-    const { trackId, initialLikes, initialIsLiked, initialCountPlays } = props;
+    const { trackId, initialLikes, initialIsLiked, initialCountPlays, imgUrl, uploader , title, trackUrl,  uploaderId} = props;
     const { data: session } = useSession();
     const { currentTrack, setCurrentTrack } = useTrackContext() as ITrackContext;
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-
+    const router = useRouter();
     // Chỉ cần 2 state này để quản lý hiển thị
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
     const [isLiked, setIsLiked] = useState<boolean>(initialIsLiked);
@@ -75,11 +81,14 @@ const LikeTrack = (props: IProps) => {
 
     return (
         <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
-            {session ?
-                <>
                     <Stack direction="row" spacing={1}>
                         <Chip
-                            onClick={handleLikeClick}
+                            onClick={()=>{
+                                if(session) {
+                                    handleLikeClick()                                }
+                                else router.push('/auth/signin');
+
+                            }}
                             disabled={mutation.isPending}
                             sx={{
                                 color: isLiked ? '#f64a00' : 'white',
@@ -101,14 +110,20 @@ const LikeTrack = (props: IProps) => {
                             label={isLiked ? "Liked" : "Like"}
                             variant="outlined"
                         />
-                        <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />} onClick={() => setShowPlaylistModal(true)} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                        <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />}
+                                onClick={()=>{
+                                    if(session) {
+                                        setShowPlaylistModal(true)
+                                    }
+                                    else router.push('/auth/signin');
+
+                                }}
+                                sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                             Add to playlist
                         </Button>
                     </Stack>
 
-                </>
-                : <></>
-            }
+
 
             <div style={{ display: 'flex', gap: '10px' }}>
 
@@ -130,6 +145,11 @@ const LikeTrack = (props: IProps) => {
                 open={showPlaylistModal}
                 onClose={() => setShowPlaylistModal(false)}
                 trackId={Number(trackId)}
+                imgUrl={imgUrl}
+                title={title}
+                uploader={uploader}
+                trackUrl={trackUrl}
+                uploaderId={uploaderId}
             />
         </div>
     );

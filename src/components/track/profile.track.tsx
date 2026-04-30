@@ -36,6 +36,7 @@ export interface ProfileTrackProps {
 
 const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const [wsReady, setWsReady] = useState(false);
+    const [waveDuration, setWaveDuration] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const hoverRef = useRef<HTMLDivElement>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
@@ -50,17 +51,17 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
     const mutation = useLikeTrackMutation();
     // Use separate isLiked API for logged-in users
-    const { data: isLiked } = useIsLiked(Number(track.id));
-
+    // const { data: isLiked } = useIsLiked(Number(track.id));
+    const [isLove, setIsLove] = useState<boolean>(track.isLiked);
     // Sync isLiked with currentTrack when track ID matches
     useEffect(() => {
-        if (isMatched && isLiked !== undefined) {
+        if (isMatched && isLove !== undefined) {
             setCurrentTrack({
                 ...currentTrack,
-                isLiked: isLiked
+                isLiked: isLove
             });
         }
-    }, [currentTrack.id, isLiked, isMatched]);
+    }, [currentTrack.id, isLove, isMatched]);
 
     const handleLikeClick = () => {
         if (!session) {
@@ -72,6 +73,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             onSuccess: (res) => {
                 if (res?.data) {
                     setCountLikes(res.data.countLikes);
+
+                    setIsLove(res.data.isLiked);
 
                     // Update TrackContext if this is the current track
                     if (isMatched) {
@@ -110,7 +113,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         trackId: Number(track.id),
         sort: "updatedAt,desc"
     });
-    const comments = resComments?.data?.result ?? [];
+    const comments = resComments?.result ?? [];
 
     const formatTimeUtil = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
@@ -234,64 +237,58 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             }
         });
     };
-    const calculateLeft = (moment: number) => {
-        const totalDuration = wavesurfer?.getDuration() || 0;
-        if (totalDuration === 0) return "0%";
-        const percent = (moment / totalDuration) * 100;
+    const calculateLeft = useCallback((moment: number) => {
+        if (waveDuration === 0) return "0%";
+        const percent = (moment / waveDuration) * 100;
         return `${percent}%`;
-    };
+    }, [waveDuration]);
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient, progressGradient;
+
         if (typeof window !== "undefined") {
             const canvas = document.createElement('canvas');
+            const dpr = window.devicePixelRatio || 1;
+            canvas.height = 100 * dpr;
             const ctx = canvas.getContext('2d')!;
-            // Define the waveform gradient
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
-            gradient.addColorStop(0, '#656666') // Top color
-            gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#656666') // Top color
-            // gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            // gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            // gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
-            gradient.addColorStop(1, '#B1B1B1') // Bottom color
 
-            // Define the progress gradient
-            progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35)
-            progressGradient.addColorStop(0, '#EE772F') // Top color
-            progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#EB4926') // Top color
-            // progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            // progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            // progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
-            progressGradient.addColorStop(1, '#F6B094') // Bottom color
+            // 🎵 WAVE (background)
+            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+            gradient.addColorStop(0, '#444');     // top (đậm)
+            gradient.addColorStop(0.4, '#666');   // mid
+            gradient.addColorStop(1, '#bbb');     // bottom (nhạt)
+
+            // 🔥 PROGRESS (cam giống SoundCloud)
+            progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+            progressGradient.addColorStop(0, '#ff5500');  // top đậm
+            progressGradient.addColorStop(0.5, '#ff6a1a');// mid
+            progressGradient.addColorStop(1, '#ffb199');  // bottom nhạt
         }
 
-        // Use pre-computed peaks if available, otherwise load audio file
         const options: Omit<WaveSurferOptions, 'container'> = {
-            waveColor: '#eaeaea',
-            progressColor: progressGradient,
+            waveColor: gradient || '#999',
+            progressColor: progressGradient || '#ff5500',
             height: 100,
             barWidth: 2,
             barGap: 1,
             normalize: true,
             url: fullAudioUrl || '',
-
         };
 
-        // Add peaks if available from track data
+        // peaks
         if (track?.peaks) {
             try {
                 const rawPeaks = JSON.parse(track.peaks);
                 const peaksArray = Array.isArray(rawPeaks) ? rawPeaks : rawPeaks.data;
-
                 options.peaks = [peaksArray];
-
             } catch (e) {
                 console.warn('Failed to parse peaks data', e);
             }
         }
+
         return options;
-    }, [fullAudioUrl
-        , track?.peaks
-    ]);
+    }, [fullAudioUrl, track?.peaks]);
 
 
     // const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
@@ -324,11 +321,11 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
     // Calculate stacking positions for avatars to avoid overlap
     const avatarPositions = useMemo(() => {
-        const totalDuration = wavesurfer?.getDuration() || 0;
-        if (totalDuration === 0 || comments.length === 0) return {};
+        if (waveDuration === 0 || comments.length === 0) return {};
 
         // Sắp xếp comment theo thời gian phát
         const sortedComments = [...comments].sort((a, b) => a.moment - b.moment);
+        const totalDuration = waveDuration;
         const positions: { [key: string]: { top: number; left?: number; zIndex: number } } = {};
 
         // Khoảng cách tối thiểu để coi là "trùng nhau" (tính theo %)
@@ -336,10 +333,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 72, left: 0 },          // Tier 0: center bottom
-            { top: 72, left: -4 },        // Tier 1: bottom-left
-            { top: 72, left: 4 },         // Tier 2: bottom-right
-            { top: 72, left: 0 },         // Tier 3: top
+            { top: 70, left: 0 },          // Tier 0: center bottom
+            { top: 70, left: -4 },        // Tier 1: bottom-left
+            { top: 70, left: 4 },         // Tier 2: bottom-right
+            { top: 70, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -368,7 +365,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         });
 
         return positions;
-    }, [wsReady, wavesurfer, comments]);
+    }, [waveDuration, comments]);
     useEffect(() => {
         if (!wavesurfer) return;
         wavesurfer.setVolume(0);
@@ -385,6 +382,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         const subscriptions = [
             wavesurfer.on('decode', (duration) => {
                 setDuration(formatTime(duration));
+                setWaveDuration(duration);
                 setWsReady(true);
             }),
             wavesurfer.on('interaction', (newTime) => {
@@ -623,14 +621,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                             zIndex: 20
                         }}>
                             {comments.map(comment => {
-                                const userAvatarSrc = comment.user?.avatar
-                                comment.user.type !== "SYSTEM" ? `${comment.user.avatar}` :
-                                    comment.user.type === "SYSTEM"
-                                        ? `${comment.user.avatar}`
-                                        : undefined;
+                                const userAvatarSrc = comment.user?.avatar;
                                 const isActive = activeCommentId === comment.id;
                                 const isHovered = hoveredCommentId === comment.id;
-                                const position = avatarPositions[comment.id] || { top: 72, zIndex: 20 };
+                                const position = avatarPositions[comment.id] || { top: 70, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
                                 const resContent = comment.user.name + ': ' + comment.content;
                                 return (
@@ -702,18 +696,24 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                     <Button
                         variant="outlined"
                         size="small"
-                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLiked ? '#f64a00' : '#ffffff' }} />}
-                        onClick={handleLikeClick}
+                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLove ? '#f64a00' : '#ffffff' }} />}
+                        onClick={()=>{
+                            if(session) {
+                                handleLikeClick()
+                            }
+                            else                                             router.push('/auth/signin');
+
+                        }}
                         disabled={mutation.isPending}
                         sx={{
-                            color: isLiked ? '#f64a00' : 'white',
-                            borderColor: isLiked ? '#f64a00' : '#444',
+                            color: isLove ? '#f64a00' : 'white',
+                            borderColor: isLove ? '#444' : '#444',
                             textTransform: 'none',
                             padding: '2px 8px',
                             minWidth: 0,
                             '&:hover': {
-                                borderColor: isLiked ? '#f50' : '#f50',
-                                color: isLiked ? '#f50' : '#f50'
+                                borderColor: isLove ? '#f50' : '#f50',
+                                color: isLove ? '#f50' : '#f50'
                             },
                             cursor: mutation.isPending ? 'not-allowed' : 'pointer',
                             opacity: mutation.isPending ? 0.8 : 1
@@ -727,7 +727,14 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                     <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Share
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />} onClick={() => setShowPlaylistModal(true)} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                    <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />}
+                            onClick={()=>{
+                                if(session) {
+                                    setShowPlaylistModal(true)                                }
+                                else                                             router.push('/auth/signin');
+
+                            }}
+                            sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Add to playlist
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<ContentCopyIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
@@ -895,6 +902,11 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 open={showPlaylistModal}
                 onClose={() => setShowPlaylistModal(false)}
                 trackId={Number(track.id)}
+                imgUrl={track.imgUrl}
+                title={track.title}
+                uploader={track.uploader.name}
+                uploaderId={track.uploader.id}
+                trackUrl={track.trackUrl}
             />
         </Box>
     );

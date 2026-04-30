@@ -295,6 +295,11 @@ const AppFooter = () => {
                         open={showPlaylistModal}
                         onClose={() => setShowPlaylistModal(false)}
                         trackId={Number(currentTrack.id)}
+                        imgUrl={currentTrack.imgUrl}
+                        title={currentTrack.title}
+                        uploader={currentTrack.uploader.name}
+                        trackUrl={trackUrlCut}
+                        uploaderId={currentTrack.uploader.id}
                     />
                 </Container>
             </AppBar>

@@ -7,8 +7,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { SendSharp } from "@mui/icons-material";
-import { useCreateComment, useFetchComments, commentKeys, useFetchCommentsAxios } from "@/hooks/use.comment";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCreateComment, useFetchCommentsAxios } from "@/hooks/use.comment";
 import { toast } from "react-toastify";
 import Link from "next/link";
 
@@ -43,21 +42,12 @@ const CommentSection = (props: IProps) => {
     const [newComment, setNewComment] = useState("");
     const { data: session } = useSession();
     const { currentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
-    const queryClient = useQueryClient();
     const createCommentMutation = useCreateComment(commentParams);
-
-    // Waveform uses a separate query with pageSize 100 — we need to invalidate it too
-    const waveformCommentParams = {
-        current: 1,
-        pageSize: 100,
-        trackId: Number(trackId),
-        sort: "updatedAt,desc"
-    };
 
     // Update allComments when new data is fetched
     useEffect(() => {
-        if (resComments?.data) {
-            const { result: newComments, meta } = resComments.data;
+        if (resComments) {
+            const { result: newComments, meta } = resComments;
 
             if (meta) {
                 // 1. Nếu không có dữ liệu HOẶC đã đến trang cuối cùng thì dừng
@@ -100,6 +90,25 @@ const CommentSection = (props: IProps) => {
     const handlePostComment = () => {
         const currentMoment = audioRef.current ? Math.round(audioRef.current.currentTime) : 0;
         if (!newComment.trim()) return;
+
+        // Build optimistic comment for local state
+        const optimisticComment: IComment = {
+            id: Date.now(),
+            content: newComment,
+            moment: currentMoment,
+            createdAt: new Date().toISOString(),
+            user: {
+                id: session?.user?.id,
+                name: session?.user?.name || "You",
+                email: session?.user?.email || "",
+                avatar: session?.user?.avatar || null,
+            },
+            track: { id: Number(trackId) }
+        } as any;
+
+        // Prepend to local state immediately
+        setAllComments(prev => [optimisticComment, ...prev]);
+
         createCommentMutation.mutate(
             {
                 track_id: Number(trackId),
@@ -108,14 +117,14 @@ const CommentSection = (props: IProps) => {
             },
             {
                 onSuccess: () => {
-                    setNewComment("");
-                    // Also invalidate the waveform's comment cache so avatars appear immediately
-                    queryClient.invalidateQueries({
-                        queryKey: commentKeys.list(waveformCommentParams)
-                    });
+                    // Hook already invalidates all comment queries via onSettled
+                },
+                onError: () => {
+                    // Rollback local state on error
+                    setAllComments(prev => prev.filter(c => c.id !== optimisticComment.id));
                 }
             }
-        )
+        );
         setNewComment("");
         toast.success("Post comment success");
     }

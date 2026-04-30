@@ -86,8 +86,7 @@ const ProfileTrackList = ({ userId, initialTracks, initialTotal, initialHasMore 
     }, [hasMore, isLoading]);
 
     return (
-        <Box sx={{ minHeight: '100vh', background: '#222', py: 4 }}>
-            <Container maxWidth="md">
+        <Box sx={{ minHeight: '100vh', background: '#121212', py: 4 }}>
                 <Typography sx={{ color: '#999', mb: 3, fontWeight: 'bold' }}>
                     Found {total} tracks
                 </Typography>
@@ -127,7 +126,6 @@ const ProfileTrackList = ({ userId, initialTracks, initialTotal, initialHasMore 
                         </Typography>
                     )}
                 </Box>
-            </Container>
         </Box>
     )
 }

@@ -8,7 +8,7 @@ import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
-import { useFetchComments, commentKeys, useFetchCommentsAxios } from "@/hooks/use.comment";
+import { useFetchComments, commentKeys, useFetchCommentsAxios, useCreateComment } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
 import axiosInstance from "@/utils/axios-instance";
 import { useQueryClient } from "@tanstack/react-query";
@@ -65,10 +65,19 @@ const WaveTrack = (props: IProps) => {
         sort: "updatedAt,desc"
     });
 
+    const commentParams = {
+        current: 1,
+        pageSize: 100,
+        trackId: Number(trackId),
+        sort: "updatedAt,desc"
+    };
+
+    const createCommentMutation = useCreateComment(commentParams);
+
     // Single source of truth for comments displayed on waveform
     const displayComments = useMemo(() => {
-        return resComments?.data?.result ?? comments;
-    }, [resComments?.data?.result, comments]);
+        return resComments?.result ?? comments;
+    }, [resComments?.result, comments]);
 
     const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60)
@@ -487,30 +496,39 @@ const WaveTrack = (props: IProps) => {
     // Fetch track data and handle autoPlay
     useEffect(() => {
         const fetchTrackData = async () => {
-            if (trackId && fileName) {
-                try {
-                    const res = await axios.get<IBackendRes<ITrack>>(
-                        `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`,
-                        // {
-                            // headers: {
-                                // Authorization: `Bearer ${session?.access_token}`,
-                            // }
-                        // }
-                    );
-                    if (res && res.data) {
-                        const track = res.data.data;
-                        // @ts-ignore
-                        setTrackData(track);
-                        setIsWaveformPlaying(false);
+            // CHỐT CHẶN 1: Chỉ chạy khi có ID và fileName
+            if (!trackId || !fileName) return;
 
+            // CHỐT CHẶN 2: Kiểm tra token hợp lệ trước khi gọi API có Auth
+            const token = session?.access_token;
+            const isValidToken = token && token !== "undefined";
+
+            try {
+                const res = await axios.get<IBackendRes<ITrack>>(
+                    `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/${trackId}`,
+                    {
+                        headers: {
+                            // Chỉ thêm Authorization nếu token thực sự tồn tại
+                            ...(isValidToken && { Authorization: `Bearer ${token}` })
+                        }
                     }
-                } catch (error) {
+                );
+
+                if (res?.data?.data) {
+                    setTrackData(res.data.data);
+                    setIsWaveformPlaying(false);
+                }
+            } catch (error: any) {
+                // Nếu lỗi 401 (chưa auth) hoặc 403, mới đẩy về trang chủ
+                if (error.response?.status === 401 || error.response?.status === 403) {
                     router.push("/");
                 }
+                console.error("Fetch track error:", error);
             }
         };
+
         fetchTrackData();
-    }, [trackId, fileName]);
+    }, [trackId, fileName, session?.access_token]);
 
     // Sync isWaveformPlaying with actual wavesurfer state
     useEffect(() => {
@@ -542,67 +560,26 @@ const WaveTrack = (props: IProps) => {
     };
 
     // Handle comment submission
-    const handleSubmitComment = async () => {
+    const handleSubmitComment = () => {
         if (!commentInput.content.trim()) return;
 
-        try {
-            // Submit comment to API
-            const response = await fetch(`${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/comments`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+        createCommentMutation.mutate(
+            {
+                track_id: Number(trackId),
+                content: commentInput.content,
+                moment: commentInput.selectedTime
+            },
+            {
+                onSuccess: () => {
+                    clearCommentPreview();
+                    // Invalidate ALL comment queries so CommentSection also refreshes
+                    queryClient.invalidateQueries({ queryKey: commentKeys.all });
                 },
-                body: JSON.stringify({
-                    content: commentInput.content,
-                    moment: commentInput.selectedTime,
-                    trackId: Number(trackId)
-                })
-            });
-
-            if (response.ok) {
-                // Optimistic update: add new comment to React Query cache immediately
-                const newComment: IComment = {
-                    id: Date.now(), // Temporary ID
-                    content: commentInput.content,
-                    moment: commentInput.selectedTime,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    user: {
-                        name: "Current User",
-                        avatar: ""
-                    },
-                    track: { id: Number(trackId), imgUrl: "", title: "" }
-                } as IComment;
-
-                const waveformQueryKey = commentKeys.list({
-                    current: 1,
-                    pageSize: 100,
-                    trackId: Number(trackId),
-                    sort: "updatedAt,desc"
-                });
-
-                // Update React Query cache for immediate display
-                queryClient.setQueryData(waveformQueryKey, (old: any) => {
-                    if (!old) return old;
-                    return {
-                        ...old,
-                        data: {
-                            ...old.data,
-                            result: [newComment, ...old.data.result]
-                        }
-                    };
-                });
-
-                // Invalidate to sync with server (will get real ID, user info, etc.)
-                queryClient.invalidateQueries({ queryKey: waveformQueryKey });
-
-                clearCommentPreview();
-            } else {
-                console.error('Failed to submit comment');
+                onError: (error) => {
+                    console.error('Failed to submit comment:', error);
+                }
             }
-        } catch (error) {
-            console.error('Error submitting comment:', error);
-        }
+        );
     };
 
     return (
@@ -818,6 +795,11 @@ const WaveTrack = (props: IProps) => {
                         initialLikes={trackData.countLike}
                         initialIsLiked={isLiked || trackData.isLiked}
                         initialCountPlays={trackData.countPlay}
+                        imgUrl={trackData.imgUrl}
+                        title={trackData.title}
+                        uploader={trackData.uploader.name}
+                        trackUrl={fileName!}
+                        uploaderId={trackData.uploader.id}
                     />
                 </div>
             )}

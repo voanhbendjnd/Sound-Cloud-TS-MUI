@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
     Modal,
     Box,
@@ -19,20 +19,28 @@ import CloseIcon from '@mui/icons-material/Close';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import { usePlaylists, useCreatePlaylist, useToggleTrackInPlaylist } from '@/hooks/use-playlist';
 import { toast } from 'react-toastify';
+import Image from "next/image";
+import Link from "next/link";
 
 interface AddToPlaylistModalProps {
     open: boolean;
     onClose: () => void;
     trackId: number;
+    imgUrl: string;
+    title: string;
+    uploader: string;
+    trackUrl:string;
+    uploaderId:string;
 }
 
-const AddToPlaylistModal = ({ open, onClose, trackId }: AddToPlaylistModalProps) => {
+const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, trackUrl, uploaderId }: AddToPlaylistModalProps) => {
     // 0: Add to playlist, 1: Create a playlist
     const [tabValue, setTabValue] = useState(0);
 
     const [newPlaylistTitle, setNewPlaylistTitle] = useState('');
     const [newPlaylistDescription, setNewPlaylistDescription] = useState('');
     const [isPublic, setIsPublic] = useState(false);
+    const [includeCurrentTrack, setIncludeCurrentTrack] = useState(false);
 
     const { data: playlists, isLoading } = usePlaylists();
     const createPlaylistMutation = useCreatePlaylist();
@@ -49,12 +57,13 @@ const AddToPlaylistModal = ({ open, onClose, trackId }: AddToPlaylistModalProps)
                 title: newPlaylistTitle,
                 description: newPlaylistDescription,
                 isPublic,
-                trackIds: [trackId]
+                trackIds: includeCurrentTrack ? [trackId] : []
             });
             toast.success('Playlist created successfully');
             setNewPlaylistTitle('');
             setNewPlaylistDescription('');
             setIsPublic(false);
+            setIncludeCurrentTrack(false);
             setTabValue(0); // Quay lại tab danh sách sau khi tạo xong
         } catch (error) {
             toast.error('Failed to create playlist');
@@ -149,12 +158,47 @@ const AddToPlaylistModal = ({ open, onClose, trackId }: AddToPlaylistModalProps)
                                         >
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                 <Box sx={{ width: 40, height: 40, bgcolor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <PlaylistAddIcon sx={{ color: '#666' }} />
+                                                    {
+                                                        (playlist.imgUrl != null ?
+                                                                <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                                    <Image width={40} height={40} alt="Image" className="img" src={`${playlist.imgUrl}`}
+                                                                           style={{
+                                                                               objectFit: 'cover', // Giúp ảnh không bị móp méo, tự động cắt trung tâm
+                                                                               borderRadius: '4px' // Thêm bo góc cho đẹp giống SoundCloud
+                                                                           }}
+                                                                           unoptimized={true} // Bật cái này nếu link Cloudinary đã tự tối ưu rồi
+                                                                    />
+                                                                </Link>
+                                                           :
+                                                                <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                                    <PlaylistAddIcon sx={{ color: '#666' }} />
+
+                                                                </Link>
+
+                                                        )
+                                                    }
                                                 </Box>
                                                 <Box>
-                                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                        {playlist.title}
-                                                    </Typography>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                                {playlist.title}
+                                                            </Typography>
+                                                        </Link>
+
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: playlist.isPublic ? '#f64a00' : '#666',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 600,
+                                                                textTransform: 'uppercase',
+                                                                letterSpacing: 0.5
+                                                            }}
+                                                        >
+                                                            {playlist.isPublic ? 'PUBLIC' : 'PRIVATE'}
+                                                        </Typography>
+                                                    </Box>
                                                     <Typography variant="caption" sx={{ color: '#666' }}>
                                                         {playlist.totalTracks} tracks
                                                     </Typography>
@@ -195,9 +239,15 @@ const AddToPlaylistModal = ({ open, onClose, trackId }: AddToPlaylistModalProps)
                                 </Typography>
                                 <TextField
                                     value={newPlaylistTitle}
-                                    onChange={(e) => setNewPlaylistTitle(e.target.value)}
+                                    onChange={(e) => {
+                                        if (e.target.value.length <= 100) {
+                                            setNewPlaylistTitle(e.target.value);
+                                        }
+                                    }}
                                     fullWidth
                                     size="small"
+                                    inputProps={{ maxLength: 100 }}
+                                    helperText={`${newPlaylistTitle.length}/100`}
                                     sx={{
                                         '& .MuiOutlinedInput-root': {
                                             bgcolor: '#2a2a2a',
@@ -205,9 +255,69 @@ const AddToPlaylistModal = ({ open, onClose, trackId }: AddToPlaylistModalProps)
                                             '& fieldset': { borderColor: '#444' },
                                             '&:hover fieldset': { borderColor: '#666' },
                                             '&.Mui-focused fieldset': { borderColor: '#f50' },
+                                        },
+                                        '& .MuiFormHelperText-root': {
+                                            color: '#666',
+                                            fontSize: '0.75rem',
+                                            textAlign: 'right',
+                                            mt: 0.5
                                         }
                                     }}
                                 />
+                            </Box>
+
+                            {/* Track Info Display */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: '#2a2a2a', borderRadius: 1 }}>
+                                <Box sx={{ width: 48, height: 48, bgcolor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0.5, overflow: 'hidden' }}>
+                                    {imgUrl ? (
+                                        <Link href={`/track/${trackId}?audio=${trackUrl}&id=${trackId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                            <Image src={imgUrl} alt="Track"
+                                                   width={40}
+                                                   height={40}
+                                                   style={{
+                                                       objectFit: 'cover', // Giúp ảnh không bị móp méo, tự động cắt trung tâm
+                                                       borderRadius: '4px' // Thêm bo góc cho đẹp giống SoundCloud
+                                                   }}
+                                                   unoptimized={true} // Bật cái này nếu link Cloudinary đã tự tối ưu rồi
+                                            />
+                                        </Link>
+
+                                    ) : (
+                                        <PlaylistAddIcon sx={{ color: '#666' }} />
+                                    )}
+                                </Box>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Link href={`/track/${trackId}?audio=${trackUrl}&id=${trackId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                            {title || 'Unknown Track'}
+
+                                        </Link>
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                            {uploader || 'Unknown Artist'}
+
+                                        </Link>
+                                    </Typography>
+                                </Box>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => setIncludeCurrentTrack(!includeCurrentTrack)}
+                                    sx={{
+                                        borderColor: includeCurrentTrack ? '#444' : '#444',
+                                        color: includeCurrentTrack ? '#f64a00' : '#ccc',
+                                        bgcolor: includeCurrentTrack ? '#444' : 'transparent',
+                                        textTransform: 'none',
+                                        minWidth: 60,
+                                        '&:hover': {
+                                            borderColor: includeCurrentTrack ? '#444' : '#666',
+                                            bgcolor: includeCurrentTrack ? '#444' : 'rgba(255,255,255,0.05)',
+                                        },
+                                    }}
+                                >
+                                    {includeCurrentTrack ? 'Added' : 'Add to Playlist '}
+                                </Button>
                             </Box>
 
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

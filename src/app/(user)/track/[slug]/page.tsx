@@ -117,7 +117,6 @@ const DetailTrackPage = async ({ params, searchParams }: {
         redirect('/');
     }
 
-
     const userUploader = resDataUploader.data as IUploader | undefined;
     const comments = resComments.data?.result ?? [];
     return (

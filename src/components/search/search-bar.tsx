@@ -64,7 +64,7 @@ const SearchBar = () => {
     // <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
 
     const handleSuggestionClick = (suggestion: ISearchResult) => {
-        router.push(`/track/${suggestion.id}`);
+        router.push(`/track/${suggestion.id}?audio=${suggestion.trackUrl}&id=${suggestion.id}`);
         setShowSuggestions(false);
         setKeyword('');
     };
