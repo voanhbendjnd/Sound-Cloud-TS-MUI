@@ -191,7 +191,7 @@ const AppHeader = () => {
                                     handleRedirectHome()
                                 }}
                             >
-                                Sound Cloud
+                                DJND Music
                             </Typography>
                             <SearchBar/>
                             <Box sx={{ flexGrow: 1 }} />

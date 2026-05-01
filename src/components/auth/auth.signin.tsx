@@ -10,7 +10,7 @@ import IconButton from '@mui/material/IconButton';
 
 import { useState } from "react";
 import {signIn} from "next-auth/react";
-import {ArrowBack, ArrowBackRounded} from "@mui/icons-material";
+import {ArrowBack, ArrowBackRounded, Facebook} from "@mui/icons-material";
 import Link from "next/link";
 import {redirect, useRouter} from "next/navigation";
 
@@ -57,152 +57,212 @@ const AuthSignIn = (props: any) => {
             setResMessage(res.error);
         }
     }
-
+    const isValid = username.trim() !== "" && password.trim() !== "";
     return (
         <Box
             sx={{
-                // backgroundImage: "linear-gradient(to bottom, #ff9aef, #fedac1, #d5e1cf, #b7e6d9)",
-                // backgroundColor: "#b7e6d9",
-                // backgroundRepeat: "no-repeat"
+                bgcolor: "#121212",
+                height: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
             }}
         >
-            <Grid container
-                  sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      height: "100vh"
-                  }}
+            <Box
+                sx={{
+                    width: 400,
+                    bgcolor: "#1c1c1c",
+                    borderRadius: 2,
+                    p: 4,
+                    color: "#fff",
+                    boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+                }}
             >
-                <Grid
-                    item
-                    xs={12}
-                    sm={8}
-                    md={5}
-                    lg={4}
+                <Typography variant="h5" sx={{ fontWeight: 600, mb: 2 }}>
+                    Sign in or create an account
+                </Typography>
+
+                <Typography sx={{ color: "#aaa", fontSize: 13, mb: 3 }}>
+                    By clicking Continue, you agree to Terms of Use and Privacy Policy.
+                </Typography>
+
+                {/* SOCIAL BUTTONS */}
+                <Button
+                    fullWidth
                     sx={{
-                        boxShadow: "rgba(100, 100, 111, 0.2) 0px 7px 29px 0px"
+                        mb: 1.5,
+                        bgcolor: "#1877f2",
+                        color: "#fff",
+                        textTransform: "none",
+                        fontWeight: 500,
+
+                        "&:hover": { bgcolor: "#166fe0" },
                     }}
                 >
-                    <div style={{ margin: "20px" }}>
-                        <Link href="/">
-                            <ArrowBackRounded/>
-                        </Link>
-                        <Box sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            flexDirection: "column",
-                            width: "100%"
-                        }}>
+                    <Facebook sx={{ fontSize: 18, mr: 1 }} />
+                    <span style={{marginTop:3}}>
+                        Continue with Facebook
 
-                            <Avatar>
-                                <LockIcon />
-                            </Avatar>
+                    </span>
+                </Button>
 
-                            <Typography component="h1">
-                                Sign in
-                            </Typography>
-                        </Box>
-
-                        <TextField
-                            onChange={(event) => setUsername(event.target.value)}
-                            variant="outlined"
-                            margin="normal"
-                            required
-                            fullWidth
-                            label="Username"
-                            name="username"
-                            autoFocus
-                            error={isErrorUsername}
-                            helperText={errorUsername}
-                        />
-                        <TextField
-                            onChange={(event) => setPassword(event.target.value)}
-                            variant="outlined"
-                            margin="normal"
-                            required
-                            fullWidth
-                            name="password"
-                            label="Password"
-                            type={showPassword ? "text" : "password"}
-                            error={isErrorPassword}
-                            helperText={errorPassword}
-                            onKeyDown={(e)=>{
-                                if(e.key === "Enter"){
-                                    handleSubmit()
-                                }
-                            }}
-                            InputProps={{
-                                endAdornment: <InputAdornment position="end">
-                                    <IconButton onClick={() => setShowPassword(!showPassword)}>
-                                        {showPassword === false ? <VisibilityOff /> : <Visibility />}
-                                    </IconButton>
-                                </InputAdornment>,
-                            }}
-                        />
-                        <Button
-                            sx={{
-                                my: 3
-                            }}
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            onClick={handleSubmit}
-                        >
-                            Sign In
-                        </Button>
-                        <Divider>Or using</Divider>
-                        <Box
-                            sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                gap: "25px",
-                                mt: 3
-                            }}
-                        >
-                            <Avatar
-                                sx={{
-                                    cursor: "pointer",
-                                    bgcolor: "orange"
-                                }}
-                                onClick={()=>{
-                                    signIn("github", { callbackUrl: "/" })
-                                }}
-                            >
-                                <GitHubIcon titleAccess="Login with Github" />
-                            </Avatar>
-
-                            <Avatar
-                                sx={{
-                                    cursor: "pointer",
-                                    bgcolor: "orange"
-                                }}
-                                onClick={()=>{
-                                    signIn("google", { callbackUrl: "/" })
-                                }}
-                            >
-                                < GoogleIcon titleAccess="Login with Google" />
-                            </Avatar>
-                        </Box>
-                    </div>
-                </Grid>
-            </Grid>
-                <Snackbar
-                open={openMessage}
-                // autoHideDuration={6000}
-                anchorOrigin={{vertical: "top", horizontal: "center"}}
+                <Button
+                    fullWidth
+                    sx={{
+                        mb: 1.5,
+                        bgcolor: "#333",
+                        color: "#fff",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#444" },
+                    }}
+                    onClick={() => signIn("google", { callbackUrl: "/" })}
                 >
-                    <Alert
-                        onClose={()=>{
-                            setOpenMessage(false)
-                        }}
-                        severity="warning">
-                        {resMessage}
-                    </Alert>
+                    <GoogleIcon sx={{ fontSize: 18, mr: 1 }} />
+                    <span style={{marginTop:3}}>
+                                            Continue with Google
+                    </span>
+                </Button>
 
-                </Snackbar>
+                <Button
+                    fullWidth
+                    sx={{
+                        mb: 2,
+                        bgcolor: "#000",
+                        color: "#fff",
+                        textTransform: "none",
+                        "&:hover": { bgcolor: "#111" },
+                    }}
+                    onClick={() => signIn("github", { callbackUrl: "/" })}
+                >
+                    <GitHubIcon sx={{ fontSize: 18, mr: 1 }} />
+                    <span style={{marginTop:3}}>
+                                            Continue with Github
+                    </span>
+                </Button>
+
+                <Typography sx={{ color: "#aaa", mb: 1 }}>
+                    Sign in with email
+                </Typography>
+
+                {/* INPUT */}
+                <TextField
+                    fullWidth
+                    placeholder="Your email address"
+                    variant="outlined"
+                    sx={{
+                        mb: 2,
+                        input: {
+                            color: "#fff",
+                        },
+                        "& .MuiOutlinedInput-root": {
+                            bgcolor: "#2a2a2a",
+
+                            "& fieldset": {
+                                borderColor: "#444",
+                            },
+
+                            "&:hover fieldset": {
+                                borderColor: "#666",
+                            },
+
+                            "&.Mui-focused": {
+                                bgcolor: "#2a2a2a", // 🔥 giữ màu khi focus
+                            },
+
+                            "&.Mui-focused fieldset": {
+                                borderColor: "#f50",
+                            },
+
+                            // 🔥 FIX autofill trắng
+                            "& input:-webkit-autofill": {
+                                WebkitBoxShadow: "0 0 0 1000px #2a2a2a inset",
+                                WebkitTextFillColor: "#fff",
+                                transition: "background-color 9999s ease-in-out 0s",
+                            },
+                        },
+                    }}
+                    onChange={(e) => setUsername(e.target.value)}
+                />
+
+                <TextField
+                    fullWidth
+                    placeholder="Password"
+                    type={showPassword ? "text" : "password"}
+                    sx={{
+                        mb: 2,
+                        input: {
+                            color: "#fff",
+                        },
+                        "& .MuiOutlinedInput-root": {
+                            bgcolor: "#2a2a2a",
+
+                            "& fieldset": {
+                                borderColor: "#444",
+                            },
+
+                            "&:hover fieldset": {
+                                borderColor: "#666",
+                            },
+
+                            "&.Mui-focused": {
+                                bgcolor: "#2a2a2a", // 🔥 giữ màu khi focus
+                            },
+
+                            "&.Mui-focused fieldset": {
+                                borderColor: "#c94300",
+                            },
+
+                            // 🔥 FIX autofill trắng
+                            "& input:-webkit-autofill": {
+                                WebkitBoxShadow: "0 0 0 1000px #2a2a2a inset",
+                                WebkitTextFillColor: "#fff",
+                                transition: "background-color 9999s ease-in-out 0s",
+                            },
+                        },
+                    }}
+                    onChange={(e) => setPassword(e.target.value)}
+                    InputProps={{
+                        endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton onClick={() => setShowPassword(!showPassword)}>
+                                    {showPassword ? <Visibility style={{color:'white'}} /> : <VisibilityOff style={{color:'white'}} />}
+                                </IconButton>
+                            </InputAdornment>
+                        ),
+                    }}
+                />
+
+                {/* LOGIN BUTTON */}
+                <Button
+                    fullWidth
+                    disabled={!isValid}
+                    sx={{
+                        mt: 1,
+                        bgcolor: isValid ? "#f50" : "#555",   // 🔥 cam khi hợp lệ
+                        color: isValid ? "#fff" : "#999",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        cursor: isValid ? "pointer" : "not-allowed",
+
+                        "&:hover": {
+                            bgcolor: isValid ? "#a84502" : "#555",
+                        },
+                    }}
+                    onKeyDown={(e)=>{
+                        if(e.key === "Enter" && isValid){
+                            handleSubmit()
+                        }
+                    }}
+                    onClick={handleSubmit}
+
+                >
+                    Continue
+                </Button>
+
+                <Typography sx={{ mt: 2, color: "#4ea1ff", fontSize: 13 }}>
+                    <Link href={'/'} style={{textDecoration:'none', color:'white'}}>Back to home?</Link>
+                </Typography>
+            </Box>
         </Box>
 
     )

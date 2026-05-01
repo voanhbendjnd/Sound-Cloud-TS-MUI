@@ -4,7 +4,7 @@ import NextAuth from "next-auth";
 import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials";
 import {JWT} from "next-auth/jwt";
-
+import GoogleProvider from "next-auth/providers/google"
 export const authOptions: AuthOptions = {
     secret: process.env.NEXTAUTH_SECRET as string,
     providers: [
@@ -40,6 +40,18 @@ export const authOptions: AuthOptions = {
             authorization: {
                 params: {
                     scope: "read:user user:email"
+                }
+            }
+        }),
+        GoogleProvider({
+            clientId: process.env.GOOGLE_ID!,
+            clientSecret: process.env.GOOGLE_SECRET!,
+            // Bạn có thể thêm authorization để ép người dùng chọn lại tài khoản nếu muốn
+            authorization: {
+                params: {
+                    prompt: "consent",
+                    access_type: "offline",
+                    response_type: "code"
                 }
             }
         }),
