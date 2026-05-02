@@ -22,7 +22,7 @@ import { redirect, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
-import {generateProfileUrl} from "@/utils/generate.slug";
+import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, playNextTrack, playPreviousTrack } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
@@ -242,7 +242,7 @@ const AppFooter = () => {
                             </Link>
 
                             {/* Link tới Track */}
-                            <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+                            <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
                                 <Typography
                                     noWrap
                                     sx={{
