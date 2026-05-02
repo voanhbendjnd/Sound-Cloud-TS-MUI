@@ -10,6 +10,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import Link from "next/link";
 import './home.css'
 import Image from "next/image";
+import {generateTrackUrl} from "@/utils/generate.slug";
 interface IProps {
     data: ITrack[],
     title: string,
@@ -104,7 +105,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
+                                <Link href={generateTrackUrl(track)} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>
@@ -122,7 +123,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
+                                <Link href={generateTrackUrl(track)} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>                                <h5>{track.description}</h5>
@@ -139,7 +140,7 @@ const MainSlider = (props: IProps) => {
                         return (
                             <div className="track" key={track.id}>
                                 <Image width={150} height={150} alt="Image" className="img" src={`${track.imgUrl}`} />
-                                <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
+                                <Link href={generateTrackUrl(track)} style={{ textDecoration: 'none' }}>
                                     <h4>{track.title}</h4>
 
                                 </Link>

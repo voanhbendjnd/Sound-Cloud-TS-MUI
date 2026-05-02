@@ -1,32 +1,36 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { redirect, useRouter, useSearchParams } from 'next/navigation';
+import {  useRouter, useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
 import './wave.scss';
-import { useFetchComments, commentKeys, useFetchCommentsAxios, useCreateComment } from "@/hooks/use.comment";
+import { commentKeys, useFetchCommentsAxios, useCreateComment } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
-import axiosInstance from "@/utils/axios-instance";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { useSession } from "next-auth/react";
 import PauseIcon from "@mui/icons-material/Pause";
+import Link from "next/link";
+import {generateProfileUrl} from "@/utils/generate.slug";
 
 interface IProps {
     comments: IComment[];
     isLiked?: boolean;
+    track: ITrack;
 }
 
 const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
-    const { comments, isLiked } = props;
+    const { comments, isLiked, track } = props;
     const router = useRouter();
-    const fileName = searchParams.get('audio');
-    const trackId = searchParams.get('id');
+    // const fileName = searchParams.get('audio');
+    const fileName = track.trackUrl;
+    const trackId = track.id;
+    // const trackId = searchParams.get('id');
     const autoPlay = searchParams.get('autoPlay') === 'true';
     const containerRef = useRef<HTMLDivElement>(null);
     const hoverRef = useRef<HTMLDivElement>(null);
@@ -42,8 +46,8 @@ const WaveTrack = (props: IProps) => {
         userAvatar?: string;
         userName?: string;
     }>({ show: false, position: 0, time: 0 });
-    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
-    const fullAudioUrl = fileName ? `${baseAudio}${fileName}` : null;
+    // const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
+    const fullAudioUrl = fileName;
     const [commentInput, setCommentInput] = useState({
         open: false,
         content: '',
@@ -294,74 +298,78 @@ const WaveTrack = (props: IProps) => {
         };
     }, [wavesurfer, isMatched, audioRef, fileName, savedTimes, currentTrack.isPlaying]);
 
-    // Pause this wavesurfer when another track is playing
+    // Sync playback state with global track
     useEffect(() => {
         if (!wavesurfer) return;
 
-        // If another track is playing and this is not the current track, pause this wavesurfer
-        if (currentTrack.trackUrl && currentTrack.isPlaying && !isMatched) {
-            wavesurfer.pause();
-            setIsWaveformPlaying(false);
-        }
-
         // If this track becomes the current one, sync and potentially play
-        if (isMatched && currentTrack.isPlaying) {
-            const syncWavesurfer = () => {
-                if (audioRef.current) {
-                    const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
-                    if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
-                    setTime(formatTime(audioRef.current.currentTime));
+        if (isMatched) {
+            if (currentTrack.isPlaying) {
+                const syncWavesurfer = () => {
+                    if (audioRef.current) {
+                        const diff = Math.abs(wavesurfer.getCurrentTime() - audioRef.current.currentTime);
+                        if (diff > 0.1) wavesurfer.setTime(audioRef.current.currentTime);
+                        setTime(formatTime(audioRef.current.currentTime));
 
-                    // Play wavesurfer if it's not playing and audio is playing
-                    if (!wavesurfer.isPlaying() && audioRef.current.currentTime > 0) {
+                        // Play wavesurfer if it's not playing and audio is playing
+                        if (!wavesurfer.isPlaying() && audioRef.current.currentTime > 0) {
+                            wavesurfer.play();
+                            setIsWaveformPlaying(true);
+                        }
+
+                        // Update state based on actual wavesurfer state
+                        setIsWaveformPlaying(wavesurfer.isPlaying());
+                    }
+                };
+
+                // Highlight active comment based on current time
+                const handleTimeUpdate = () => {
+                    if (!audioRef.current || !isMatched) return;
+                    const currentTime = Math.round(audioRef.current.currentTime);
+
+                    // Find comment with moment matching current time
+                    const found = displayComments.find(c => Math.round(c.moment) === currentTime);
+
+                    if (found) {
+                        setActiveCommentId(found.id);
+                        // Clear highlight after 3 seconds
+                        setTimeout(() => {
+                            setActiveCommentId(null);
+                        }, 3000);
+                    }
+                };
+
+                const audioEl = audioRef.current;
+                if (audioEl) {
+                    audioEl.addEventListener('timeupdate', syncWavesurfer);
+                    audioEl.addEventListener('seeked', syncWavesurfer);
+                    audioEl.addEventListener('timeupdate', handleTimeUpdate);
+
+                    // Initial sync and play
+                    syncWavesurfer();
+                    if (!wavesurfer.isPlaying() && audioEl.currentTime > 0) {
                         wavesurfer.play();
                         setIsWaveformPlaying(true);
                     }
 
-                    // Update state based on actual wavesurfer state
-                    setIsWaveformPlaying(wavesurfer.isPlaying());
+                    return () => {
+                        audioEl.removeEventListener('timeupdate', syncWavesurfer);
+                        audioEl.removeEventListener('seeked', syncWavesurfer);
+                        audioEl.removeEventListener('timeupdate', handleTimeUpdate);
+                    };
                 }
-            };
-
-            // Highlight active comment based on current time
-            const handleTimeUpdate = () => {
-                if (!audioRef.current || !isMatched) return;
-                const currentTime = Math.round(audioRef.current.currentTime);
-
-                // Find comment with moment matching current time
-                const found = displayComments.find(c => Math.round(c.moment) === currentTime);
-
-                if (found) {
-                    setActiveCommentId(found.id);
-                    // Clear highlight after 3 seconds
-                    setTimeout(() => {
-                        setActiveCommentId(null);
-                    }, 3000);
-                }
-            };
-
-            const audioEl = audioRef.current;
-            if (audioEl) {
-                audioEl.addEventListener('timeupdate', syncWavesurfer);
-                audioEl.addEventListener('seeked', syncWavesurfer);
-                audioEl.addEventListener('timeupdate', handleTimeUpdate);
-
-                // Initial sync and play
-                syncWavesurfer();
-                if (!wavesurfer.isPlaying() && audioEl.currentTime > 0) {
-                    wavesurfer.play();
-                    setIsWaveformPlaying(true);
-                }
-
-                return () => {
-                    audioEl.removeEventListener('timeupdate', syncWavesurfer);
-                    audioEl.removeEventListener('seeked', syncWavesurfer);
-                    audioEl.removeEventListener('timeupdate', handleTimeUpdate);
-                };
+            } else {
+                // Explicitly pause wavesurfer when global track is paused
+                wavesurfer.pause();
+                setIsWaveformPlaying(false);
             }
-            return () => { };
+        } else {
+            // If another track is playing and this is not the current track, pause this wavesurfer
+            if (currentTrack.trackUrl && currentTrack.isPlaying) {
+                wavesurfer.pause();
+                setIsWaveformPlaying(false);
+            }
         }
-
     }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments]);
 
     const onPlayClick = useCallback(() => {
@@ -581,6 +589,7 @@ const WaveTrack = (props: IProps) => {
             }
         );
     };
+    const uploaderId =trackData?.uploader.id;
 
     return (
         <div style={{ paddingTop: 20 }}>
@@ -628,7 +637,8 @@ const WaveTrack = (props: IProps) => {
                                 width: "fit-content",
                                 color: "white"
                             }}>
-                                {trackData?.title || currentTrack.title}
+                                    {trackData?.title || currentTrack.title}
+
                             </div>
                             <div style={{
                                 padding: "0 5px",
@@ -639,7 +649,11 @@ const WaveTrack = (props: IProps) => {
                                 color: "white"
                             }}
                             >
+                                <Link href={generateProfileUrl(trackData?.uploader.name!, trackData?.uploader.id!)} style={{ textDecoration: 'none', color:'#fff' }}>
+
                                 {trackData?.uploader?.name || currentTrack.uploader?.name}
+                                </Link>
+
                             </div>
                         </div>
                     </div>

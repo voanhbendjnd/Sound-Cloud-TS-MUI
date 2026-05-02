@@ -86,3 +86,17 @@ export const usePlaylistsPaginated = (params: {
         },
     });
 };
+
+// Fetch playlist by ID
+export const usePlaylistById = (id: number) => {
+    return useQuery({
+        queryKey: ['playlist', id],
+        queryFn: async () => {
+            const response = await axiosInstance.get<IBackendRes<IPlaylist>>(
+                `/api/v1/playlists/${id}`
+            );
+            return response;
+        },
+        enabled: !!id,
+    });
+};

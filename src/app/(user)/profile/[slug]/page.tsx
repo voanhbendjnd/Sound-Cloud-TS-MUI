@@ -9,8 +9,8 @@ export const metadata:Metadata ={
     description:'Profile page'
 }
 const ProfilePage = async ({ params }: { params: { slug: string } }) => {
-    const userId = params.slug;
-
+    const slug = params.slug;
+    const userId =slug.split('-')[0]
     // Fetch initial tracks server-side
     const session = await getServerSession(authOptions);
 

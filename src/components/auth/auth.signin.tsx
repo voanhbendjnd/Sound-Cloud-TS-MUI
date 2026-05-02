@@ -98,6 +98,8 @@ const AuthSignIn = (props: any) => {
 
                         "&:hover": { bgcolor: "#166fe0" },
                     }}
+                    onClick={() => signIn("facebook", { callbackUrl: "/" })}
+
                 >
                     <Facebook sx={{ fontSize: 18, mr: 1 }} />
                     <span style={{marginTop:3}}>

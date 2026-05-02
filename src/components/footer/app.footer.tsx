@@ -18,12 +18,13 @@ import Link from "next/link";
 import { useLikeTrackMutation } from "@/hooks/use-track";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
-import {redirect, useRouter} from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
+import {generateProfileUrl} from "@/utils/generate.slug";
 const AppFooter = () => {
-    const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed } = useTrackContext() as ITrackContext;
+    const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, playNextTrack, playPreviousTrack } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
     const hasMounted = useHasMounted();
     const mutation = useLikeTrackMutation();
@@ -81,6 +82,16 @@ const AppFooter = () => {
             }
         };
     }, [currentTrack, viewedTracks, markTrackAsViewed]);
+    // Sync AudioPlayer with global isPlaying state
+    useEffect(() => {
+        if (!playerRef.current?.audio?.current) return;
+
+        if (currentTrack.isPlaying) {
+            playerRef.current.audio.current.play().catch((e: any) => console.log('Footer play failed:', e));
+        } else {
+            playerRef.current.audio.current.pause();
+        }
+    }, [currentTrack.isPlaying, currentTrack.id]);
 
     if (!hasMounted) return (<></>)
 
@@ -170,6 +181,9 @@ const AppFooter = () => {
                             preload="none"
                             onPlay={() => setCurrentTrack({ ...currentTrack, isPlaying: true })}
                             onPause={() => setCurrentTrack({ ...currentTrack, isPlaying: false })}
+                            onEnded={() => playNextTrack()}
+                            onClickNext={() => playNextTrack()}
+                            onClickPrevious={() => playPreviousTrack()}
                             customProgressBarSection={[
                                 RHAP_UI.MAIN_CONTROLS,
                                 <ShuffleIcon key="shuffle" sx={{ color: '#ccc', fontSize: 22, mx: 0.5, cursor: 'pointer', '&:hover': { color: 'white' } }} />,
@@ -209,7 +223,7 @@ const AppFooter = () => {
 
                         <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
                             {/* Link tới Profile */}
-                            <Link href={`/profile/${currentTrack.uploader.id}`} style={{ textDecoration: 'none' }}>
+                            <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
                                 <Typography
                                     noWrap
                                     sx={{
@@ -248,12 +262,12 @@ const AppFooter = () => {
                         <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
                             <IconButton
                                 size="small"
-                                onClick={()=>{
-                                    if(session) {
+                                onClick={() => {
+                                    if (session) {
                                         handleLikeClick()
 
                                     }
-                                    else                                             router.push('/auth/signin');
+                                    else router.push('/auth/signin');
 
                                 }}
                                 disabled={mutation.isPending}
@@ -287,7 +301,7 @@ const AppFooter = () => {
                                             router.push('/auth/signin');
                                         }
                                     }}
-                                fontSize="small" />
+                                    fontSize="small" />
                             </IconButton>
                         </Box>
                     </Box>

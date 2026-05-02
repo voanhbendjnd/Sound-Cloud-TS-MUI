@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/utils/axios-instance';
+import {useSession} from "next-auth/react";
 
 export const trackKeys = {
     all: ['tracks'] as const,
@@ -55,11 +56,18 @@ export const useUserTracks = (userId: string | number, params: { current: number
 };
 
 export const useCreateTrack = () => {
+    const{data:session}= useSession();
+
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (formData: FormData) => 
+
+        mutationFn: (formData: FormData) =>
             axiosInstance.post('/api/v1/tracks', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+                headers: { 'Content-Type': 'multipart/form-data',
+                    // Authorization: `Bearer ${session?.access_token}`
+
+                },
+
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: trackKeys.lists() });

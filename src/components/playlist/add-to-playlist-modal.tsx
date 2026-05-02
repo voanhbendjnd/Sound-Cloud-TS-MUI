@@ -21,6 +21,8 @@ import { usePlaylists, useCreatePlaylist, useToggleTrackInPlaylist } from '@/hoo
 import { toast } from 'react-toastify';
 import Image from "next/image";
 import Link from "next/link";
+import {generatePlaylistUrl, generateProfileUrl, generateTrackUrl, generateTrackUrlUp} from "@/utils/generate.slug";
+import {useRouter} from "next/navigation";
 
 interface AddToPlaylistModalProps {
     open: boolean;
@@ -41,7 +43,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
     const [newPlaylistDescription, setNewPlaylistDescription] = useState('');
     const [isPublic, setIsPublic] = useState(false);
     const [includeCurrentTrack, setIncludeCurrentTrack] = useState(false);
-
+    const router = useRouter();
     const { data: playlists, isLoading } = usePlaylists();
     const createPlaylistMutation = useCreatePlaylist();
     const toggleTrackMutation = useToggleTrackInPlaylist();
@@ -59,7 +61,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                 isPublic,
                 trackIds: includeCurrentTrack ? [trackId] : []
             });
-            toast.success('Playlist created successfully');
+            toast.dark('Playlist created successfully');
             setNewPlaylistTitle('');
             setNewPlaylistDescription('');
             setIsPublic(false);
@@ -77,7 +79,23 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                 trackId,
                 isAdded: !isAdded
             });
-            toast.success(isAdded ? 'Track removed from playlist' : 'Track added to playlist');
+            // await fetch(`/api/revalidate?tag=track-by-playlist&secret=16180339887`, {
+            //     method: 'POST'
+            // });
+            // await fetch(`/api/revalidate`, {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         tag: 'track-by-playlist',
+            //         secret: '16180339887'
+            //     })
+            // });
+            if(isAdded)
+            toast.dark('Track removed from playlist');
+            if(!isAdded) toast.dark('Track added to playlist')
+            router.refresh();
         } catch (error) {
             toast.error('Failed to update playlist');
         }
@@ -160,7 +178,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                                                 <Box sx={{ width: 40, height: 40, bgcolor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                     {
                                                         (playlist.imgUrl != null ?
-                                                                <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                                <Link href={generatePlaylistUrl(playlist.title,String( playlist.id))} style={{ textDecoration: 'none', color:"#fff" }}>
                                                                     <Image width={40} height={40} alt="Image" className="img" src={`${playlist.imgUrl}`}
                                                                            style={{
                                                                                objectFit: 'cover', // Giúp ảnh không bị móp méo, tự động cắt trung tâm
@@ -170,7 +188,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                                                                     />
                                                                 </Link>
                                                            :
-                                                                <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                                <Link href={generatePlaylistUrl(playlist.title,String( playlist.id))} style={{ textDecoration: 'none', color:"#fff" }}>
                                                                     <PlaylistAddIcon sx={{ color: '#666' }} />
 
                                                                 </Link>
@@ -180,7 +198,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                                                 </Box>
                                                 <Box>
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                                        <Link href={generatePlaylistUrl(playlist.title,String( playlist.id))} style={{ textDecoration: 'none', color:"#fff" }}>
                                                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                                                 {playlist.title}
                                                             </Typography>
@@ -270,7 +288,7 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, bgcolor: '#2a2a2a', borderRadius: 1 }}>
                                 <Box sx={{ width: 48, height: 48, bgcolor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0.5, overflow: 'hidden' }}>
                                     {imgUrl ? (
-                                        <Link href={`/track/${trackId}?audio=${trackUrl}&id=${trackId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                        <Link href={generateTrackUrlUp((trackId), title)} style={{ textDecoration: 'none', color:"#fff" }}>
                                             <Image src={imgUrl} alt="Track"
                                                    width={40}
                                                    height={40}
@@ -288,13 +306,13 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                                 </Box>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography variant="body2" sx={{ fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <Link href={`/track/${trackId}?audio=${trackUrl}&id=${trackId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                        <Link href={generateTrackUrlUp((trackId), title)} style={{ textDecoration: 'none', color:"#fff" }}>
                                             {title || 'Unknown Track'}
 
                                         </Link>
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        <Link href={`/profile/${uploaderId}`} style={{ textDecoration: 'none', color:"#fff" }}>
+                                        <Link href={generateProfileUrl(uploader, uploaderId)} style={{ textDecoration: 'none', color:"#fff" }}>
                                             {uploader || 'Unknown Artist'}
 
                                         </Link>

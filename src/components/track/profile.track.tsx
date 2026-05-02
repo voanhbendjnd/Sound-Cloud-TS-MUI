@@ -27,6 +27,7 @@ import { useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 import axiosInstance from "@/utils/axios-instance";
 import { useRouter } from "next/navigation";
+import {generateProfileUrl, generateTrackUrl} from "@/utils/generate.slug";
 
 dayjs.extend(relativeTime);
 
@@ -45,8 +46,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
-    const fullAudioUrl = track.trackUrl ? `${baseAudio}${track.trackUrl}` : null;
+    // const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
+    const fullAudioUrl = track.trackUrl;
     const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
     const mutation = useLikeTrackMutation();
@@ -525,11 +526,13 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             {/* Left Image */}
             <Box sx={{ width: 160, height: 160, mr: 2, flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                    src={`${track.imgUrl}`}
-                    alt={track.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                <Link style={{ textDecoration: "none" }} href={generateTrackUrl(track)}>
+                    <img
+                        src={`${track.imgUrl}`}
+                        alt={track.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                </Link>
             </Box>
 
             {/* Right Content */}
@@ -555,10 +558,13 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         </Box>
                         {/* Info */}
                         <Box>
-                            <Typography variant="body2" sx={{ color: '#ccc', mb: 0.5 }}>
-                                {track.uploader.name}
-                            </Typography>
-                            <Link style={{ textDecoration: "none" }} href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`}>
+                            <Link style={{ textDecoration: "none" }} href={generateProfileUrl(track.uploader.name, track.uploader.id)}>
+                                <Typography variant="body2" sx={{ color: '#ccc', mb: 0.5 }}>
+                                    {track.uploader.name}
+                                </Typography>
+                            </Link>
+
+                            <Link style={{ textDecoration: "none" }} href={generateTrackUrl(track)}>
                                 <Typography variant="h6" sx={{ color: 'white', lineHeight: 1 }}>
                                     {track.title}
                                 </Typography>

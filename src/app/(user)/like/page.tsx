@@ -19,8 +19,6 @@ const LikePage = () => {
     const observerRef = useRef<HTMLDivElement | null>(null);
     const { data: session, status } = useSession();
     const router = useRouter();
-    const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
-
 
     useEffect(() => {
         if (status === "unauthenticated") {

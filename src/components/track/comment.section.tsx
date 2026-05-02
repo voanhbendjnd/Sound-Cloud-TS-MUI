@@ -10,6 +10,7 @@ import { SendSharp } from "@mui/icons-material";
 import { useCreateComment, useFetchCommentsAxios } from "@/hooks/use.comment";
 import { toast } from "react-toastify";
 import Link from "next/link";
+import {generateProfileUrl} from "@/utils/generate.slug";
 
 dayjs.extend(relativeTime);
 
@@ -153,15 +154,17 @@ const CommentSection = (props: IProps) => {
     return (
         <Box sx={{ mt: 3, mb: 5 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                {/* Chỉ hiện Avatar khi đã login */}
                 {session && (
                     <>
+                    <Link href={generateProfileUrl(session.user?.name, session.user.id)} style={{ textDecoration: 'none' }}>
                         <Avatar
                             src={session.user?.avatar}
                             sx={{ width: 40, height: 40 }}
                         >
                             {session.user?.name?.charAt(0).toUpperCase()}
                         </Avatar>
+                    </Link>
+
 
                         <TextField
                             fullWidth
@@ -199,7 +202,7 @@ const CommentSection = (props: IProps) => {
             <Divider sx={{ my: 4, color: 'orange' }} />
 
             <Box sx={{ display: 'flex', gap: 4 }}>
-                <Link href={`/profile/${userId}`} style={{ textDecoration: 'none' }}>
+                <Link href={generateProfileUrl(uploader.uploader.name, userId)} style={{ textDecoration: 'none' }}>
                     <Box sx={{ width: 150, textAlign: 'center' }}>
                         <Avatar
                             sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
@@ -247,7 +250,7 @@ const CommentSection = (props: IProps) => {
                                         alignItems: 'center'
                                     }}>
                                         <Typography variant="caption" sx={{ color: '#fff' }}>
-                                            <Link href={`/profile/${comment.user.id}`} style={{ textDecoration: 'none' }}>
+                                            <Link href={generateProfileUrl(comment.user.name, String(comment.user.id))} style={{ textDecoration: 'none' }}>
 
                                                 <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
                                                     {comment.user.email === session?.user.email ?

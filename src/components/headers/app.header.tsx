@@ -19,6 +19,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useEffect } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
+import {generateProfileUrl} from "@/utils/generate.slug";
 
 const AppHeader = () => {
     const { data: session } = useSession();
@@ -104,7 +105,7 @@ const AppHeader = () => {
                 null
             }
             <MenuItem>
-                <Link href={`/profile/${session?.user.id}`}
+                <Link href={generateProfileUrl(session?.user.name!, session?.user.id!)}
                     style={{
                         textDecoration: 'none',
                         color: 'unset',

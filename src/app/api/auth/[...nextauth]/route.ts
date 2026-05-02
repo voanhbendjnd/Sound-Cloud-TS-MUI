@@ -5,6 +5,8 @@ import GithubProvider from "next-auth/providers/github"
 import CredentialsProvider from "next-auth/providers/credentials";
 import {JWT} from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google"
+import FacebookProvider from "next-auth/providers/facebook"
+
 export const authOptions: AuthOptions = {
     secret: process.env.NEXTAUTH_SECRET as string,
     providers: [
@@ -54,6 +56,13 @@ export const authOptions: AuthOptions = {
                     response_type: "code"
                 }
             }
+        }),
+        FacebookProvider({
+            clientId: process.env.FACEBOOK_ID!,
+            clientSecret: process.env.FACEBOOK_SECRET!,
+            userinfo: {
+                params: { fields: "id,name,email,picture" }, // Ép Facebook trả về các trường này
+            },
         }),
 
     ],

@@ -26,14 +26,13 @@ axiosInstance.interceptors.request.use(
         // 1. Kiểm tra whitelist TRƯỚC khi gọi getSession để tối ưu hiệu năng
         // Dùng so sánh chính xác hoặc regex để tránh trùng lặp giữa /tracks và /tracks/likes
         const publicEndpoints = [
-            '/api/v1/search',
-            '/api/v1/tracks' // Xóa dấu gạch chéo cuối để khớp chuẩn hơn
+            { url: '/api/v1/search', method: 'get' },
+            { url: '/api/v1/tracks', method: 'get' },
         ];
 
-        // Kiểm tra xem URL hiện tại có phải là endpoint công khai hay không
-        // Logic: Khớp chính xác hoàn toàn hoặc khớp với đường dẫn gốc của tracks
         const isPublicEndpoint = publicEndpoints.some(endpoint =>
-            config.url === endpoint || config.url === `${endpoint}/`
+            config.url?.startsWith(endpoint.url) &&
+            config.method === endpoint.method
         );
 
         // 2. Lấy session từ NextAuth
@@ -43,8 +42,9 @@ axiosInstance.interceptors.request.use(
         if (!isPublicEndpoint && session?.access_token && session.access_token !== "undefined") {
 
             const tokenExpiryBuffer = 2 * 60 * 1000; // 2 phút
-            const timeUntilExpiry = session.expires_in ? (session.expires_in - Date.now()) : Infinity;
-
+            const timeUntilExpiry = session.expires_in
+                ? (session.expires_in * 1000 - Date.now())
+                : Infinity;
             // Nếu token sắp hết hạn, thử lấy session mới nhất (proactive refresh)
             if (timeUntilExpiry <= tokenExpiryBuffer) {
                 console.log('Token expiring soon, refreshing proactively...');

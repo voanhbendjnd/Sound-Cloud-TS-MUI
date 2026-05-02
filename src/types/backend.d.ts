@@ -52,13 +52,12 @@ declare global{
         "isLiked": boolean;
         "uploader": {
             "id": string;
-            "email": string;
             "name": string;
-            "role": string;
             "avatar":string;
         }
         "createdAt": string;
         "updatedAt": string;
+        "isPlaying": boolean;
     }
     interface IUser {
         id: number;
@@ -134,6 +133,14 @@ declare global{
         savedTimes: React.MutableRefObject<Record<string, number>>;
         viewedTracks: Set<string>;
         markTrackAsViewed: (trackId: string) => void;
+        currentPlaylist: IPlaylist | null;
+        setCurrentPlaylist: (playlist: IPlaylist | null) => void;
+        playlistTracks: any[];
+        setPlaylistTracks: (tracks: any[]) => void;
+        currentTrackIndex: number;
+        setCurrentTrackIndex: (index: number) => void;
+        playNextTrack: () => void;
+        playPreviousTrack: () => void;
     }
     interface IShareTrack extends ITrack{
         isPlaying: boolean;
@@ -167,6 +174,39 @@ declare global{
             avatar: string;
             role: string;
         }
+        playlistTracks: IPlaylistTrack[];
+
+        // Long id;
+        // String title;
+        // Long countPlays;
+        // Integer countLikes;
+        // String trackUrl;
+        // String imgUrl;
+        // Uploader uploader;
+        //
+        // @Getter
+        // @Setter
+        // public static class Uploader {
+        // Long id;
+        // String avatar;
+        // String role;
+        // String name;
+
+    }
+    interface IPlaylistTrack{
+        id: number;
+        title:string;
+        countPlays: number;
+        countLikes: number;
+        trackUrl:string;
+        imgUrl:string;
+        uploader:IUploader
+    }
+    interface IUploader{
+        id: number;
+        avatar: string;
+        role:string;
+        name:string;
     }
     interface IPlaylistWithTracks{
         id: number;
