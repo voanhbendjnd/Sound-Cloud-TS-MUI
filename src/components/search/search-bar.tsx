@@ -14,7 +14,11 @@ const SearchBar = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-
+    const [highlightIndex, setHighlightIndex] = useState(-1);
+    const listRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        setHighlightIndex(-1);
+    }, [debouncedKeyword]);
     // Debounce effect
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -56,13 +60,59 @@ const SearchBar = () => {
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && keyword.length >= 2) {
-            router.push(`/search?q=${encodeURIComponent(keyword)}`);
+        if (!showSuggestions) return;
+
+        // ↓ xuống
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHighlightIndex((prev) =>
+                prev < suggestionsList.length - 1 ? prev + 1 : 0
+            );
+        }
+
+        // ↑ lên
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightIndex((prev) =>
+                prev > 0 ? prev - 1 : suggestionsList.length - 1
+            );
+        }
+
+        // Enter
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (exactMatch) {
+                handleSuggestionClick(exactMatch);
+                return;
+            }
+            // Nếu đang chọn item
+            if (highlightIndex >= 0) {
+                const selected = suggestionsList[highlightIndex];
+                handleSuggestionClick(selected);
+            } else if (keyword.length >= 2) {
+                // fallback: search page
+                router.push(`/search?q=${encodeURIComponent(keyword)}`);
+                setShowSuggestions(false);
+            }
+        }
+
+        // ESC để đóng
+        if (e.key === 'Escape') {
             setShowSuggestions(false);
         }
     };
     // <Link href={`/track/${track.id}?audio=${track.trackUrl}&id=${track.id}`} style={{ textDecoration: 'none' }}>
+    useEffect(() => {
+        if (!listRef.current) return;
 
+        const items = listRef.current.children;
+
+        if (highlightIndex >= 0 && items[highlightIndex]) {
+            (items[highlightIndex] as HTMLElement).scrollIntoView({
+                block: 'nearest',
+            });
+        }
+    }, [highlightIndex]);
     const handleSuggestionClick = (suggestion: ISearchResult) => {
         router.push(`/track/${suggestion.id}?audio=${suggestion.trackUrl}&id=${suggestion.id}`);
         setShowSuggestions(false);
@@ -83,7 +133,12 @@ const SearchBar = () => {
                 value={keyword}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setShowSuggestions(true)}
+                onFocus={() => {
+                    setShowSuggestions(true);
+                    if (suggestionsList.length > 0) {
+                        setHighlightIndex(0);
+                    }
+                }}
                 inputProps={{
                     style: {
                         color: '#ccc', // Màu chữ khi bạn gõ vào (xám nhạt cho dịu mắt)
@@ -184,6 +239,7 @@ const SearchBar = () => {
             {/* Exact match preview */}
             {exactMatch && keyword.length >= 2 && (
                 <Paper
+                    ref={listRef}
                     elevation={3}
                     sx={{
                         position: 'absolute',
@@ -253,7 +309,7 @@ const SearchBar = () => {
                         scrollbarWidth: 'none',  // Ẩn thanh cuộn trên Firefo
                     }}
                 >
-                    {suggestionsList.map((suggestion) => (
+                    {suggestionsList.map((suggestion, index) => (
                         <Box
                             key={suggestion.id}
                             sx={{
@@ -262,10 +318,14 @@ const SearchBar = () => {
                                 alignItems: 'center',
                                 gap: 2,
                                 cursor: 'pointer',
+
+                                bgcolor: index === highlightIndex ? '#444' : 'transparent',
+
                                 '&:hover': {
                                     bgcolor: '#444',
                                 },
                             }}
+                            onMouseEnter={() => setHighlightIndex(index)} // sync mouse + keyboard
                             onClick={() => handleSuggestionClick(suggestion)}
                         >
                             <Box
