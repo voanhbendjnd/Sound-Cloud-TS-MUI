@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import {  useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
 import { useTrackContext } from "@/lib/track.wrapper";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography } from "@mui/material";
+import {Avatar, Tooltip, TextField, Button, Box, Modal, Typography, useTheme, useMediaQuery} from "@mui/material";
 import './wave.scss';
 import { commentKeys, useFetchCommentsAxios, useCreateComment } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
@@ -15,7 +15,7 @@ import axios from "axios";
 import { useSession } from "next-auth/react";
 import PauseIcon from "@mui/icons-material/Pause";
 import Link from "next/link";
-import {generateProfileUrl} from "@/utils/generate.slug";
+import { generateProfileUrl } from "@/utils/generate.slug";
 
 interface IProps {
     comments: IComment[];
@@ -27,7 +27,8 @@ const WaveTrack = (props: IProps) => {
     const searchParams = useSearchParams()
     const { comments, isLiked, track } = props;
     const router = useRouter();
-    // const fileName = searchParams.get('audio');
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const fileName = track.trackUrl;
     const trackId = track.id;
     // const trackId = searchParams.get('id');
@@ -92,37 +93,30 @@ const WaveTrack = (props: IProps) => {
 
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient, progressGradient;
+
         if (typeof window !== "undefined") {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
-            // Define the waveform gradient
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35);
-            gradient.addColorStop(0, '#656666') // Top color
-            gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#656666') // Top color
-            // gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            // gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            // gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#B1B1B1') // Bottom color
-            gradient.addColorStop(1, '#B1B1B1') // Bottom color
 
-            // Define the progress gradient
-            progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1.35)
-            progressGradient.addColorStop(0, '#EE772F') // Top color
-            progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#EB4926') // Top color
-            // progressGradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#ffffff') // White line
-            // progressGradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#ffffff') // White line
-            // progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#F6B094') // Bottom color
-            progressGradient.addColorStop(1, '#F6B094') // Bottom color
+            gradient = ctx.createLinearGradient(0, 0, 0, 100);
+            gradient.addColorStop(0, '#444');
+            gradient.addColorStop(1, '#bbb');
+
+            progressGradient = ctx.createLinearGradient(0, 0, 0, 100);
+            progressGradient.addColorStop(0, '#ff5500');
+            progressGradient.addColorStop(1, '#ffb199');
         }
 
         // Use pre-computed peaks if available, otherwise load audio file
         const options: Omit<WaveSurferOptions, 'container'> = {
-            waveColor: gradient,
-            progressColor: progressGradient,
-            height: 200,
-
-            barWidth: 2.3,
-            barGap: 1.5,
+            waveColor: gradient || '#999',
+            progressColor: progressGradient || '#ff5500',
+            height: isMobile ? 100 : 160,
+            barWidth: isMobile ? 1.5 : 2.4,
+            barGap: isMobile ? 1 : 1.5,
+            barHeight: isMobile ? 0.6 : 1,
             normalize: true,
+            cursorWidth: 0, // bỏ line dọc
             url: fullAudioUrl!,
         };
 
@@ -157,10 +151,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 142, left: 0 },          // Tier 0: center (just below split line)
-            { top: 142, left: -4 },        // Tier 1: bottom-left
-            { top: 142, left: 4 },         // Tier 2: bottom-right
-            { top: 142, left: 0 },          // Tier 3: top (just above split line)
+            { top:isMobile ?79: 123, left: 0 },          // Tier 0: center (just below split line)
+            { top:isMobile ?79: 123, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile ?79 : 123, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile ?79 : 123, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -370,7 +364,7 @@ const WaveTrack = (props: IProps) => {
                 setIsWaveformPlaying(false);
             }
         }
-    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments]);
+    }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments, fileName]);
 
     const onPlayClick = useCallback(() => {
         if (isMatched && currentTrack.trackUrl) {
@@ -424,13 +418,12 @@ const WaveTrack = (props: IProps) => {
             }
 
             // Also setup footer audio when ready
-            setTimeout(() => {
-                if (audioRef.current) {
-                    const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
-                    audioRef.current.currentTime = savedTime;
-                    audioRef.current.play().catch(e => console.log('Audio play failed:', e));
-                }
-            }, 100);
+            if (audioRef.current) {
+                const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
+                audioRef.current.src = fullAudioUrl;
+                audioRef.current.currentTime = savedTime;
+                audioRef.current.play().catch(e => console.log('Audio play failed:', e));
+            }
         }
     }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer, trackData]);
 
@@ -538,12 +531,12 @@ const WaveTrack = (props: IProps) => {
         fetchTrackData();
     }, [trackId, fileName, session?.access_token]);
 
-    // Sync isWaveformPlaying with actual wavesurfer state
+    // Sync isWaveformPlaying with actual wavesurfer state and currentTrack.isPlaying
     useEffect(() => {
         if (wavesurfer) {
             setIsWaveformPlaying(wavesurfer.isPlaying());
         }
-    }, [wavesurfer, fileName]);
+    }, [wavesurfer, fileName, currentTrack.isPlaying]);
     const totalDuration = waveDuration;
 
     const calculateLeft = useCallback((moment: number) => {
@@ -589,325 +582,220 @@ const WaveTrack = (props: IProps) => {
             }
         );
     };
-    const uploaderId =trackData?.uploader.id;
+    const uploaderId = trackData?.uploader.id;
 
     return (
-        <div style={{ paddingTop: 20 }}>
-
-            <div
-                className="wave-background"
-                style={{
+        <Box sx={{ pt: 2, px: { xs: 1, sm: 2, md: 3 } }}>
+            <Box
+                sx={{
                     background: backgroundColor,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: { xs: 'column', md: 'row' },
                     position: 'relative'
                 }}
             >
-                {/* Overlay for better text readability */}
-                <div
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: 'rgba(0, 0, 0, 0.3)',
-                        zIndex: 1
+                {/* Overlay */}
+                <Box sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.3)',
+                    zIndex: 1
+                }} />
+
+                {/* 🔥 IMAGE (Mobile lên trên) */}
+                <Box
+                    sx={{
+                        width: { xs: '100%', md: '25%' },
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        p: { xs: 1, md: 2 },
+                        zIndex: 2
                     }}
-                />
-                <div className="left" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className="info" style={{ display: "flex" }}>
-                        <div>
-                            <div className="wave-button"
-                                onClick={() => onPlayClick()}>
-                                {isWaveformPlaying ?
-                                    <PauseIcon
-                                        sx={{ fontSize: 30, color: "white" }}
-                                    />
-                                    :
-                                    <PlayArrowIcon
-                                        sx={{ fontSize: 30, color: "white" }}
-                                    />
-                                }
-                            </div>
-                        </div>
-                        <div style={{ marginLeft: 20 }}>
-                            <div style={{
-                                padding: "0 5px",
-                                background: "#333",
-                                fontSize: 30,
-                                width: "fit-content",
-                                color: "white"
-                            }}>
-                                    {trackData?.title || currentTrack.title}
-
-                            </div>
-                            <div style={{
-                                padding: "0 5px",
-                                marginTop: 10,
-                                background: "#333",
-                                fontSize: 20,
-                                width: "fit-content",
-                                color: "white"
+                >
+                    <Box
+                        sx={{
+                            width: '100%',
+                            maxWidth: { md: 250 },
+                            height: { xs: 200, md: 250 },
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            boxShadow: 3,
+                            bgcolor: '#333'
+                        }}
+                    >
+                        <img
+                            src={trackData?.imgUrl || currentTrack.imgUrl || '/image/earth.jpg'}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
                             }}
+                        />
+                    </Box>
+                </Box>
+
+                {/* 🎧 LEFT CONTENT */}
+                <Box
+                    sx={{
+                        width: { xs: '100%', md: '75%' },
+                        p: { xs: 1, md: 3 },
+                        zIndex: 2
+                    }}
+                >
+                    {/* HEADER */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box
+                            onClick={onPlayClick}
+                            sx={{
+                                width: 50,
+                                height: 50,
+                                minWidth: 50, // 🔥 chặn flex co lại
+                                minHeight: 50,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: '50%',
+                                flexShrink: 0, // 🔥 QUAN TRỌNG
+                                bgcolor: '#ff5500',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {isWaveformPlaying ? (
+                                <PauseIcon sx={{ fontSize: 28 }} />
+                            ) : (
+                                <PlayArrowIcon sx={{ fontSize: 28 }} />
+                            )}                        </Box>
+
+                        <Box sx={{ ml: 2, overflow: 'hidden' }}>
+                            <Typography
+                                sx={{
+                                    fontSize: { xs: 18, md: 28 },
+                                    fontWeight: 600,
+                                    color: '#fff',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}
                             >
-                                <Link href={generateProfileUrl(trackData?.uploader.name!, trackData?.uploader.id!)} style={{ textDecoration: 'none', color:'#fff' }}>
+                                {trackData?.title || currentTrack.title}
+                            </Typography>
 
-                                {trackData?.uploader?.name || currentTrack.uploader?.name}
-                                </Link>
+                            <Link
+                                href={generateProfileUrl(trackData?.uploader.name!, trackData?.uploader.id!)}
+                                style={{ textDecoration: 'none' }}
+                            >
+                                <Typography sx={{ color: '#ccc', fontSize: 14 }}>
+                                    {trackData?.uploader?.name}
+                                </Typography>
+                            </Link>
+                        </Box>
+                    </Box>
 
-                            </div>
-                        </div>
-                    </div>
-                    <div ref={containerRef} className="wave-form-container">
-                        <div className="time" >{time}</div>
-                        <div className="duration" >{duration}</div>
-                        <div ref={hoverRef} className="hover-wave"></div>
-                        {/* Split line at 50% height */}
+                    {/* 🎵 WAVEFORM */}
+                    <Box
+                        ref={containerRef}
+                        sx={{
+                            position: 'relative',
+                            height: { xs: 100, md: 160 },
+                            mb: 2
+                        }}
+                    >
                         <div
                             style={{
                                 position: "absolute",
                                 top: "71%",
+                                // top: "71%",
+
                                 left: 0,
                                 right: 0,
                                 height: "1px",
-                                background: "rgb(5 5 5 / 0.5)",
+                                background: "#464646",
                                 zIndex: 15,
                                 pointerEvents: "none"
                             }}
                         ></div>
-                        <div className="overlay"
-                            style={{
-                                position: "absolute",
-                                height: "35%",
-                                width: "100%",
-                                bottom: "0",
-                                background: "linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 70%, transparent 100%)",
-                                zIndex: 15,
-                                pointerEvents: "none"
+                        <Box className="time">{time}</Box>
+                        <Box className="duration">{duration}</Box>
+                        <Box ref={hoverRef} className="hover-wave" />
+
+                        {/* Comments Overlay */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                inset: 0,
+                                pointerEvents: 'none',
+                                zIndex: 30 // Ensure it's above wavesurfer
                             }}
-                        ></div>
-                        <div className="comments" style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '100%',
-                            pointerEvents: 'none',
-                            zIndex: 20
-                        }}>
-                            {
-                                displayComments.map(it => {
-                                    const userAvatarSrc = it.user?.avatar
-                                    it.user.type !== "SYSTEM" ? `${it.user.avatar}` : it.user.type === "SYSTEM"
-                                        ? `${it.user.avatar}`
-                                        : undefined;
-                                    const isActive = activeCommentId === it.id;
-                                    const isHovered = hoveredCommentId === it.id;
-                                    const shouldShowTooltip = isActive || isHovered;
-                                    const position = avatarPositions[it.id] || { top: 70, zIndex: 20 };
-                                    const resCmt = it.user.name + ': ' + it.content;
-                                    return (
-                                        <Tooltip
-                                            key={it.id}
-                                            title={resCmt}
-                                            open={shouldShowTooltip}
-                                            arrow
+                        >
+                            {displayComments.map(it => {
+                                const isActive = activeCommentId === it.id;
+                                const isHovered = hoveredCommentId === it.id;
+                                const position = avatarPositions[it.id] || { top:isMobile? 60:120, zIndex: 20 };
+                                const shouldShowTooltip = isActive || isHovered;
+                                const resContent = it.user?.name + ': ' + it.content;
+
+                                return (
+                                    <Tooltip
+                                        key={it.id}
+                                        title={resContent}
+                                        open={shouldShowTooltip}
+                                        arrow
+                                        placement="top"
+                                    >
+                                        <Avatar
+                                            src={it.user?.avatar}
                                             onMouseEnter={() => setHoveredCommentId(it.id)}
                                             onMouseLeave={() => setHoveredCommentId(null)}
+                                            sx={{
+                                                position: 'absolute',
+                                                left: calculateLeft(it.moment),
+                                                top: position.top,
+                                                width:isMobile ?(isActive ? 15 : 15)  :(isActive ? 24 : 18),
+                                                height: isMobile ?(isActive ? 15 : 15)  :(isActive ? 24 : 18),
+                                                transform: position.left ? `translate(calc(-50% + ${position.left}px), -50%)` : 'translate(-50%, -50%)',
+                                                border: isActive ? '2px solid #ff5500' : '1px solid #333',
+                                                pointerEvents: 'auto',
+                                                cursor: 'pointer',
+                                                zIndex: isActive ? 100 : position.zIndex,
+                                                transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                                boxShadow: isActive ? '0 0 12px rgba(255, 85, 0, 0.6)' : '0 2px 4px rgba(0,0,0,0.3)',
+                                                '&:hover': {
+                                                    width: 24,
+                                                    height: 24,
+                                                    zIndex: 101,
+                                                    border: '2px solid #fff'
+                                                }
+                                            }}
                                         >
-                                            <Avatar
-                                                src={userAvatarSrc}
-                                                onPointerMove={(e) => {
-                                                    const hover = hoverRef.current!;
-                                                    hover.style.width = calculateLeft(it.moment)
-                                                }}
-                                                style={{
-                                                    left: calculateLeft(it.moment),
-                                                    top: position.top,
-                                                    width: isActive ? 24 : 20,
-                                                    height: isActive ? 24 : 20,
-                                                    borderRadius: '50%',
-                                                    position: 'absolute',
-                                                    transform: position.left ? `translateX(calc(-50% + ${position.left}px))` : 'translateX(-50%)',
-                                                    border: isActive ? '2px solid #f50' : '1px solid #333',
-                                                    pointerEvents: 'auto',
-                                                    cursor: 'pointer',
-                                                    zIndex: isActive ? 100 : position.zIndex,
-                                                    transition: 'all 0.2s ease',
-                                                    boxShadow: isActive ? '0 0 8px #f50' : 'none',
-                                                }}
-                                            >
-                                                {it.user?.name?.charAt(0).toUpperCase()}
-                                            </Avatar>
-                                        </Tooltip>
-                                    )
-                                })
-                            }
+                                            {it.user?.name?.charAt(0).toUpperCase()}
+                                        </Avatar>
+                                    </Tooltip>
+                                );
+                            })}
+                        </Box>
 
-                            {/* Comment Preview Avatar */}
-                            {commentPreview.show && (
-                                <Tooltip title="Click to comment here" arrow>
-                                    <Avatar
-                                        className="avatar-preview"
-                                        style={{
-                                            left: `${commentPreview.position}%`,
-                                            borderRadius: '50%',
-                                            position: 'absolute',
-                                            border: '2px solid #ff5500',
-                                            boxShadow: '0 0 10px rgba(255, 85, 0, 0.5)',
-                                            transform: 'translateX(-50%)',
-                                            zIndex: 10,
-                                            cursor: 'pointer'
-                                        }}
-                                        onClick={handleCommentPreviewClick}
-                                    >
-                                        {commentPreview.userName?.charAt(0).toUpperCase()}
-                                    </Avatar>
-                                </Tooltip>
-                            )}
-                        </div>
-                    </div>
-                </div>
-                <div className="right"
-                    style={{
-                        width: "25%",
-                        padding: 15,
-                        display: "flex",
-                        alignItems: "center",
-                        position: 'relative',
-                        zIndex: 2
-                    }}
-                >
-                    <div className="track-image-container" style={{
-                        width: '250px',
-                        height: '250px',
-                        overflow: 'hidden',
-                        borderRadius: '10px',
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#333'
-                    }}>
-                        <img
-                            src={`${trackData?.imgUrl || currentTrack.imgUrl || '/image/earth.jpg'}`}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                objectPosition: 'center',
-                                display: 'block'
-                            }}
-                            alt="Track cover"
-                        />
-                    </div>
-                </div>
-            </div>
-            {trackData && (
-                <div style={{ marginTop: 15 }}>
-                    <LikeTrack
-                        trackId={Number(trackId)}
-                        initialLikes={trackData.countLike}
-                        initialIsLiked={isLiked || trackData.isLiked}
-                        initialCountPlays={trackData.countPlay}
-                        imgUrl={trackData.imgUrl}
-                        title={trackData.title}
-                        uploader={trackData.uploader.name}
-                        trackUrl={fileName!}
-                        uploaderId={trackData.uploader.id}
-                    />
-                </div>
-            )}
-            {/* Comment Input Modal */}
-            <Modal
-                open={commentInput.open}
-                onClose={clearCommentPreview}
-                aria-labelledby="comment-modal-title"
-                aria-describedby="comment-modal-description"
-            >
-                <Box sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    bgcolor: '#282828',
-                    border: '1px solid #333',
-                    borderRadius: 2,
-                    boxShadow: 24,
-                    p: 4,
-                    minWidth: 400,
-                    color: 'white'
-                }}>
-                    <Typography id="comment-modal-title" variant="h6" sx={{ mb: 2, color: 'white' }}>
-                        Comment at {formatTime(commentInput.selectedTime)}
-                    </Typography>
-                    <TextField
-                        id="comment-modal-description"
-                        multiline
-                        rows={4}
-                        fullWidth
-                        variant="outlined"
-                        placeholder="Write your comment..."
-                        value={commentInput.content}
-                        onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
-                        sx={{
-                            mb: 3,
-                            '& .MuiOutlinedInput-root': {
-                                '& fieldset': {
-                                    borderColor: '#555',
-                                },
-                                '&:hover fieldset': {
-                                    borderColor: '#777',
-                                },
-                                '&.Mui-focused fieldset': {
-                                    borderColor: '#ff5500',
-                                },
-                            },
-                            '& .MuiInputBase-input': {
-                                color: 'white',
-                            },
-                            '& .MuiInputLabel-root': {
-                                color: '#999',
-                            },
-                        }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                        <Button
-                            onClick={clearCommentPreview}
-                            sx={{
-                                color: '#999',
-                                borderColor: '#555',
-                                '&:hover': {
-                                    borderColor: '#777',
-                                    bgcolor: 'rgba(255,255,255,0.05)'
-                                }
-                            }}
-                            variant="outlined"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleSubmitComment}
-                            disabled={!commentInput.content.trim()}
-                            sx={{
-                                bgcolor: '#ff5500',
-                                color: 'white',
-                                '&:hover': {
-                                    bgcolor: '#e04800',
-                                },
-                                '&:disabled': {
-                                    bgcolor: '#555',
-                                    color: '#999'
-                                }
-                            }}
-                            variant="contained"
-                        >
-                            Post Comment
-                        </Button>
                     </Box>
+                    {trackData && (
+                        <LikeTrack
+                            trackId={Number(trackId)}
+                            initialLikes={trackData.countLike}
+                            initialIsLiked={isLiked || trackData.isLiked}
+                            initialCountPlays={trackData.countPlay}
+                            imgUrl={trackData.imgUrl}
+                            title={trackData.title}
+                            uploader={trackData.uploader.name}
+                            trackUrl={fileName!}
+                            uploaderId={trackData.uploader.id}
+                        />
+                    )}
+
                 </Box>
-            </Modal>
-        </div >
-    )
+            </Box>
+        </Box>
+    );
 }
 
 export default WaveTrack;

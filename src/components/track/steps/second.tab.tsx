@@ -134,7 +134,7 @@ const SecondTabs = (props: IProps) => {
 
         createTrack(formData, {
             onSuccess: async () => {
-                toast.success('Upload new track success!');
+                toast.dark('Upload new track success!');
                 setTrackAudio(null);
                 setValue(0);
                 setProgress(0);

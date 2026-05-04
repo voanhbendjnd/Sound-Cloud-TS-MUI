@@ -152,19 +152,39 @@ const CommentSection = (props: IProps) => {
     };
 
     return (
-        <Box sx={{ mt: 3, mb: 5 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+        <Box
+            sx={{
+                mt: 3,
+                mb: 5,
+                px: { xs: 1, md: 2 },
+                maxWidth: 1200,
+                mx: 'auto',
+                marginBottom:20
+            }}
+        >
+
+            {/* INPUT */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    width: '100%',
+                }}
+            >
                 {session && (
                     <>
-                    <Link href={generateProfileUrl(session.user?.name, session.user.id)} style={{ textDecoration: 'none' }}>
-                        <Avatar
-                            src={session.user?.avatar}
-                            sx={{ width: 40, height: 40 }}
+                        <Link
+                            href={generateProfileUrl(session.user?.name, session.user.id)}
+                            style={{ textDecoration: 'none' }}
                         >
-                            {session.user?.name?.charAt(0).toUpperCase()}
-                        </Avatar>
-                    </Link>
-
+                            <Avatar
+                                src={session.user?.avatar}
+                                sx={{ width: { xs: 32, md: 40 }, height: { xs: 32, md: 40 } }}
+                            >
+                                {session.user?.name?.charAt(0).toUpperCase()}
+                            </Avatar>
+                        </Link>
 
                         <TextField
                             fullWidth
@@ -175,133 +195,188 @@ const CommentSection = (props: IProps) => {
                             onChange={(e) => setNewComment(e.target.value)}
                             sx={{
                                 background: '#303030',
-                                '& .MuiOutlinedInput-root': { borderRadius: '1px' },
-                                '& .MuiInputBase-input::placeholder': {
-                                    color: '#7e7e7e',
-                                    opacity: 1,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: '6px',
                                 },
-                                '& .MuiInputBase-input': { color: '#fff' },
+                                '& .MuiInputBase-input': {
+                                    color: '#fff',
+                                    fontSize: { xs: 13, md: 14 },
+                                },
                             }}
                         />
 
                         <IconButton
                             onClick={handlePostComment}
-                            sx={{ background: '#303030' }}
-                            disabled={!session} // Khóa nút gửi nếu chưa login
+                            sx={{
+                                background: '#303030',
+                                p: { xs: 1, md: 1.5 },
+                            }}
                         >
                             <SendSharp sx={{ color: session ? '#f50' : '#7e7e7e' }} />
                         </IconButton>
                     </>
-
-
                 )}
+            </Box>
 
-                {/* Thanh Input luôn hiện (hoặc tùy bạn muốn login mới hiện) */}
+            <Divider sx={{ my: 3, borderColor: '#333' }} />
 
-            </div>
-            <Divider sx={{ my: 4, color: 'orange' }} />
-
-            <Box sx={{ display: 'flex', gap: 4 }}>
-                <Link href={generateProfileUrl(uploader.uploader.name, userId)} style={{ textDecoration: 'none' }}>
-                    <Box sx={{ width: 150, textAlign: 'center' }}>
+            {/* MAIN */}
+            <Box
+                sx={{
+                    display: 'flex',
+                    gap: { xs: 2, md: 4 },
+                    flexDirection: { xs: 'column', md: 'row' },
+                }}
+            >
+                {/* UPLOADER */}
+                <Link
+                    href={generateProfileUrl(uploader.uploader.name, userId)}
+                    style={{ textDecoration: 'none' }}
+                >
+                    <Box
+                        sx={{
+                            width: { xs: '100%', md: 120 },
+                            flexShrink: 0,
+                            textAlign: { xs: 'left', md: 'center' },
+                            display: 'flex',
+                            flexDirection: { xs: 'row', md: 'column' },
+                            alignItems: 'center',
+                            gap: { xs: 2, md: 1 },
+                        }}
+                    >
                         <Avatar
-                            sx={{ width: 150, height: 150, mb: 1, border: '1px solid #eee' }}
-
                             src={uploader.uploader.avatar}
-                        > {uploader.uploader.name.charAt(0).toUpperCase()}
-
+                            sx={{
+                                width: { xs: 50, md: 100 },
+                                height: { xs: 50, md: 100 },
+                            }}
+                        >
+                            {uploader.uploader.name.charAt(0).toUpperCase()}
                         </Avatar>
-                        <Typography variant="body1" fontWeight="500" sx={{
-                            color: "#fff", '&:hover': {
-                                color: "white", // Chữ sáng lên khi hover
-                                fontSize: 'bold'
-                                // textDecoration: "underline" // Gạch chân nếu muốn
-                            }
-                        }}>
-                            {uploader.uploader.name || "Unknown Uploader"}
+
+                        <Typography
+                            sx={{
+                                color: '#fff',
+                                fontSize: { xs: 14, md: 15 },
+                                fontWeight: 500,
+                            }}
+                        >
+                            {uploader.uploader.name}
                         </Typography>
                     </Box>
                 </Link>
 
-
-                {/* Cột phải: Danh sách Comments */}
-                <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" color="#fff" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 0.5, borderBottom: '1px solid #eee', pb: 1 }}>
-                        <ChatBubbleOutlineIcon fontSize="inherit" /> {allComments.length} comments
+                {/* COMMENTS */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        minWidth: 0,
+                    }}
+                >
+                    <Typography
+                        sx={{
+                            mb: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            borderBottom: '1px solid #333',
+                            pb: 1,
+                            fontSize: { xs: 13, md: 14 },
+                            color: '#fff',
+                        }}
+                    >
+                        <ChatBubbleOutlineIcon fontSize="small" />
+                        {allComments.length} comments
                     </Typography>
 
-                    {allComments.map((comment) => {
-                        const userAvatar = comment.user?.avatar
-                            ? `${comment.user.avatar}`
-                            : undefined;
+                    {allComments.map((comment) => (
+                        <Box
+                            key={comment.id}
+                            sx={{
+                                display: 'flex',
+                                gap: 1.5,
+                                mb: 2,
+                            }}
+                        >
+                            <Avatar
+                                src={comment.user?.avatar || undefined}
+                                sx={{ width: 32, height: 32 }}
+                            >
+                                {comment.user?.name?.charAt(0).toUpperCase()}
+                            </Avatar>
 
-                        return (
-                            <Box key={comment.id} sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                                <Avatar
-                                    src={userAvatar}
-                                    sx={{ width: 40, height: 40 }}
-                                >
-                                    {comment.user?.name?.charAt(0).toUpperCase()}
-                                </Avatar>
-                                <Box sx={{ flex: 1 }}>
-                                    <Box sx={{
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Box
+                                    sx={{
                                         display: 'flex',
+                                        flexDirection: { xs: 'column', md: 'row' },
                                         justifyContent: 'space-between',
-                                        alignItems: 'center'
-                                    }}>
-                                        <Typography variant="caption" sx={{ color: '#fff' }}>
-                                            <Link href={generateProfileUrl(comment.user.name, String(comment.user.id))} style={{ textDecoration: 'none' }}>
-
-                                                <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-                                                    {comment.user.email === session?.user.email ?
-                                                        "You" : comment.user.name}
-                                                </span>
-                                            </Link>
-                                            <span style={{ fontSize: 13 }}> at</span>
-                                            {comment.moment !== undefined && (
-                                                <span
-                                                    onClick={() => handleJumpToMoment(comment.moment)}
-                                                    style={{
-                                                        fontSize: 13,
-                                                        marginLeft: 5,
-                                                        cursor: 'pointer',
-                                                        color: '#ccc',
-                                                        textDecoration: 'none'
-                                                    }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ff5500'} // Hover đổi màu cam giống SoundCloud
-                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#ccc'}
-                                                >{formatMoment(comment.moment)}
-                                                </span>
+                                        alignItems: { md: 'center' },
+                                        gap: { xs: 0.5, md: 0 },
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            color: '#fff',
+                                            fontSize: 13,
+                                            wordBreak: 'break-word',
+                                        }}
+                                    >
+                                        <Link
+                                            href={generateProfileUrl(
+                                                comment.user.name,
+                                                String(comment.user.id)
                                             )}
-                                        </Typography>
-                                        <Typography variant="caption" color="#fff" sx={{ fontWeight: 'bold' }}>
-                                            {dayjs(comment.createdAt).fromNow()}
-                                        </Typography>
-                                    </Box>
-                                    <Typography variant="body2" sx={{ mt: 0.5, color: '#fff' }}>
-                                        {comment.content}
+                                            style={{ textDecoration: 'none', color:'white' }}
+                                        >
+                                        <span style={{ fontWeight: 'bold' }}>
+                                            {comment.user.email === session?.user.email
+                                                ? 'You'
+                                                : comment.user.name}
+                                        </span>
+                                        </Link>
+
+                                        {' at '}
+                                        <span
+                                            onClick={() => handleJumpToMoment(comment.moment)}
+                                            style={{
+                                                cursor: 'pointer',
+                                                color: '#ccc',
+                                            }}
+                                        >
+                                        {formatMoment(comment.moment)}
+                                    </span>
+                                    </Typography>
+
+                                    <Typography
+                                        sx={{
+                                            fontSize: 12,
+                                            color: '#aaa',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {dayjs(comment.createdAt).fromNow()}
                                     </Typography>
                                 </Box>
-                            </Box>
-                        );
-                    })}
 
-                    {/* Loading indicator */}
+                                <Typography
+                                    sx={{
+                                        mt: 0.5,
+                                        color: '#ddd',
+                                        fontSize: 14,
+                                        wordBreak: 'break-word',
+                                    }}
+                                >
+                                    {comment.content}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    ))}
+
                     {isFetching && (
                         <Box sx={{ textAlign: 'center', py: 2, color: '#999' }}>
-                            Loading more comments...
+                            Loading...
                         </Box>
-                    )}
-
-                    {/* Observer target for infinite scroll */}
-                    {hasMore && !isFetching && (
-                        <div ref={observerRef} style={{ height: '20px' }} />
-                    )}
-
-                    {!hasMore && allComments.length > 0 && (
-                        <Typography variant="body2" sx={{ textAlign: 'center', color: '#666', mt: 2 }}>
-                            No more comments
-                        </Typography>
                     )}
                 </Box>
             </Box>

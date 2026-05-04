@@ -235,9 +235,11 @@ const AddToPlaylistModal = ({ open, onClose, trackId, title, uploader, imgUrl, t
                                                         borderColor: isAdded ? '#e40' : '#666',
                                                         bgcolor: isAdded ? '#e40' : 'rgba(255,255,255,0.05)',
                                                     },
+                                                    marginLeft:1
                                                 }}
+
                                             >
-                                                {isAdded ? 'Added' : 'Add to playlist'}
+                                                {isAdded ? 'Added' : 'Add'}
                                             </Button>
                                         </Box>
                                     );

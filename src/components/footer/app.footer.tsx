@@ -2,7 +2,7 @@
 import { useHasMounted } from "@/utils/customHook";
 import AudioPlayer, { RHAP_UI } from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
-import { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { TrackContextProvider, useTrackContext } from "@/lib/track.wrapper";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -11,7 +11,7 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import IconButton from "@mui/material/IconButton";
 import AppBar from "@mui/material/AppBar";
-import { Container } from "@mui/material";
+import { Container, useMediaQuery, useTheme } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import axiosInstance from "@/utils/axios-instance";
 import Link from "next/link";
@@ -22,7 +22,13 @@ import { redirect, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
-import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
+import { generateProfileUrl, generateTrackUrlUp } from "@/utils/generate.slug";
+import Drawer from "@mui/material/Drawer";
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import SkipNextIcon from '@mui/icons-material/SkipNext';
+import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
+
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, playNextTrack, playPreviousTrack } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
@@ -32,9 +38,43 @@ const AppFooter = () => {
     const { data: session } = useSession();
     const keyword = "upload/";
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [showMobileDrawer, setShowMobileDrawer] = useState(false);
     const router = useRouter();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const index = currentTrack.trackUrl.indexOf(keyword);
     const trackUrlCut = currentTrack.trackUrl.substring(index + keyword.length);
+
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const secondsRemainder = Math.round(seconds) % 60;
+        const paddedSeconds = `0${secondsRemainder}`.slice(-2);
+        return `${minutes}:${paddedSeconds}`;
+    };
+
+    // Sync footer play/pause with audio element state
+    useEffect(() => {
+        if (audioRef.current) {
+            const audio = audioRef.current;
+
+            const updatePlayState = () => {
+                if (audio.paused !== !currentTrack.isPlaying) {
+                    setCurrentTrack({ ...currentTrack, isPlaying: !audio.paused });
+                }
+            };
+
+            audio.addEventListener('play', updatePlayState);
+            audio.addEventListener('pause', updatePlayState);
+
+            return () => {
+                audio.removeEventListener('play', updatePlayState);
+                audio.removeEventListener('pause', updatePlayState);
+            };
+        }
+    }, [audioRef.current, currentTrack.trackUrl, setCurrentTrack]);
 
     const handleLikeClick = () => {
         if (session === null) {
@@ -59,11 +99,15 @@ const AppFooter = () => {
         if (!audioRef.current || !currentTrack.id || !currentTrack.isPlaying) return;
 
         const handleTimeUpdate = () => {
-            const currentTime = audioRef.current?.currentTime || 0;
+            const time = audioRef.current?.currentTime || 0;
+            const dur = audioRef.current?.duration || 0;
+            setCurrentTime(time);
+            setDuration(dur);
+
             const trackId = currentTrack.id.toString();
 
             // When reaching 30 seconds and track not yet viewed
-            if (currentTime >= 30 && !viewedTracks.has(trackId)) {
+            if (time >= 30 && !viewedTracks.has(trackId)) {
                 // Call API to increase view count
                 axiosInstance.patch(`/api/v1/tracks/view/increase`, {
                     trackId: currentTrack.id
@@ -102,13 +146,30 @@ const AppFooter = () => {
 
     return (
         <div style={{ marginTop: 50 }}>
-            <AppBar position="fixed" sx={{ top: 'auto', bottom: 0, background: "#282828", borderTop: '1px solid #111' }}>
-                <Container sx={{ display: "flex", gap: 3, alignItems: "center", py: 1, maxWidth: 'xl' }}>
+            <Box
+                position="fixed"
+                bottom={isMobile ? 70 : 10}
+                left={10}
+                right={10}
+                height={70}
+                borderRadius="16px"
+                sx={{
+                    bgcolor: 'rgba(20,20,20,0.7)',
+                    backdropFilter: 'blur(12px)',
+                    border: '1px solid #333',
+                    display: 'flex',
+                    alignItems: 'center',
+                    px: 2,
+                    zIndex: 10000,
+                }}
+            >
+                <Container sx={{ display: "flex", gap: 3, alignItems: "center", py: 1, maxWidth: 'xl', px: 0 }}>
 
-                    {/* Audio Player */}
+                    {/* Mobile: Simple Layout */}
+                    {/* Always mounted AudioPlayer - Hidden on mobile, visible on desktop */}
                     <Box sx={{
+                        display: isMobile ? 'none' : 'flex',
                         flexGrow: 1,
-                        display: 'flex',
                         minWidth: 0,
                         '& .rhap_container': {
                             background: 'transparent',
@@ -162,7 +223,7 @@ const AppFooter = () => {
                             flex: '0 0 auto',
                         },
                         '& .rhap_volume-button': { color: '#ccc' },
-                        '& .rhap_volume-bar-area': { display: 'none' }, // Hid volume bar to match screenshot minimalism, or keep it if preferred
+                        '& .rhap_volume-bar-area': { display: 'none' },
                         '& .rhap_repeat-button': { color: '#ccc', fontSize: '22px' },
                     }}>
                         <AudioPlayer
@@ -199,112 +260,178 @@ const AppFooter = () => {
                         />
                     </Box>
 
-                    {/* Track Info (Right Side) */}
-                    <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
-                        <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
-                            <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+                    {isMobile ? (
+                        <>
+                            {/* Avatar */}
+                            <Box sx={{ flexShrink: 0 }}>
+                                <Image
+                                    src={currentTrack.imgUrl || '/default-avatar.png'}
+                                    alt={currentTrack.title}
+                                    width={50}
+                                    height={50}
+                                    style={{
+                                        objectFit: 'cover',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer'
+                                    }}
+                                    onClick={() => setShowMobileDrawer(true)}
+                                    unoptimized={true}
+                                />
+                            </Box>
 
-                                {currentTrack.imgUrl && (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <Image
-                                        src={`${currentTrack.imgUrl}`}
-                                        alt={currentTrack.title}
-                                        width={40}
-                                        height={40}
-                                        style={{
-                                            objectFit: 'cover', // Giúp ảnh không bị móp méo, tự động cắt trung tâm
-                                            borderRadius: '4px' // Thêm bo góc cho đẹp giống SoundCloud
-                                        }}
-                                        unoptimized={true} // Bật cái này nếu link Cloudinary đã tự tối ưu rồi
-                                    />
-                                )}
-                            </Link>
-                        </Box>
-
-                        <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
-                            {/* Link tới Profile */}
-                            <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
+                            {/* Track Info */}
+                            <Box sx={{ flexGrow: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setShowMobileDrawer(true)}>
                                 <Typography
                                     noWrap
                                     sx={{
-                                        color: "#aaa",
-                                        fontSize: 11,
-                                        mb: 0.2,
-                                        '&:hover': {
-                                            color: "white", // Chữ sáng lên khi hover
-                                            fontSize: 'bold'
-                                            // textDecoration: "underline" // Gạch chân nếu muốn
-                                        }
+                                        color: '#fff',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        mb: 0.5
                                     }}
                                 >
-                                    {currentTrack.uploader?.name || "Unknown"}
+                                    {currentTrack.title}
                                 </Typography>
-                            </Link>
-
-                            {/* Link tới Track */}
-                            <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
                                 <Typography
                                     noWrap
                                     sx={{
-                                        color: "white",
-                                        fontSize: 13,
-                                        fontWeight: 'bold',
-                                        transition: "color 0.2s ease", // Giúp hiệu ứng đổi màu mượt hơn
-                                        '&:hover': {
-                                            color: "#f50", // Đổi sang màu cam đặc trưng của SoundCloud
-                                        }
+                                        color: '#aaa',
+                                        fontSize: '12px'
                                     }}
                                 >
-                                    {currentTrack.title || "No Track Selected"}
+                                    {currentTrack.uploader?.name}
                                 </Typography>
-                            </Link>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                            </Box>
+
+                            {/* Play/Pause Button */}
                             <IconButton
-                                size="small"
                                 onClick={() => {
-                                    if (session) {
-                                        handleLikeClick()
-
+                                    if (currentTrack.isPlaying) {
+                                        setCurrentTrack({ ...currentTrack, isPlaying: false });
+                                        if (audioRef.current) {
+                                            audioRef.current.pause();
+                                        }
+                                    } else {
+                                        setCurrentTrack({ ...currentTrack, isPlaying: true });
+                                        if (audioRef.current) {
+                                            audioRef.current.play().catch(err => console.log('Play failed:', err));
+                                        }
                                     }
-                                    else router.push('/auth/signin');
-
                                 }}
-                                disabled={mutation.isPending}
                                 sx={{
-                                    color: '#ccc',
-                                    p: 0.5,
-                                    transition: 'all 0.2s ease',
-                                    '&:hover': {
-                                        transform: 'scale(1.2)', // Hiệu ứng động đậy khi đưa chuột vào
-                                        backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                                    }
+                                    color: '#fff',
+                                    bgcolor: 'rgba(255,255,255,0.1)',
+                                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
                                 }}
                             >
-                                <FavoriteIcon
-                                    sx={{
-                                        fontSize: 'inherit',
-                                        color: currentTrack.isLiked ? '#f64a00' : 'inherit',
-                                        transition: 'color 0.2s ease'
-                                    }}
-                                />
+                                {currentTrack.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
                             </IconButton>
-                            <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                <PersonAddIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                <PlaylistAddIcon
-                                    onClick={() => {
-                                        if (session) {
-                                            setShowPlaylistModal(true);
-                                        } else {
-                                            router.push('/auth/signin');
-                                        }
-                                    }}
-                                    fontSize="small" />
-                            </IconButton>
-                        </Box>
-                    </Box>
+                        </>
+                        ) : (
+                            /* Desktop: Track Info (Right Side) */
+                            <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
+                                <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
+                                    <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
+
+                                        {currentTrack.imgUrl && (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <Image
+                                                src={`${currentTrack.imgUrl}`}
+                                                alt={currentTrack.title}
+                                                width={40}
+                                                height={40}
+                                                style={{
+                                                    objectFit: 'cover',
+                                                    borderRadius: '4px'
+                                                }}
+                                                unoptimized={true}
+                                            />
+                                        )}
+                                    </Link>
+                                </Box>
+
+                                <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
+                                    <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
+                                        <Typography
+                                            noWrap
+                                            sx={{
+                                                color: "#aaa",
+                                                fontSize: 11,
+                                                mb: 0.2,
+                                                '&:hover': {
+                                                    color: "white",
+                                                    fontSize: 'bold'
+                                                }
+                                            }}
+                                        >
+                                            {currentTrack.uploader?.name || "Unknown"}
+                                        </Typography>
+                                    </Link>
+
+                                    <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                        <Typography
+                                            noWrap
+                                            sx={{
+                                                color: "white",
+                                                fontSize: 13,
+                                                fontWeight: 'bold',
+                                                transition: "color 0.2s ease",
+                                                '&:hover': {
+                                                    color: "#f50",
+                                                }
+                                            }}
+                                        >
+                                            {currentTrack.title || "No Track Selected"}
+                                        </Typography>
+                                    </Link>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            if (session) {
+                                                handleLikeClick()
+
+                                            }
+                                            else router.push('/auth/signin');
+
+                                        }}
+                                        disabled={mutation.isPending}
+                                        sx={{
+                                            color: '#ccc',
+                                            p: 0.5,
+                                            transition: 'all 0.2s ease',
+                                            '&:hover': {
+                                                transform: 'scale(1.2)',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        }}
+                                    >
+                                        <FavoriteIcon
+                                            sx={{
+                                                fontSize: 'inherit',
+                                                color: currentTrack.isLiked ? '#f64a00' : 'inherit',
+                                                transition: 'color 0.2s ease'
+                                            }}
+                                        />
+                                    </IconButton>
+                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
+                                        <PersonAddIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
+                                        <PlaylistAddIcon
+                                            onClick={() => {
+                                                if (session) {
+                                                    setShowPlaylistModal(true);
+                                                } else {
+                                                    router.push('/auth/signin');
+                                                }
+                                            }}
+                                            fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            </Box>
+                        )}
                     <AddToPlaylistModal
                         open={showPlaylistModal}
                         onClose={() => setShowPlaylistModal(false)}
@@ -316,10 +443,124 @@ const AppFooter = () => {
                         uploaderId={currentTrack.uploader.id}
                     />
                 </Container>
-            </AppBar>
+            </Box>
+
+            {/* Mobile Full-Screen Drawer */}
+            <Drawer
+                anchor="bottom"
+                open={showMobileDrawer}
+                onClose={() => setShowMobileDrawer(false)}
+                PaperProps={{
+                    sx: {
+                        height: '100%',
+                        bgcolor: '#121212',
+                    }
+                }}
+            >
+                <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    {/* Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Typography variant="h6" sx={{ color: '#fff' }}>
+                            Now Playing
+                        </Typography>
+                        <IconButton onClick={() => setShowMobileDrawer(false)} sx={{ color: '#fff' }}>
+                            ×
+                        </IconButton>
+                    </Box>
+
+                    {/* Track Artwork */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                        <Image
+                            src={currentTrack.imgUrl || '/default-avatar.png'}
+                            alt={currentTrack.title}
+                            width={200}
+                            height={200}
+                            style={{
+                                objectFit: 'cover',
+                                borderRadius: '12px',
+                                boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+                            }}
+                            unoptimized={true}
+                        />
+                    </Box>
+
+                    {/* Track Info */}
+                    <Box sx={{ textAlign: 'center', mb: 3 }}>
+                        <Typography variant="h5" sx={{ color: '#fff', mb: 1 }}>
+                            {currentTrack.title}
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: '#aaa' }}>
+                            {currentTrack.uploader?.name}
+                        </Typography>
+                    </Box>
+
+                    {/* Progress Bar */}
+                    <Box sx={{ mb: 3 }}>
+                        <Box sx={{ height: 4, bgcolor: '#333', borderRadius: 2, position: 'relative' }}>
+                            <Box sx={{
+                                height: '100%',
+                                width: `${duration ? (currentTime / duration) * 100 : 0}%`,
+                                bgcolor: '#f50',
+                                borderRadius: 2
+                            }} />
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                            <Typography sx={{ color: '#666', fontSize: '12px' }}>{formatTime(currentTime)}</Typography>
+                            <Typography sx={{ color: '#666', fontSize: '12px' }}>{formatTime(duration)}</Typography>
+                        </Box>
+                    </Box>
+
+                    {/* Controls */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, mb: 3 }}>
+                        <IconButton sx={{ color: '#fff' }}>
+                            <SkipPreviousIcon fontSize="large" />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => {
+                                if (currentTrack.isPlaying) {
+                                    setCurrentTrack({ ...currentTrack, isPlaying: false });
+                                    if (audioRef.current) {
+                                        audioRef.current.pause();
+                                    }
+                                } else {
+                                    setCurrentTrack({ ...currentTrack, isPlaying: true });
+                                    if (audioRef.current) {
+                                        audioRef.current.play().catch(err => console.log('Drawer play failed:', err));
+                                    }
+                                }
+                            }}
+                            sx={{
+                                color: '#fff',
+                                bgcolor: '#f50',
+                                width: 56,
+                                height: 56,
+                                '&:hover': { bgcolor: '#e64000' }
+                            }}
+                        >
+                            {currentTrack.isPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
+                        </IconButton>
+                        <IconButton sx={{ color: '#fff' }}>
+                            <SkipNextIcon fontSize="large" />
+                        </IconButton>
+                    </Box>
+
+                    {/* Additional Controls */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 'auto' }}>
+                        <IconButton sx={{ color: '#ccc' }}>
+                            <FavoriteIcon />
+                        </IconButton>
+                        <IconButton sx={{ color: '#ccc' }}>
+                            <PlaylistAddIcon />
+                        </IconButton>
+                        <IconButton sx={{ color: '#ccc' }}>
+                            <ShuffleIcon />
+                        </IconButton>
+                    </Box>
+                </Box>
+            </Drawer>
 
         </div>
     )
 }
 
-export default AppFooter;
+export default React.memo(AppFooter);

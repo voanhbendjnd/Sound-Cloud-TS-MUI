@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import {JWT} from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google"
 import FacebookProvider from "next-auth/providers/facebook"
+import dayjs from "dayjs";
 
 export const authOptions: AuthOptions = {
     secret: process.env.NEXTAUTH_SECRET as string,
@@ -85,7 +86,7 @@ export const authOptions: AuthOptions = {
                         token.access_token = data.access_token;
                         token.refresh_token = data.refresh_token;
                         token.user = data.user;
-                        token.access_expire = Date.now() + (data.expires_in * 1000) - 60000;
+                        token.access_expire = dayjs(new Date()).add(+(process.env.TOKEN_EXPIRE_NUMBER as string), (process.env.TOKEN_EXPIRE_UNIT as any)).unix()
                         token.error = undefined;
                     }
                 } else if(user){
@@ -93,21 +94,26 @@ export const authOptions: AuthOptions = {
                     token.access_token = res.access_token;
                     token.refresh_token = res.refresh_token;
                     token.user = res.user;
-                    token.access_expire = Date.now() + (res.expires_in * 1000) - 60000;
+                    // Unify to use unix seconds
+                    token.access_expire = dayjs(new Date()).add(+(process.env.TOKEN_EXPIRE_NUMBER as string), (process.env.TOKEN_EXPIRE_UNIT as any)).unix()
                     token.error = undefined;
                 }
                 return token;
             }
-
+            const isTimeAfter = dayjs(dayjs(new Date())).isAfter(dayjs(dayjs.unix((token.access_expire as number))));
+            if(isTimeAfter){
+                return refreshAccessToken(token)
+            }
+            return token;
             // Check if token is expired or about to expire
             // If token is still valid (has more than 1 minute), return it
-            if (token.access_expire && Date.now() < (token.access_expire as number)) {
-                return token;
-            }
+            // if (token.access_expire && Date.now() < (token.access_expire as number)) {
+            //     return token;
+            // }
 
             // Token has expired or is about to expire, refresh it
             // This handles both tokens that are about to expire and already expired
-            return await refreshAccessToken(token);
+            // return await refreshAccessToken(token);
         },
         async session({ session, token }) {
             if (token) {
@@ -126,29 +132,43 @@ export { handler as GET, handler as POST }
 
 
 
-async function refreshAccessToken(token : JWT){
-    try{
+async function refreshAccessToken(token: JWT) {
+    try {
+        if (!token.refresh_token) {
+            throw new Error("No refresh token available");
+        }
+
         const res = await sendRequest<IBackendRes<ILoginRes>>({
             url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/auth/refresh`,
-            method: 'GET',
-            headers: {
-                "Cookie": `refresh_token=${token.refresh_token}`
+            method: 'POST',
+            body: {
+                refresh_token: token.refresh_token
             }
         });
-        if(res.data) {
-            const data = res.data as Session
+
+        if (res && res.data) {
+            const data = res.data as Session;
+            console.log(">>> Refresh token success");
+
             return {
                 ...token,
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
-                access_expire: Date.now() + (data.expires_in * 1000) - 60000,
+                access_expire: dayjs(new Date()).add(+(process.env.TOKEN_EXPIRE_NUMBER as string), (process.env.TOKEN_EXPIRE_UNIT as any)).unix(),
+                error: ""
             }
         }
-    }catch(error){
+
+        return {
+            ...token,
+            error: "RefreshAccessTokenError",
+        }
+
+    } catch (error) {
+        console.error(">>> Error in refreshAccessToken:", error);
         return {
             ...token,
             error: "RefreshAccessTokenError"
         }
     }
-    return token;
 }

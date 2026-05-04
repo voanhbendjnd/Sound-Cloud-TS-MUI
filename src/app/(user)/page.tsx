@@ -41,7 +41,7 @@ export default async function HomePage() {
     }
   });
   return (
-    <div style={{ backgroundColor: '#212121' ,paddingTop:50}}>
+    <div style={{ backgroundColor: '#121212' ,paddingTop:50}}>
       <Container>
         <MainSlider
           title="Trending"

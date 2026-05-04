@@ -5,30 +5,23 @@ import { useWaveSurfer } from "@/utils/customHook";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import IosShareIcon from '@mui/icons-material/IosShare';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography, IconButton, Chip } from "@mui/material";
+import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography } from "@mui/material";
 import Button from "@mui/material/Button";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useTrackContext } from "@/lib/track.wrapper";
-import Link from "next/link";
-import { useCreateComment, useFetchComments, useFetchCommentsAxios } from "@/hooks/use.comment";
+import { useCreateComment, useFetchCommentsAxios } from "@/hooks/use.comment";
 import { useLikeTrackMutation } from "@/hooks/use-track";
-import { useIsLiked } from "@/hooks/use-isliked";
 import { toast } from "react-toastify";
 import { useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
-import axiosInstance from "@/utils/axios-instance";
 import { useRouter } from "next/navigation";
-import {generateProfileUrl, generateTrackUrl} from "@/utils/generate.slug";
-
+import { useTheme, useMediaQuery } from "@mui/material";
+import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
+import Link from "next/link";
 dayjs.extend(relativeTime);
 
 export interface ProfileTrackProps {
@@ -42,19 +35,17 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     const hoverRef = useRef<HTMLDivElement>(null);
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const { data: session } = useSession();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("md"));
     const router = useRouter();
     const [time, setTime] = useState<string>("0:00");
     const [duration, setDuration] = useState<string>("0:00");
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-    // const baseAudio = "https://res.cloudinary.com/dddppjhly/video/upload/";
     const fullAudioUrl = track.trackUrl;
     const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const [countLikes, setCountLikes] = useState<number>(track.countLike || 0);
     const mutation = useLikeTrackMutation();
-    // Use separate isLiked API for logged-in users
-    // const { data: isLiked } = useIsLiked(Number(track.id));
     const [isLove, setIsLove] = useState<boolean>(track.isLiked);
-    // Sync isLiked with currentTrack when track ID matches
     useEffect(() => {
         if (isMatched && isLove !== undefined) {
             setCurrentTrack({
@@ -230,7 +221,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 clearCommentPreview();
                 // Reset text sau khi post thành công
                 setCommentInput(prev => ({ ...prev, content: '' }));
-                toast.success("Post comment success!");
+                toast.dark("Post comment success!");
             },
             onError: (error: any) => {
                 const msg = error?.response?.data?.message || "Please log in to continue!";
@@ -248,49 +239,29 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         if (typeof window !== "undefined") {
             const canvas = document.createElement('canvas');
-            const dpr = window.devicePixelRatio || 1;
-            canvas.height = 100 * dpr;
             const ctx = canvas.getContext('2d')!;
 
-            // 🎵 WAVE (background)
-            gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient = ctx.createLinearGradient(0, 0, 0, 100);
+            gradient.addColorStop(0, '#444');
+            gradient.addColorStop(1, '#bbb');
 
-            gradient.addColorStop(0, '#444');     // top (đậm)
-            gradient.addColorStop(0.4, '#666');   // mid
-            gradient.addColorStop(1, '#bbb');     // bottom (nhạt)
-
-            // 🔥 PROGRESS (cam giống SoundCloud)
-            progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-
-            progressGradient.addColorStop(0, '#ff5500');  // top đậm
-            progressGradient.addColorStop(0.5, '#ff6a1a');// mid
-            progressGradient.addColorStop(1, '#ffb199');  // bottom nhạt
+            progressGradient = ctx.createLinearGradient(0, 0, 0, 100);
+            progressGradient.addColorStop(0, '#ff5500');
+            progressGradient.addColorStop(1, '#ffb199');
         }
 
-        const options: Omit<WaveSurferOptions, 'container'> = {
+        return {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
-            height: 100,
-            barWidth: 2,
-            barGap: 1,
+
+            height: isMobile ? 60 : 100, // 🔥 FIX
+            barWidth: isMobile ? 1.5 : 2,
+            barGap: isMobile ? 0.8 : 1,
+
             normalize: true,
             url: fullAudioUrl || '',
         };
-
-        // peaks
-        if (track?.peaks) {
-            try {
-                const rawPeaks = JSON.parse(track.peaks);
-                const peaksArray = Array.isArray(rawPeaks) ? rawPeaks : rawPeaks.data;
-                options.peaks = [peaksArray];
-            } catch (e) {
-                console.warn('Failed to parse peaks data', e);
-            }
-        }
-
-        return options;
-    }, [fullAudioUrl, track?.peaks]);
-
+    }, [fullAudioUrl,track?.peaks]);
 
     // const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
     //     let gradient;
@@ -373,8 +344,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         const hover = hoverRef.current!;
         const waveform = containerRef.current!;
-        const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
-        waveform.addEventListener('pointermove', handlePointerMove);
+        // const handlePointerMove = (e: PointerEvent) => (hover.style.width = `${e.offsetX}px`);
+        // waveform.addEventListener('pointermove', handlePointerMove);
 
         // Add waveform click listeners for comments
         waveform.addEventListener('mousedown', handleWaveformMouseDown);
@@ -397,7 +368,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         ];
 
         return () => {
-            waveform.removeEventListener('pointermove', handlePointerMove);
+            // waveform.removeEventListener('pointermove', handlePointerMove);
             waveform.removeEventListener('mousedown', handleWaveformMouseDown);
             waveform.removeEventListener('dblclick', handleWaveformDoubleClick);
             subscriptions.forEach((unsub) => unsub());
@@ -522,66 +493,92 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
         }
     }, [isMatched, currentTrack, track, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
     return (
-        <Box sx={{ display: 'flex', mb: 4, pt: 2, pb: 2, color: 'white', borderBottom: '1px solid #333' }}>
-            {/* Left Image */}
-            <Box sx={{ width: 160, height: 160, mr: 2, flexShrink: 0 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <Link style={{ textDecoration: "none" }} href={generateTrackUrl(track)}>
-                    <img
-                        src={`${track.imgUrl}`}
-                        alt={track.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                </Link>
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', md: 'row' },
+                gap: 2,
+                mb: 4,
+                p: 2,
+                borderBottom: '1px solid #333',
+                color: 'white'
+            }}
+        >
+
+            {/* IMAGE */}
+            <Box
+                sx={{
+                    width: { xs: '100%', md: 160 },
+                    height: { xs: 200, md: 160 },
+                    flexShrink: 0
+                }}
+            >
+                <img
+                    src={track.imgUrl}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
             </Box>
 
-            {/* Right Content */}
-            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            {/* RIGHT */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+                {/* HEADER */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {/* Play Button */}
+
+                        {/* PLAY BUTTON */}
                         <Box
                             onClick={onPlayClick}
                             sx={{
-                                width: 50,
-                                height: 50,
+                                width: { xs: 40, md: 50 },
+                                height: { xs: 40, md: 50 },
+                                minWidth: { xs: 40, md: 50 },
                                 borderRadius: '50%',
                                 background: '#f50',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                cursor: 'pointer',
-                                mr: 2
+                                mr: 2,
+                                flexShrink: 0,
+                                cursor: 'pointer'
                             }}
                         >
-                            {currentTrack.isPlaying && isMatched ? <PauseIcon sx={{ color: 'white', fontSize: 32 }} /> : <PlayArrowIcon sx={{ color: 'white', fontSize: 32 }} />}
+                            {currentTrack.isPlaying && isMatched
+                                ? <PauseIcon sx={{ fontSize: 28 }} />
+                                : <PlayArrowIcon sx={{ fontSize: 28 }} />}
                         </Box>
-                        {/* Info */}
+
+                        {/* INFO */}
                         <Box>
-                            <Link style={{ textDecoration: "none" }} href={generateProfileUrl(track.uploader.name, track.uploader.id)}>
-                                <Typography variant="body2" sx={{ color: '#ccc', mb: 0.5 }}>
+                            <Typography sx={{ color: '#ccc', fontSize: 13 }}>
+                                <Link href={generateProfileUrl(track.uploader.name, track.uploader.id)} style={{ textDecoration: 'none', color:'#fff' }}>
                                     {track.uploader.name}
-                                </Typography>
-                            </Link>
 
-                            <Link style={{ textDecoration: "none" }} href={generateTrackUrl(track)}>
-                                <Typography variant="h6" sx={{ color: 'white', lineHeight: 1 }}>
+                                </Link>
+                            </Typography>
+
+                            <Typography sx={{ fontSize: { xs: 14, md: 18 } }}>
+                                <Link href={generateTrackUrlUp(Number(track.id), track.title)} style={{ textDecoration: 'none', color:'#fff'  }}>
                                     {track.title}
-                                </Typography>
-                            </Link>
+                                </Link>
 
+                            </Typography>
                         </Box>
                     </Box>
-                    {/* Time Ago */}
-                    <Box>
-                        <Typography variant="body2" sx={{ color: '#999' }}>
-                            {dayjs(track.createdAt).fromNow()}
-                        </Typography>
-                    </Box>
+
+                    <Typography sx={{ fontSize: 12, color: '#999' }}>
+                        {dayjs(track.createdAt).fromNow()}
+                    </Typography>
                 </Box>
 
-                {/* Waveform */}
-                <Box sx={{ position: 'relative', flexGrow: 1, my: 1, display: 'flex', alignItems: 'flex-end', minHeight: 60 }}>
+                {/* WAVEFORM */}
+                <Box
+                    sx={{
+                        position: 'relative',
+                        my: 1,
+                        minHeight: { xs: 60, md: 100 }
+                    }}
+                >
                     <Box ref={containerRef} sx={{ width: '100%', position: 'relative' }}>
                         <Box ref={hoverRef} sx={{
                             position: 'absolute',
@@ -691,131 +688,159 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                                 />
                             )}
                         </Box>
-                        <Box sx={{ position: 'absolute', bottom: 5, right: 0, background: 'rgba(0,0,0,0.8)', px: 0.5, py: 0.2, fontSize: 12, color: '#ccc' }}>
-                            {time} / {duration}
-                        </Box>
+                    </Box>
+
+                    {/* TIME */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            bottom: 5,
+                            right: 5,
+                            fontSize: 12,
+                            color: '#ccc'
+                        }}
+                    >
+                        {time} / {duration}
                     </Box>
                 </Box>
 
-                {/* Actions bottom */}
-                <Box sx={{ display: 'flex', gap: 1, pt: 1, alignItems: 'center' }}>
+                {/* ACTIONS */}
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        mt: 1
+                    }}
+                >
                     <Button
-                        variant="outlined"
                         size="small"
-                        startIcon={<FavoriteIcon fontSize="small" style={{ color: isLove ? '#f64a00' : '#ffffff' }} />}
-                        onClick={()=>{
-                            if(session) {
-                                handleLikeClick()
-                            }
-                            else                                             router.push('/auth/signin');
-
-                        }}
-                        disabled={mutation.isPending}
-                        sx={{
-                            color: isLove ? '#f64a00' : 'white',
-                            borderColor: isLove ? '#444' : '#444',
-                            textTransform: 'none',
-                            padding: '2px 8px',
-                            minWidth: 0,
-                            '&:hover': {
-                                borderColor: isLove ? '#f50' : '#f50',
-                                color: isLove ? '#f50' : '#f50'
-                            },
-                            cursor: mutation.isPending ? 'not-allowed' : 'pointer',
-                            opacity: mutation.isPending ? 0.8 : 1
-                        }}
+                        variant="outlined"
+                        onClick={handleLikeClick}
+                        sx={{ color: isLove ? '#f50' : 'white', borderColor: '#444' }}
                     >
-                        {countLikes || 0}
+                        ❤️ {countLikes}
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+
+                    <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small" />}
+                            onClick={()=>{
+                                if(session) {
+                                    setShowPlaylistModal(true)
+                                }
+                                else router.push('/auth/signin');
+
+                            }}
+                            sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Repost
-                    </Button>
-                    <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                        Share
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />}
                             onClick={()=>{
                                 if(session) {
-                                    setShowPlaylistModal(true)                                }
-                                else                                             router.push('/auth/signin');
+                                    setShowPlaylistModal(true)
+                                }
+                                else router.push('/auth/signin');
 
                             }}
                             sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                        Add to playlist
+                        Playlist
                     </Button>
-                    <Button variant="outlined" size="small" startIcon={<ContentCopyIcon fontSize="small" />} sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                        Copy Link
-                    </Button>
-                    <Button variant="outlined" size="small" sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                        <MoreHorizIcon fontSize="small" />
-                    </Button>
+                    <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />}
+                            onClick={()=>{
+                                if(session) {
+                                    setShowPlaylistModal(true)
+                                }
+                                else router.push('/auth/signin');
 
-                    <Box sx={{ ml: 'auto', display: 'flex', gap: 2, alignItems: 'center', color: '#999', fontSize: 13 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <PlayArrowOutlinedIcon fontSize="small" />
-                            {track.countPlay || 0}
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <ChatBubbleOutlineIcon fontSize="small" />
-                            {comments.length}
-                        </Box>
+                            }}
+                            sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                        Share
+                    </Button>
+                    <Box sx={{ ml: 'auto', display: 'flex', gap: 2 }}>
+                        <span>▶ {track.countPlay}</span>
+                        <span>💬 {comments.length}</span>
                     </Box>
                 </Box>
 
-                {/* Write a Comment Input - Show when track is playing */}
-                {
-                    isMatched && currentTrack.isPlaying && (
-                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #333' }}>
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={2}
-                                variant="outlined"
-                                placeholder="Write a comment..."
-                                value={commentInput.content}
-                                onChange={(e) => setCommentInput(prev => ({ ...prev, content: e.target.value }))}
+                {/* COMMENT INPUT */}
+                {isMatched && currentTrack.isPlaying && (
+                    <Box sx={{ mt: 2 }}>
+                        <TextField
+                            fullWidth
+                            multiline
+                            rows={2}
+                            placeholder="Write comment..."
+                            value={commentInput.content}
+                            onChange={(e) =>
+                                setCommentInput(prev => ({
+                                    ...prev,
+                                    content: e.target.value
+                                }))
+                            }
+                            sx={{
+                                '& .MuiOutlinedInput-root': {
+                                    bgcolor: '#1a1a1a', // Nền hơi sáng hơn nền tổng thể một chút
+                                    color: '#fff',
+                                    borderRadius: '8px', // Bo góc mềm mại hơn
+                                    transition: 'all 0.2s ease-in-out',
+
+                                    // 1. Viền mặc định
+                                    '& fieldset': {
+                                        borderColor: '#444',
+                                    },
+                                    // 2. Viền khi di chuột qua
+                                    '&:hover fieldset': {
+                                        borderColor: '#666',
+                                    },
+                                    // 3. Viền khi đang focus (nhập liệu)
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#f50', // Màu cam thương hiệu của bạn
+                                        borderWidth: '1px',  // Không nên để quá dày, 1px là đủ tinh tế
+                                    },
+                                },
+                                '& .MuiInputBase-input::placeholder': {
+                                    color: '#888', // Màu chữ placeholder dễ nhìn hơn
+                                    opacity: 1,
+                                },
+                            }}
+                        />
+
+                        <Box sx={{ textAlign: 'right', mt: 1 }}>
+                            <MuiButton
+                                onClick={handleSubmitComment}
+                                disabled={!commentInput.content.trim()}
+                                variant="contained"
                                 sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        '& fieldset': {
-                                            borderColor: '#444',
-                                        },
-                                        '&:hover fieldset': {
-                                            borderColor: '#666',
-                                        },
-                                        '&.Mui-focused fieldset': {
-                                            borderColor: '#f50',
-                                        },
+                                    bgcolor: '#f50',
+                                    color: '#fff', // Màu chữ khi nút active
+                                    borderRadius: '20px',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    '&:hover': {
+                                        bgcolor: '#ff4500',
                                     },
-                                    '& .MuiInputBase-input': {
-                                        color: 'white',
-                                    },
+                                    '&.Mui-disabled': {
+                                        bgcolor: '#333', // Màu nền nút khi bị disabled (xám nhẹ thay vì đen)
+                                        color: '#666',   // Màu chữ khi bị disabled
+                                    }
                                 }}
-                            />
-                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                                <MuiButton
-                                    onClick={handleSubmitComment}
-                                    disabled={!commentInput.content.trim()}
-                                    sx={{
-                                        bgcolor: '#f50',
-                                        color: 'white',
-                                        '&:hover': {
-                                            bgcolor: '#e04800',
-                                        },
-                                        '&:disabled': {
-                                            bgcolor: '#555',
-                                            color: '#999'
-                                        }
-                                    }}
-                                    variant="contained"
-                                    size="small"
-                                >
-                                    Post Comment
-                                </MuiButton>
-                            </Box>
+                            >
+                                Post
+                            </MuiButton>
                         </Box>
-                    )
-                }
-            </Box >
+                    </Box>
+                )}
+
+            </Box>
+            <AddToPlaylistModal
+                open={showPlaylistModal}
+                onClose={() => setShowPlaylistModal(false)}
+                trackId={Number(track.id)}
+                imgUrl={track.imgUrl}
+                title={track.title}
+                uploader={track.uploader.name}
+                trackUrl={track.trackUrl}
+                uploaderId={track.uploader.id}
+            />
 
             {/* Comment Input Modal for timestamped comments */}
             <Modal
@@ -903,20 +928,8 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                     </Box>
                 </Box>
             </Modal>
-
-            <AddToPlaylistModal
-                open={showPlaylistModal}
-                onClose={() => setShowPlaylistModal(false)}
-                trackId={Number(track.id)}
-                imgUrl={track.imgUrl}
-                title={track.title}
-                uploader={track.uploader.name}
-                uploaderId={track.uploader.id}
-                trackUrl={track.trackUrl}
-            />
         </Box>
+
     );
 };
 export default ProfileTrack;
-
-

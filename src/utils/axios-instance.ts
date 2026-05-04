@@ -9,6 +9,9 @@ const axiosInstance = axios.create({
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
+// Kênh truyền thông giữa các tabs
+const refreshChannel = typeof window !== 'undefined' ? new BroadcastChannel('auth_refresh_channel') : null;
+
 const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach((prom) => {
         if (error) {
@@ -20,11 +23,77 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
+// Lắng nghe thông điệp từ các tabs khác
+if (refreshChannel) {
+    refreshChannel.onmessage = (event) => {
+        if (event.data.type === 'REFRESH_SUCCESS') {
+            processQueue(null, event.data.token);
+        } else if (event.data.type === 'REFRESH_ERROR') {
+            processQueue(new Error(event.data.error), null);
+        }
+    };
+}
+
+/**
+ * Hàm xử lý refresh tập trung để dùng cho cả Request và Response Interceptor
+ * Đảm bảo chỉ có duy nhất 1 yêu cầu refresh được thực thi tại một thời điểm (kể cả giữa các tab)
+ */
+const getValidToken = async () => {
+    const refreshLockKey = 'next_auth_refresh_lock';
+    
+    // Kiểm tra khóa từ các tab khác qua localStorage (tránh race condition giữa các tab)
+    const isLocked = () => {
+        if (typeof window === 'undefined') return false;
+        const lockTime = localStorage.getItem(refreshLockKey);
+        return lockTime && Date.now() - parseInt(lockTime) < 10000; // Khóa trong 10s
+    };
+
+    // Nếu đang refresh ở tab này hoặc tab khác, đợi kết quả từ queue
+    if (isRefreshing || isLocked()) {
+        return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+        });
+    }
+
+    // Đánh dấu đang refresh và đặt khóa
+    isRefreshing = true;
+    if (typeof window !== 'undefined') {
+        localStorage.setItem(refreshLockKey, Date.now().toString());
+    }
+
+    try {
+        // NextAuth sẽ tự động gọi JWT callback để refresh token khi getSession được gọi
+        const updatedSession: any = await getSession();
+
+        if (!updatedSession || !updatedSession.access_token || updatedSession.access_token === "undefined" || updatedSession.error === 'RefreshAccessTokenError') {
+            const error = new Error(updatedSession?.error || 'Session refresh failed');
+            refreshChannel?.postMessage({ type: 'REFRESH_ERROR', error: error.message });
+            processQueue(error, null);
+            throw error;
+        }
+
+        const newAccessToken = updatedSession.access_token;
+
+        // Báo cho các tab khác biết đã refresh xong
+        refreshChannel?.postMessage({ type: 'REFRESH_SUCCESS', token: newAccessToken });
+
+        processQueue(null, newAccessToken);
+        return newAccessToken;
+    } catch (error: any) {
+        refreshChannel?.postMessage({ type: 'REFRESH_ERROR', error: error.message });
+        processQueue(error, null);
+        throw error;
+    } finally {
+        isRefreshing = false;
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(refreshLockKey);
+        }
+    }
+};
+
 // Request interceptor for adding auth token
 axiosInstance.interceptors.request.use(
     async (config) => {
-        // 1. Kiểm tra whitelist TRƯỚC khi gọi getSession để tối ưu hiệu năng
-        // Dùng so sánh chính xác hoặc regex để tránh trùng lặp giữa /tracks và /tracks/likes
         const publicEndpoints = [
             { url: '/api/v1/search', method: 'get' },
             { url: '/api/v1/tracks', method: 'get' },
@@ -35,32 +104,27 @@ axiosInstance.interceptors.request.use(
             config.method === endpoint.method
         );
 
-        // 2. Lấy session từ NextAuth
         const session: any = await getSession();
 
-        // 3. Logic gắn Token: CHỈ gắn khi KHÔNG phải endpoint công khai VÀ có token hợp lệ
         if (!isPublicEndpoint && session?.access_token && session.access_token !== "undefined") {
-
             const tokenExpiryBuffer = 2 * 60 * 1000; // 2 phút
             const timeUntilExpiry = session.expires_in
                 ? (session.expires_in * 1000 - Date.now())
                 : Infinity;
-            // Nếu token sắp hết hạn, thử lấy session mới nhất (proactive refresh)
-            if (timeUntilExpiry <= tokenExpiryBuffer) {
-                console.log('Token expiring soon, refreshing proactively...');
-                const updatedSession: any = await getSession();
 
-                if (updatedSession?.access_token && updatedSession.access_token !== "undefined") {
-                    config.headers.Authorization = `Bearer ${updatedSession.access_token}`;
-                } else {
+            // Nếu token sắp hết hạn, thực hiện refresh tập trung
+            if (timeUntilExpiry <= tokenExpiryBuffer) {
+                try {
+                    const token = await getValidToken();
+                    config.headers.Authorization = `Bearer ${token}`;
+                } catch (e) {
+                    // Nếu lỗi refresh, dùng token cũ (nó sẽ fail ở response interceptor)
                     config.headers.Authorization = `Bearer ${session.access_token}`;
                 }
             } else {
                 config.headers.Authorization = `Bearer ${session.access_token}`;
             }
         } else {
-            // QUAN TRỌNG: Xóa header Authorization nếu là Public hoặc không có Token
-            // Điều này ngăn chặn lỗi "Malformed token" do gửi "Bearer undefined" lên Spring Boot
             delete config.headers.Authorization;
         }
 
@@ -77,7 +141,6 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Nếu không phải lỗi 401 hoặc request đã thử lại rồi thì trả về lỗi luôn
         if (error.response?.status !== 401 || originalRequest._retry) {
             const res = error.response;
             if (res) {
@@ -86,57 +149,18 @@ axiosInstance.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // Nếu đang trong quá trình refresh token, đưa request vào hàng đợi
-        if (isRefreshing) {
-            return new Promise((resolve, reject) => {
-                failedQueue.push({ resolve, reject });
-            }).then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return axiosInstance(originalRequest);
-            }).catch((err) => {
-                return Promise.reject(err);
-            });
-        }
-
-        // Đánh dấu đang refresh để các request sau không gọi refresh trùng lặp
         originalRequest._retry = true;
-        isRefreshing = true;
 
         try {
-            // NextAuth sẽ tự động gọi JWT callback để refresh token khi getSession được gọi
-            const updatedSession: any = await getSession();
-
-            if (!updatedSession || !updatedSession.access_token || updatedSession.access_token === "undefined") {
-                processQueue(new Error('Session refresh failed'), null);
-                await signOut({ redirect: false });
-                window.location.href = '/auth/signin';
-                return Promise.reject(new Error('Session refresh failed'));
-            }
-
-            // Kiểm tra lỗi đặc biệt từ NextAuth refresh strategy
-            if (updatedSession.error === 'RefreshAccessTokenError') {
-                processQueue(new Error('Refresh token expired'), null);
-                await signOut({ redirect: false });
-                window.location.href = '/auth/signin';
-                return Promise.reject(new Error('Refresh token expired'));
-            }
-
-            const newAccessToken = updatedSession.access_token;
-
-            // Giải phóng hàng đợi với token mới
-            processQueue(null, newAccessToken);
-
-            // Thực hiện lại request ban đầu với token mới
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            // Thực hiện refresh tập trung khi gặp lỗi 401
+            const newToken = await getValidToken();
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return axiosInstance(originalRequest);
         } catch (refreshError) {
             console.error('Session refresh error:', refreshError);
-            processQueue(refreshError, null);
             await signOut({ redirect: false });
             window.location.href = '/auth/signin';
             return Promise.reject(refreshError);
-        } finally {
-            isRefreshing = false;
         }
     }
 );

@@ -71,7 +71,7 @@ const MainSlider = (props: IProps) => {
     };
     return (
         <Box sx={{
-            backgroundColor: '#212121',
+            backgroundColor: '#121212',
             margin: "0 50px",
 
             ".slick-slider": {

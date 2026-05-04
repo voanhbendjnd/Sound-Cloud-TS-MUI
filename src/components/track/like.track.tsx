@@ -80,7 +80,7 @@ const LikeTrack = (props: IProps) => {
     };
 
     return (
-        <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
+        <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center', marginTop:'' }}>
                     <Stack direction="row" spacing={1}>
                         <Chip
                             onClick={()=>{
@@ -119,7 +119,7 @@ const LikeTrack = (props: IProps) => {
 
                                 }}
                                 sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                            Add to playlist
+                            Playlist
                         </Button>
                     </Stack>
 

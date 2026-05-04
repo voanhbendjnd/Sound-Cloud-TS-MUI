@@ -12,17 +12,24 @@ import AccountCircle from '@mui/icons-material/AccountCircle';
 import MailIcon from '@mui/icons-material/Mail';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import MoreIcon from '@mui/icons-material/MoreVert';
-import { Avatar, Container } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import SearchIcon from '@mui/icons-material/Search';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { Avatar, Container, useMediaQuery, useTheme } from '@mui/material';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from "next-auth/react";
 import { useEffect } from "react";
 import Image from 'next/image';
 import SearchBar from '@/components/search/search-bar';
-import {generateProfileUrl} from "@/utils/generate.slug";
+import { generateProfileUrl } from "@/utils/generate.slug";
 
 const AppHeader = () => {
     const { data: session } = useSession();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     useEffect(() => {
         if (session?.error === "RefreshAccessTokenError") {
             signOut({ callbackUrl: "/auth/signin", redirect: true });
@@ -179,7 +186,8 @@ const AppHeader = () => {
         <div>
             <Box sx={{ flexGrow: 1 }}>
 
-                <AppBar position="static" sx={{ backgroundColor: '#030303' }}>
+                {/* Desktop Header - Hide on mobile */}
+                <AppBar position="static" sx={{ backgroundColor: '#030303', display: { xs: 'none', md: 'block' } }}>
                     <Container>
                         <Toolbar>
                             <Typography
@@ -194,9 +202,9 @@ const AppHeader = () => {
                             >
                                 DJND Music
                             </Typography>
-                            <SearchBar/>
+                            <SearchBar />
                             <Box sx={{ flexGrow: 1 }} />
-                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px"}}>
+                            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: "center", gap: "20px" }}>
                                 {pages.map((page) => (
                                     <Typography
                                         key={page.title}
@@ -290,6 +298,75 @@ const AppHeader = () => {
                 </AppBar>
                 {renderMobileMenu}
                 {renderMenu}
+
+                {/* Mobile Bottom Navigation - Show only on mobile */}
+                {isMobile && (
+                    <Box
+                        sx={{
+                            position: 'fixed',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 60,
+                            bgcolor: '#111',
+                            display: 'flex',
+                            justifyContent: 'space-around',
+                            alignItems: 'center',
+                            borderTop: '1px solid #333',
+                            zIndex: 9999
+                        }}
+                    >
+                        <IconButton
+                            onClick={() => router.push('/')}
+                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        >
+                            <HomeIcon />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => router.push('/search')}
+                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        >
+                            <SearchIcon />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => {
+                                if (session) {
+                                    router.push('/track/upload');
+                                } else {
+                                    router.push('/auth/signin');
+                                }
+                            }}
+                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        >
+                            <CloudUploadIcon />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => router.push('/playlist')}
+                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        >
+                            <LibraryMusicIcon />
+                        </IconButton>
+                        <IconButton
+                            onClick={() => {
+                                if (session) {
+                                    router.push(generateProfileUrl(session.user.name!, session.user.id!));
+                                } else {
+                                    router.push('/auth/signin');
+                                }
+                            }}
+                            sx={{ color: '#fff', '&:hover': { color: '#f50' } }}
+                        >
+                            {session?.user?.avatar ? (
+                                <Avatar
+                                    src={session.user.avatar}
+                                    sx={{ width: 28, height: 28 }}
+                                />
+                            ) : (
+                                <AccountCircleIcon />
+                            )}
+                        </IconButton>
+                    </Box>
+                )}
             </Box>
         </div>
     )
