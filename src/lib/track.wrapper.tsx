@@ -21,6 +21,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
         },
         "createdAt": "",
         "updatedAt": "",
+        "peaks":"",
         isPlaying: false,
         isLiked: false,
     }
@@ -58,9 +59,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
                 isLiked: false,
                 uploader: {
                     id: nextTrack.uploader?.id?.toString() || "",
-                    email: "",
                     name: nextTrack.uploader?.name || "",
-                    role: nextTrack.uploader?.role || "",
                     avatar: nextTrack.uploader?.avatar || ""
                 },
                 createdAt: "",
@@ -92,9 +91,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
                 isLiked: false,
                 uploader: {
                     id: prevTrack.uploader?.id?.toString() || "",
-                    email: "",
                     name: prevTrack.uploader?.name || "",
-                    role: prevTrack.uploader?.role || "",
                     avatar: prevTrack.uploader?.avatar || ""
                 },
                 createdAt: "",

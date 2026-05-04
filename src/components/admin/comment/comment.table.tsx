@@ -27,7 +27,6 @@ const CommentTable = () => {
         filter: searchTerm ? `content~'${searchTerm}'` : '',
         sort: 'updatedAt,desc'
     });
-
     const deleteCategoryMutation = useDeleteComment();
 
     const handleDelete = (id: number) => {
@@ -109,7 +108,7 @@ const CommentTable = () => {
                                     </TableCell>
                                 </TableRow>
                             ) :
-                            data?.data?.result.map((comment: IComment) => (
+                            data?.result.map((comment: IComment) => (
                                 <TableRow key={comment.id}>
                                     <TableCell>{comment.id}</TableCell>
                                     <TableCell>{comment.content}</TableCell>
@@ -132,7 +131,7 @@ const CommentTable = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Pagination
-                    count={data?.data?.meta.pages || 0}
+                    count={data?.meta.pages || 0}
                     page={page}
                     onChange={(e, v) => setPage(v)}
                     color="primary"

@@ -99,28 +99,31 @@ const AppHeader = () => {
             open={isMenuOpen}
             onClose={handleMenuClose}
         >
-            {session?.user.role === 'SUPER_ADMIN' ?
-                <MenuItem>
-                    <Link href="/dashboard/user" style={{
-                        textDecoration: 'none',
-                        color: 'unset',
-                    }}>
-                        Admin
-                    </Link>
-                </MenuItem>
-                :
-                null
-            }
-            <MenuItem>
-                <Link href={generateProfileUrl(session?.user.name!, session?.user.id!)}
-                    style={{
-                        textDecoration: 'none',
-                        color: 'unset',
-                    }}>
-                    Profile
+            {session && session?.user?.role !== 'SUPER_ADMIN' ?
 
-                </Link>
-            </MenuItem>
+                null :
+                <MenuItem>
+                <Link href="/dashboard/user" style={{
+                textDecoration: 'none',
+                color: 'unset',
+            }}>
+            Admin
+        </Link>
+</MenuItem>
+            }
+            {session  && <MenuItem>
+            <Link href={generateProfileUrl(session?.user?.name, session?.user?.id!)}
+                  style={{
+                      textDecoration: 'none',
+                      color: 'unset',
+                  }}>
+                Profile
+
+            </Link> :
+                null
+        </MenuItem>
+            }
+
 
             <MenuItem onClick={() => {
                 signOut();
@@ -218,7 +221,7 @@ const AppHeader = () => {
                                         {page.title}
                                     </Typography>
                                 ))}
-                                {session?.user.role === 'SUPER_ADMIN' ?
+                                {session && session?.user?.role === 'SUPER_ADMIN' ?
                                     <Typography
                                         key='Dashboard'
                                         onClick={() => handleProtectedNavigation("/dashboard/user")} // Dùng onClick thay vì Link

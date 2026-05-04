@@ -170,7 +170,7 @@ const TrackTable = () => {
                             <Divider />
                             <Typography><strong>Title:</strong> {viewTrack.title}</Typography>
                             <Typography><strong>Category:</strong> {viewTrack.category}</Typography>
-                            <Typography><strong>Uploader:</strong> {viewTrack.uploader?.name} ({viewTrack.uploader?.email})</Typography>
+                            <Typography><strong>Uploader:</strong> {viewTrack.uploader?.name}</Typography>
                             <Typography><strong>Description:</strong> {viewTrack.description}</Typography>
                             <Typography><strong>Plays:</strong> {viewTrack.countPlay}</Typography>
                             <Typography><strong>Likes:</strong> {viewTrack.countLike}</Typography>
