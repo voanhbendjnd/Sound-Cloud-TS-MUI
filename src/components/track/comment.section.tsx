@@ -127,7 +127,7 @@ const CommentSection = (props: IProps) => {
             }
         );
         setNewComment("");
-        toast.success("Post comment success");
+        toast.dark("Post comment success");
     }
 
     const handleJumpToMoment = (moment: number) => {

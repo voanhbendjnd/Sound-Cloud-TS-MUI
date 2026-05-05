@@ -22,6 +22,8 @@ import { useRouter } from "next/navigation";
 import { useTheme, useMediaQuery } from "@mui/material";
 import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
 import Link from "next/link";
+import {FavoriteBorder, Hearing, HeartBroken} from "@mui/icons-material";
+import FavoriteIcon from "@mui/icons-material/Favorite";
 dayjs.extend(relativeTime);
 
 export interface ProfileTrackProps {
@@ -717,9 +719,24 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                         size="small"
                         variant="outlined"
                         onClick={handleLikeClick}
-                        sx={{ color: isLove ? '#f50' : 'white', borderColor: '#444' }}
-                    >
-                        ❤️ {countLikes}
+
+                        sx={{ color: isLove ? '#f50' : 'white', borderColor: '#444',
+                            '&:hover': {
+                                borderColor: '#f50',
+                                color: isLove ? '#f50' : '#f50'
+                            },
+                            '& .MuiChip-icon': {
+                                color: isLove ? '#f64a00' : 'inherit'
+                            },
+                            '&:hover .MuiChip-icon': {
+                                color: '#f50'
+                            }}}
+                        startIcon={
+                            isLove
+                                ? <FavoriteIcon fontSize="small" />
+                                : <HeartBroken fontSize="small" />
+                        }                    >
+                         {countLikes}
                     </Button>
 
                     <Button variant="outlined" size="small" startIcon={<RepeatIcon fontSize="small" />}

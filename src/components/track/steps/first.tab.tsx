@@ -5,6 +5,7 @@ import { styled } from '@mui/material/styles';
 import Button from '@mui/material/Button';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import {useCallback} from "react";
+import {toast} from "react-toastify";
 const VisuallyHiddenInput = styled('input')({
     clip: 'rect(0 0 0 0)',
     clipPath: 'inset(50%)',
@@ -45,18 +46,32 @@ interface IProps {
 
 const FirstTabs = (props: IProps) => {
     const {setValue, setTrackAudio} = props;
-    const onDrop = useCallback((acceptedFiles : FileWithPath[]) => {
-        if(acceptedFiles && acceptedFiles[0]){
-            setTrackAudio(acceptedFiles[0]);
-            setValue(1);
+    // const onDrop = useCallback((acceptedFiles : FileWithPath[]) => {
+    //     if(acceptedFiles && acceptedFiles[0]){
+    //         setTrackAudio(acceptedFiles[0]);
+    //         setValue(1);
+    //     }
+    // }, [setValue, setTrackAudio])
+    const onDrop = useCallback((acceptedFiles: FileWithPath[]) => {
+        const file = acceptedFiles[0];
+
+        if (!file) return;
+
+        if (file.type !== 'audio/mpeg') {
+            toast.error("Only upload file .mp3 for track!")
+            return;
         }
-    }, [setValue, setTrackAudio])
+
+        setTrackAudio(file);
+        setValue(1);
+    }, [setValue, setTrackAudio]);
     const {acceptedFiles, getRootProps, getInputProps} = useDropzone({
         onDrop,
         accept:{
-            'audio/*':['.mp3', '.m4a', '.wav', '.flac']
+            'audio/*':['.mp3', '.m4a', '.flac', '.wav']
         }
     });
+
     const files = acceptedFiles.map((file: FileWithPath) => (
         <li style={{color:'white'}} key={file.path}>
             {file.path} - {file.size} bytes
@@ -73,6 +88,7 @@ const FirstTabs = (props: IProps) => {
             <aside>
                 <h4 style={{color:'white'}}>Files</h4>
                 <ul>{files}</ul>
+                {/*<h5 style={{color:'white'}}>Only mp3, if you use a file other than an .mp3 file, the track will not be accepted.</h5>*/}
             </aside>
         </section>
     );

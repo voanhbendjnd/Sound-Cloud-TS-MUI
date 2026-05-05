@@ -12,17 +12,18 @@ export const trackKeys = {
     detail: (id: string | number) => [...trackKeys.details(), id] as const,
 };
 
-export const useTracks = (params: { current: number; pageSize: number; filter?: string; sort?: string }) => {
+export const useTracks = (params: { current: number; pageSize: number; filter?: string; sort?: string; category?: string }) => {
     return useQuery({
         queryKey: trackKeys.list(params),
         queryFn: async () => {
-            const { current, pageSize, filter, sort } = params;
+            const { current, pageSize, filter, sort, category } = params;
             // Map common names to backend expected params (e.g. page instead of current)
             const queryParams = new URLSearchParams();
             queryParams.append('page', current.toString());
             queryParams.append('size', pageSize.toString());
             if (filter) queryParams.append('filter', filter);
             if (sort) queryParams.append('sort', sort);
+            if (category) queryParams.append('category', category);
 
             return axiosInstance.get<any, IBackendRes<IModelPaginate<ITrack>>>(`/api/v1/tracks?${queryParams.toString()}`);
         },
@@ -64,8 +65,7 @@ export const useCreateTrack = () => {
         mutationFn: (formData: FormData) =>
             axiosInstance.post('/api/v1/tracks', formData, {
                 headers: { 'Content-Type': 'multipart/form-data',
-                    // Authorization: `Bearer ${session?.access_token}`
-
+                    Authorization: `Bearer ${session?.access_token}`
                 },
 
             }),

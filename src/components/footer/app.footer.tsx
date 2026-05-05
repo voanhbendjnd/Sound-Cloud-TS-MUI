@@ -156,11 +156,11 @@ const AppFooter = () => {
                 sx={{
                     bgcolor: 'rgba(20,20,20,0.7)',
                     backdropFilter: 'blur(12px)',
-                    border: '1px solid #333',
                     display: 'flex',
                     alignItems: 'center',
                     px: 2,
                     zIndex: 10000,
+                    overflow: 'hidden',
                 }}
             >
                 <Container sx={{ display: "flex", gap: 3, alignItems: "center", py: 1, maxWidth: 'xl', px: 0 }}>
@@ -326,6 +326,45 @@ const AppFooter = () => {
                             >
                                 {currentTrack.isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
                             </IconButton>
+
+                            {/* SVG Border Progress (runs around the container) */}
+                            <svg
+                                style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    pointerEvents: 'none',
+                                }}
+                            >
+                                {/* Static background border (optional, replaces standard CSS border) */}
+                                <rect
+                                    width="100%"
+                                    height="100%"
+                                    rx="16"
+                                    ry="16"
+                                    fill="none"
+                                    stroke="#333"
+                                    strokeWidth="2"
+                                />
+                                {/* Dynamic progress border */}
+                                <rect
+                                    width="100%"
+                                    height="100%"
+                                    rx="16"
+                                    ry="16"
+                                    fill="none"
+                                    stroke="#f50"
+                                    strokeWidth="4" // 4px stroke, but 2px will be clipped by parent's overflow:hidden
+                                    pathLength="100"
+                                    strokeDasharray="100"
+                                    strokeDashoffset={100 - (duration ? (currentTime / duration) * 100 : 0)}
+                                    style={{
+                                        transition: 'stroke-dashoffset 0.1s linear'
+                                    }}
+                                />
+                            </svg>
                         </>
                         ) : (
                             /* Desktop: Track Info (Right Side) */

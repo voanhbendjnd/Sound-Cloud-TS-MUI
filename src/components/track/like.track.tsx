@@ -2,7 +2,7 @@
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { Headphones } from "@mui/icons-material";
+import {Headphones, HeartBroken} from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useCountTrackMutation, useLikeTrackMutation } from "@/hooks/use-track";
 import { useSession } from "next-auth/react";
@@ -106,8 +106,13 @@ const LikeTrack = (props: IProps) => {
                                     color: '#f50'
                                 }
                             }}
-                            icon={<FavoriteIcon />}
-                            label={isLiked ? "Liked" : "Like"}
+                            icon={
+                                isLiked
+                                    ? <FavoriteIcon fontSize="small" />
+                                    : <HeartBroken fontSize="small" />
+                            }
+                            // icon={<FavoriteIcon />}
+                            label={isLiked ? countLikes : "Like"}
                             variant="outlined"
                         />
                         <Button variant="outlined" size="small" startIcon={<PlaylistAddIcon fontSize="small" />}

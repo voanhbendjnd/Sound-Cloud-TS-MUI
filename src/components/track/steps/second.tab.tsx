@@ -116,12 +116,12 @@ const SecondTabs = (props: IProps) => {
 
     const handleSave = () => {
         if (!trackAudio || !title || !category || !imgFile) {
-            toast.error("Vui lòng điền đầy đủ thông tin (Title, Category, File Audio, Hình Ảnh)");
+            toast.error("Please input full information for this track!");
             return;
         }
 
         if (progress < 100 || !uploadedFileName) {
-            toast.error("Vui lòng đợi file upload hoàn tất!");
+            toast.error("Please waiting upload file success!");
             return;
         }
 
@@ -145,7 +145,6 @@ const SecondTabs = (props: IProps) => {
                 setDescription('');
                 setCategory('');
                 try {
-                    // Gọi API xóa cache trên server
                     await sendRequest({
                         url: `/api/revalidate`,
                         method: 'POST',
