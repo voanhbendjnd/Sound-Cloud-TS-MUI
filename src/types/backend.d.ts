@@ -144,6 +144,7 @@ declare global{
     }
     interface IShareTrack extends ITrack{
         isPlaying: boolean;
+        isYoutube?: boolean;
     }
 
     interface IUploader{
@@ -158,6 +159,31 @@ declare global{
         imgUrl: string;
         trackUrl:string;
     }
+    interface IYoutubeSearchResult {
+        videoId: string;
+        title: string;
+        thumbnail: string;
+        channel: string;
+        duration: number;
+    }
+    export interface ITrackResponseWrapper {
+        meta: {
+            total: number;
+            page: number;
+            pageSize: number;
+            pages: number;
+        };
+        result: ITrack[];
+    }
+    interface IFallbackHome<T> {
+        type: 'local' | 'youtube' | 'empty';
+        data: ITrackResponseWrapper[];
+    }
+
+    interface ISearchFallbackResponse<T> {
+        type: 'local' | 'youtube' | 'empty';
+        data: IModelPaginate<ITrack>;
+    }
     interface IPlaylist{
         id: number;
         title: string;
@@ -167,12 +193,12 @@ declare global{
         isPublic: boolean;
         createdAt: string;
         updatedAt: string;
-        createdBy?: string;
-        user?: {
+        createdBy: string;
+        userId:string;
+        user: {
             id: number;
             name: string;
             avatar: string;
-            role: string;
         }
         playlistTracks: IPlaylistTrack[];
 

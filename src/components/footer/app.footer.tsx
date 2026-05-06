@@ -18,21 +18,25 @@ import Link from "next/link";
 import { useLikeTrackMutation } from "@/hooks/use-track";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
-import { redirect, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from 'next/image';
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 import { generateProfileUrl, generateTrackUrlUp } from "@/utils/generate.slug";
+import CustomYouTubePlayer from "./custom.youtube.player";
 import Drawer from "@mui/material/Drawer";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
+import {redirect, useRouter} from "next/navigation";
+import H5AudioPlayer from "react-h5-audio-player";
 
 const AppFooter = () => {
     const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, playNextTrack, playPreviousTrack } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
     const hasMounted = useHasMounted();
+
+    const audioRefPro = useRef<H5AudioPlayer>(null);
     const mutation = useLikeTrackMutation();
     const [isLiked, setIsLiked] = useState<boolean>(currentTrack.isLiked);
     const { data: session } = useSession();
@@ -42,8 +46,8 @@ const AppFooter = () => {
     const router = useRouter();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const index = currentTrack.trackUrl.indexOf(keyword);
-    const trackUrlCut = currentTrack.trackUrl.substring(index + keyword.length);
+    const index = currentTrack.trackUrl ? currentTrack.trackUrl.indexOf(keyword) : -1;
+    const trackUrlCut = index !== -1 ? currentTrack.trackUrl.substring(index + keyword.length) : currentTrack.trackUrl;
 
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -57,7 +61,7 @@ const AppFooter = () => {
 
     // Sync footer play/pause with audio element state
     useEffect(() => {
-        if (audioRef.current) {
+        if (audioRef.current && !currentTrack.isYoutube) {
             const audio = audioRef.current;
 
             const updatePlayState = () => {
@@ -74,7 +78,7 @@ const AppFooter = () => {
                 audio.removeEventListener('pause', updatePlayState);
             };
         }
-    }, [audioRef.current, currentTrack.trackUrl, setCurrentTrack]);
+    }, [audioRef.current, currentTrack.trackUrl, currentTrack.isYoutube, setCurrentTrack]);
 
     const handleLikeClick = () => {
         if (session === null) {
@@ -96,7 +100,7 @@ const AppFooter = () => {
         setIsLiked(currentTrack.isLiked);
     }, [currentTrack.id, currentTrack.isLiked]);
     useEffect(() => {
-        if (!audioRef.current || !currentTrack.id || !currentTrack.isPlaying) return;
+        if (!audioRef.current || !currentTrack.id || !currentTrack.isPlaying || currentTrack.isYoutube) return;
 
         const handleTimeUpdate = () => {
             const time = audioRef.current?.currentTime || 0;
@@ -128,14 +132,14 @@ const AppFooter = () => {
     }, [currentTrack, viewedTracks, markTrackAsViewed]);
     // Sync AudioPlayer with global isPlaying state
     useEffect(() => {
-        if (!playerRef.current?.audio?.current) return;
+        if (!playerRef.current?.audio?.current || currentTrack.isYoutube) return;
 
         if (currentTrack.isPlaying) {
             playerRef.current.audio.current.play().catch((e: any) => console.log('Footer play failed:', e));
         } else {
             playerRef.current.audio.current.pause();
         }
-    }, [currentTrack.isPlaying, currentTrack.id]);
+    }, [currentTrack.isPlaying, currentTrack.id, currentTrack.isYoutube]);
 
     if (!hasMounted) return (<></>)
 
@@ -226,39 +230,75 @@ const AppFooter = () => {
                         '& .rhap_volume-bar-area': { display: 'none' },
                         '& .rhap_repeat-button': { color: '#ccc', fontSize: '22px' },
                     }}>
-                        <AudioPlayer
-                            ref={(c) => {
-                                playerRef.current = c;
-                                if (c && c.audio.current) {
-                                    audioRef.current = c.audio.current;
-                                    audioRef.current.preload = 'none';
-                                }
-                            }}
-                            autoPlay={false}
-                            showSkipControls={true}
-                            showJumpControls={false}
-                            src={`${currentTrack.trackUrl}`}
-                            volume={0.5}
-                            preload="none"
-                            onPlay={() => setCurrentTrack({ ...currentTrack, isPlaying: true })}
-                            onPause={() => setCurrentTrack({ ...currentTrack, isPlaying: false })}
-                            onEnded={() => playNextTrack()}
-                            onClickNext={() => playNextTrack()}
-                            onClickPrevious={() => playPreviousTrack()}
-                            customProgressBarSection={[
-                                RHAP_UI.MAIN_CONTROLS,
-                                <ShuffleIcon key="shuffle" sx={{ color: '#ccc', fontSize: 22, mx: 0.5, cursor: 'pointer', '&:hover': { color: 'white' } }} />,
-                                RHAP_UI.LOOP,
-                                RHAP_UI.CURRENT_TIME,
-                                RHAP_UI.PROGRESS_BAR,
-                                RHAP_UI.DURATION,
-                                RHAP_UI.VOLUME,
-                            ]}
-                            customControlsSection={[]}
-                            customVolumeControls={[]}
-                            customAdditionalControls={[]}
-                        />
+                        {currentTrack.isYoutube ? (
+                            <CustomYouTubePlayer 
+                                onProgress={(time) => setCurrentTime(time)}
+                                onDuration={(d) => setDuration(d)}
+                            />
+                        ) : (
+                            <AudioPlayer
+                                ref={(c) => {
+                                    playerRef.current = c;
+                                    if (c && c.audio.current) {
+                                        audioRef.current = c.audio.current;
+                                        audioRef.current.preload = 'none';
+                                    }
+                                }}
+                                autoPlay={false}
+                                showSkipControls={true}
+                                showJumpControls={false}
+                                src={`${currentTrack.trackUrl}`}
+                                volume={0.5}
+                                preload="none"
+                                onPlay={() => setCurrentTrack({ ...currentTrack, isPlaying: true })}
+                                onPause={() => setCurrentTrack({ ...currentTrack, isPlaying: false })}
+                                onEnded={() => playNextTrack()}
+                                onClickNext={() => playNextTrack()}
+                                onClickPrevious={() => playPreviousTrack()}
+                                listenInterval={500}
+                                onListen={(e) => {
+                                    if (audioRef.current) {
+                                        setCurrentTime(audioRef.current.currentTime);
+                                    }
+                                }}
+                                // onProgress={(e) => {
+                                //     if (audioRef.current) {
+                                //         setCurrentTime(audioRef.current.currentTime);
+                                //     }
+                                // }}
+                                customProgressBarSection={[
+                                    RHAP_UI.MAIN_CONTROLS,
+                                    <ShuffleIcon key="shuffle" sx={{ color: '#ccc', fontSize: 22, mx: 0.5, cursor: 'pointer', '&:hover': { color: 'white' } }} />,
+                                    RHAP_UI.LOOP,
+                                    RHAP_UI.CURRENT_TIME,
+                                    RHAP_UI.PROGRESS_BAR,
+                                    RHAP_UI.DURATION,
+                                    RHAP_UI.VOLUME,
+                                ]}
+                                customControlsSection={[]}
+                                customVolumeControls={[]}
+                                customAdditionalControls={[]}
+                            />
+                        )}
                     </Box>
+
+                    {/* YouTube Engine for Mobile (Invisible) */}
+                    {isMobile && currentTrack.isYoutube && (
+                        <Box sx={{ 
+                            position: 'absolute', 
+                            opacity: 0, 
+                            pointerEvents: 'none', 
+                            width: 1, 
+                            height: 1, 
+                            overflow: 'hidden' 
+                        }}>
+                            <CustomYouTubePlayer 
+                                minimal={true}
+                                onProgress={(time) => setCurrentTime(time)}
+                                onDuration={(d) => setDuration(d)}
+                            />
+                        </Box>
+                    )}
 
                     {isMobile ? (
                         <>
@@ -370,105 +410,145 @@ const AppFooter = () => {
                             /* Desktop: Track Info (Right Side) */
                             <Box sx={{ display: "flex", alignItems: "center", minWidth: 280, maxWidth: 300 }}>
                                 <Box sx={{ width: 40, height: 40, mr: 1.5, flexShrink: 0, backgroundColor: '#444' }}>
-                                    <Link href={`/track/${currentTrack.id}?audio=${trackUrlCut}&id=${currentTrack.id}`} style={{ textDecoration: 'none' }}>
-
-                                        {currentTrack.imgUrl && (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <Image
-                                                src={`${currentTrack.imgUrl}`}
-                                                alt={currentTrack.title}
-                                                width={40}
-                                                height={40}
-                                                style={{
-                                                    objectFit: 'cover',
-                                                    borderRadius: '4px'
-                                                }}
-                                                unoptimized={true}
-                                            />
-                                        )}
-                                    </Link>
+                                    {!currentTrack.isYoutube ? (
+                                        <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                            {currentTrack.imgUrl && (
+                                                <Image
+                                                    src={`${currentTrack.imgUrl}`}
+                                                    alt={currentTrack.title}
+                                                    width={40}
+                                                    height={40}
+                                                    style={{
+                                                        objectFit: 'cover',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                    unoptimized={true}
+                                                />
+                                            )}
+                                        </Link>
+                                    ) : (
+                                        <Image
+                                            src={`${currentTrack.imgUrl}`}
+                                            alt={currentTrack.title}
+                                            width={40}
+                                            height={40}
+                                            style={{
+                                                objectFit: 'cover',
+                                                borderRadius: '4px'
+                                            }}
+                                            unoptimized={true}
+                                        />
+                                    )}
                                 </Box>
 
                                 <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, overflow: 'hidden' }}>
-                                    <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
+                                    {!currentTrack.isYoutube ? (
+                                        <Link href={generateProfileUrl(currentTrack.uploader.name, currentTrack.uploader.id)} style={{ textDecoration: 'none' }}>
+                                            <Typography
+                                                noWrap
+                                                sx={{
+                                                    color: "#aaa",
+                                                    fontSize: 11,
+                                                    mb: 0.2,
+                                                    '&:hover': {
+                                                        color: "white",
+                                                        fontWeight: 'bold'
+                                                    }
+                                                }}
+                                            >
+                                                {currentTrack.uploader?.name || "Unknown"}
+                                            </Typography>
+                                        </Link>
+                                    ) : (
                                         <Typography
                                             noWrap
                                             sx={{
                                                 color: "#aaa",
                                                 fontSize: 11,
-                                                mb: 0.2,
-                                                '&:hover': {
-                                                    color: "white",
-                                                    fontSize: 'bold'
-                                                }
+                                                mb: 0.2
                                             }}
                                         >
-                                            {currentTrack.uploader?.name || "Unknown"}
+                                            {currentTrack.uploader?.name || "YouTube"}
                                         </Typography>
-                                    </Link>
+                                    )}
 
-                                    <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                    {!currentTrack.isYoutube ? (
+                                        <Link href={generateTrackUrlUp(Number(currentTrack.id), currentTrack.title)} style={{ textDecoration: 'none' }}>
+                                            <Typography
+                                                noWrap
+                                                sx={{
+                                                    color: "white",
+                                                    fontSize: 13,
+                                                    fontWeight: 'bold',
+                                                    transition: "color 0.2s ease",
+                                                    '&:hover': {
+                                                        color: "#f50",
+                                                    }
+                                                }}
+                                            >
+                                                {currentTrack.title || "No Track Selected"}
+                                            </Typography>
+                                        </Link>
+                                    ) : (
                                         <Typography
                                             noWrap
                                             sx={{
                                                 color: "white",
                                                 fontSize: 13,
-                                                fontWeight: 'bold',
-                                                transition: "color 0.2s ease",
+                                                fontWeight: 'bold'
+                                            }}
+                                        >
+                                            {currentTrack.title || "YouTube Track"}
+                                        </Typography>
+                                    )}
+                                </Box>
+                                {!currentTrack.isYoutube && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                                if (session) {
+                                                    handleLikeClick()
+
+                                                }
+                                                else router.push('/auth/signin');
+
+                                            }}
+                                            disabled={mutation.isPending}
+                                            sx={{
+                                                color: '#ccc',
+                                                p: 0.5,
+                                                transition: 'all 0.2s ease',
                                                 '&:hover': {
-                                                    color: "#f50",
+                                                    transform: 'scale(1.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
                                                 }
                                             }}
                                         >
-                                            {currentTrack.title || "No Track Selected"}
-                                        </Typography>
-                                    </Link>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            if (session) {
-                                                handleLikeClick()
-
-                                            }
-                                            else router.push('/auth/signin');
-
-                                        }}
-                                        disabled={mutation.isPending}
-                                        sx={{
-                                            color: '#ccc',
-                                            p: 0.5,
-                                            transition: 'all 0.2s ease',
-                                            '&:hover': {
-                                                transform: 'scale(1.2)',
-                                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                                            }
-                                        }}
-                                    >
-                                        <FavoriteIcon
-                                            sx={{
-                                                fontSize: 'inherit',
-                                                color: currentTrack.isLiked ? '#f64a00' : 'inherit',
-                                                transition: 'color 0.2s ease'
-                                            }}
-                                        />
-                                    </IconButton>
-                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                        <PersonAddIcon fontSize="small" />
-                                    </IconButton>
-                                    <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
-                                        <PlaylistAddIcon
-                                            onClick={() => {
-                                                if (session) {
-                                                    setShowPlaylistModal(true);
-                                                } else {
-                                                    router.push('/auth/signin');
-                                                }
-                                            }}
-                                            fontSize="small" />
-                                    </IconButton>
-                                </Box>
+                                            <FavoriteIcon
+                                                sx={{
+                                                    fontSize: 'inherit',
+                                                    color: currentTrack.isLiked ? '#f64a00' : 'inherit',
+                                                    transition: 'color 0.2s ease'
+                                                }}
+                                            />
+                                        </IconButton>
+                                        <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
+                                            <PersonAddIcon fontSize="small" />
+                                        </IconButton>
+                                        <IconButton size="small" sx={{ color: '#ccc', p: 0.5 }}>
+                                            <PlaylistAddIcon
+                                                onClick={() => {
+                                                    if (session) {
+                                                        setShowPlaylistModal(true);
+                                                    } else {
+                                                        router.push('/auth/signin');
+                                                    }
+                                                }}
+                                                fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                )}
                             </Box>
                         )}
                     <AddToPlaylistModal
@@ -585,12 +665,16 @@ const AppFooter = () => {
 
                     {/* Additional Controls */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 'auto' }}>
-                        <IconButton sx={{ color: '#ccc' }}>
-                            <FavoriteIcon />
-                        </IconButton>
-                        <IconButton sx={{ color: '#ccc' }}>
-                            <PlaylistAddIcon />
-                        </IconButton>
+                        {!currentTrack.isYoutube && (
+                            <>
+                                <IconButton sx={{ color: '#ccc' }}>
+                                    <FavoriteIcon />
+                                </IconButton>
+                                <IconButton sx={{ color: '#ccc' }}>
+                                    <PlaylistAddIcon />
+                                </IconButton>
+                            </>
+                        )}
                         <IconButton sx={{ color: '#ccc' }}>
                             <ShuffleIcon />
                         </IconButton>

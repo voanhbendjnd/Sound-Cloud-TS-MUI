@@ -33,7 +33,11 @@ const TrackItem = ({ track, index, isCurrent, isPlaying, onPlay, onDelete }: IPr
             </ListItemAvatar>
             <ListItemText
                 primary={
-                    <Typography sx={{ color: '#fff', fontWeight: isCurrent ? 600 : 400 }}>
+                    <Typography sx={{ color: '#fff', fontWeight: isCurrent ? 600 : 400,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow:' ellipsis'
+                    }}>
                         {track.title}
                     </Typography>
                 }
@@ -44,7 +48,9 @@ const TrackItem = ({ track, index, isCurrent, isPlaying, onPlay, onDelete }: IPr
                 }
             />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography sx={{ color: '#666', fontSize: '0.875rem' }}>
+                <Typography sx={{ color: '#666', fontSize: '0.875rem',    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow:' ellipsis' }}>
                     {track.countPlays || 0} plays
                 </Typography>
                 

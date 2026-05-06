@@ -29,7 +29,7 @@ export default async function HomePage() {
     age: number;
   }
 
-  const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
+  const res = await sendRequest<IBackendRes<IFallbackHome<ITrackResponseWrapper>>>({
     url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks`,
     method: "GET",
     queryParams: {
@@ -40,12 +40,19 @@ export default async function HomePage() {
       cache: 'no-store'
     }
   });
+  // console.log("res.data:", res.data);
+  // console.log("paginate:", res.data?.data);
+  // console.log("result:", res.data?.data?.result);
+  // const tracks = (res?.data)?.data?.[0]?.result ?? []
+  //@ts-ignore
+  const tracks = res?.data?.data?.[0]?.result ?? [];
+  console.log("tracks:", tracks.data?.data.result);
   return (
     <div style={{ backgroundColor: '#121212' ,paddingTop:50}}>
       <Container>
         <MainSlider
           title="Trending"
-          data={res?.data?.result ? res.data.result : []}
+          data={tracks}
         />
       </Container>
     </div>

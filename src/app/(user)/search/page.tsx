@@ -9,16 +9,19 @@ import { Box, Typography, CircularProgress, Container, TextField, useMediaQuery,
 import SearchBar from '@/components/search/search-bar';
 import { useSearchSuggestions } from '@/hooks/use-search';
 import Image from 'next/image';
+import { useTrackContext } from '@/lib/track.wrapper';
 
 const SearchPage = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const query = searchParams.get('q') || '';
     const [page, setPage] = useState(1);
-    const [allTracks, setAllTracks] = useState<ITrack[]>([]);
+    const [allTracks, setAllTracks] = useState<any[]>([]);
+    const [searchType, setSearchType] = useState<'local' | 'youtube' | 'empty'>('empty');
     const loadMoreRef = useRef<HTMLDivElement>(null);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const { setCurrentTrack, setPlaylistTracks } = useTrackContext() as ITrackContext;
 
     // Local search state for mobile
     const [searchKeyword, setSearchKeyword] = useState(query);
@@ -66,16 +69,24 @@ const SearchPage = () => {
     // Fetch search results with pagination
     const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery({
         queryKey: ['search-results', query],
-        queryFn: async ({ pageParam = 1 }) => {
-            const response = await fetch(
-                `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/search?q=${encodeURIComponent(query)}&page=${pageParam}&size=10`
-            );
+        queryFn: async ({ pageParam = '' }) => {
+            let url = `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/search?q=${encodeURIComponent(query)}&size=10`;
+            if (typeof pageParam === 'string' && pageParam !== '') {
+                url += `&pageToken=${pageParam}`;
+            } else if (typeof pageParam === 'number') {
+                url += `&page=${pageParam}`;
+            }
+            const response = await fetch(url);
             const data = await response.json();
             return data;
         },
-        initialPageParam: 1,
-        getNextPageParam: (lastPage) => {
-            const meta = lastPage.data?.meta;
+        initialPageParam: 1 as any,
+        getNextPageParam: (lastPage: any) => {
+            if (lastPage?.type === 'youtube') {
+                return lastPage?.data?.[0]?.meta?.nextPageToken || undefined;
+            }
+            if (lastPage?.type === 'empty') return undefined; 
+            const meta = lastPage.data?.[0]?.meta;
             if (meta && meta.page < meta.pages) {
                 return meta.page + 1;
             }
@@ -85,16 +96,28 @@ const SearchPage = () => {
     });
 
     // Fetch suggestions for mobile
-    const { data: suggestions, isLoading: suggestionsLoading } = useSearchSuggestions({
+    const { data: suggestionsResponse, isLoading: suggestionsLoading } = useSearchSuggestions({
         query: debouncedKeyword,
         enabled: isMobile && debouncedKeyword.length >= 2
     });
-    const suggestionsList = suggestions ?? [];
+    const suggestionsType = suggestionsResponse?.type ?? 'empty';
+    const suggestionsList = suggestionsType === 'youtube' 
+        ? (suggestionsResponse?.data?.[0]?.result ?? []) 
+        : (suggestionsResponse?.data ?? []);
 
     // Update all tracks when data changes
     useEffect(() => {
-        if (data?.pages) {
-            const tracks = data.pages.flatMap(page => page.data?.result || []);
+        if (data?.pages && data.pages.length > 0) {
+            const type = data.pages[0]?.type || 'empty';
+            setSearchType(type);
+            const tracks = data.pages.flatMap((page: any) => {
+                if (page.type === 'local') {
+                    return page.data?.[0]?.result || [];
+                } else if (page.type === 'youtube') {
+                    return page.data?.[0]?.result || [];
+                }
+                return [];
+            });
             setAllTracks(tracks);
         }
     }, [data]);
@@ -118,8 +141,29 @@ const SearchPage = () => {
     }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
     // Handle suggestion click
-    const handleSuggestionClick = (suggestion: ISearchResult) => {
+    const handleSuggestionClick = (suggestion: any) => {
         saveRecentSearch(suggestion.title);
+        if (suggestionsType === 'youtube') {
+            setCurrentTrack({
+                id: suggestion.videoId,
+                title: suggestion.title,
+                description: "",
+                category: "",
+                imgUrl: suggestion.thumbnail,
+                trackUrl: suggestion.videoId,
+                countLike: 0,
+                countPlay: 0,
+                uploader: { id: "", email: "", name: suggestion.channel, role: "", avatar: suggestion.thumbnail },
+                createdAt: "",
+                updatedAt: "",
+                peaks: "",
+                isPlaying: true,
+                isLiked: false,
+                isYoutube: true
+            });
+            setPlaylistTracks([suggestion]);
+            return;
+        }
         router.push(`/track/${suggestion.id}?audio=${suggestion.trackUrl}&id=${suggestion.id}`);
     };
 
@@ -242,44 +286,57 @@ const SearchPage = () => {
                 )}
 
                 {/* Mobile: Suggestions (>= 2 characters) */}
-                {isMobile && debouncedKeyword.length >= 2 && suggestionsList.length > 0 && (
+                {isMobile && debouncedKeyword.length >= 2 && suggestionsList.length > 0 && suggestionsType !== 'empty' && (
                     <Box sx={{ mt: 2 }}>
                         <Typography variant="h6" sx={{ color: '#fff', mb: 2 }}>
                             Suggestions
                         </Typography>
                         <List sx={{ bgcolor: '#1a1a1a', borderRadius: 2 }}>
-                            {suggestionsList.map((suggestion) => (
-                                <ListItem
-                                    key={suggestion.id}
-                                    onClick={() => handleSuggestionClick(suggestion)}
-                                    sx={{
-                                        cursor: 'pointer',
-                                        '&:hover': { bgcolor: '#2a2a2a' },
-                                        borderBottom: '1px solid #333'
-                                    }}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar
-                                            src={suggestion.imgUrl}
-                                            sx={{ width: 48, height: 48, bgcolor: '#333' }}
-                                        >
-                                            {!suggestion.imgUrl && suggestion.title.charAt(0)}
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={
-                                            <Typography sx={{ color: '#fff', fontWeight: 500 }}>
-                                                {suggestion.title}
-                                            </Typography>
-                                        }
-                                        secondary={
-                                            <Typography sx={{ color: '#999', fontSize: '0.875rem' }}>
-                                                {suggestion.name}
-                                            </Typography>
-                                        }
-                                    />
-                                </ListItem>
-                            ))}
+                            {suggestionsList.map((suggestion: any) => {
+                                const isYoutube = suggestionsType === 'youtube';
+                                const id = isYoutube ? suggestion.videoId : suggestion.id;
+                                const title = suggestion.title;
+                                const imgUrl = isYoutube ? suggestion.thumbnail : suggestion.imgUrl;
+                                const subtitle = isYoutube ? suggestion.channel : suggestion.name;
+
+                                return (
+                                    <ListItem
+                                        key={id}
+                                        onClick={() => handleSuggestionClick(suggestion)}
+                                        sx={{
+                                            cursor: 'pointer',
+                                            '&:hover': { bgcolor: '#2a2a2a' },
+                                            borderBottom: '1px solid #333'
+                                        }}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar
+                                                src={imgUrl}
+                                                sx={{ width: 48, height: 48, bgcolor: '#333' }}
+                                            >
+                                                {!imgUrl && title.charAt(0)}
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={
+                                                <Typography sx={{ color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {title}
+                                                </Typography>
+                                            }
+                                            secondary={
+                                                <Box sx={{ color: '#999', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    {subtitle}
+                                                    {isYoutube && (
+                                                        <Box component="span" sx={{ fontSize: '0.7rem', bgcolor: '#f00', color: '#fff', px: 0.5, borderRadius: 1 }}>
+                                                            YouTube
+                                                        </Box>
+                                                    )}
+                                                </Box>
+                                            }
+                                        />
+                                    </ListItem>
+                                );
+                            })}
                         </List>
                     </Box>
                 )}
@@ -302,73 +359,129 @@ const SearchPage = () => {
                             </Box>
                         ) : (
                             <Box>
-                                {allTracks.map((track) => (
-                                    <Box key={track.id} sx={{ mb: 4 }}>
-                                        {isMobile ? (
-                                            // Mobile: Simplified track card (no waveform)
+                                {allTracks.map((track) => {
+                                    if (searchType === 'youtube') {
+                                        return (
                                             <Box
+                                                key={track.videoId}
                                                 onClick={() => {
-                                                    const keyword = "upload/";
-                                                    const index = track.trackUrl.indexOf(keyword);
-                                                    const trackUrlCut = track.trackUrl.substring(index + keyword.length);
-                                                    router.push(`/track/${track.id}?audio=${trackUrlCut}&id=${track.id}`);
+                                                    setCurrentTrack({
+                                                        id: track.videoId,
+                                                        title: track.title,
+                                                        description: "",
+                                                        category: "",
+                                                        imgUrl: track.thumbnail,
+                                                        trackUrl: track.videoId,
+                                                        countLike: 0,
+                                                        countPlay: 0,
+                                                        uploader: { id: "", email: "", name: track.channel, role: "", avatar: track.thumbnail },
+                                                        createdAt: "",
+                                                        updatedAt: "",
+                                                        peaks: "",
+                                                        isPlaying: true,
+                                                        isLiked: false,
+                                                        isYoutube: true
+                                                    });
+                                                    setPlaylistTracks(allTracks);
                                                 }}
                                                 sx={{
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     gap: 2,
                                                     p: 2,
+                                                    mb: 2,
                                                     bgcolor: '#1a1a1a',
                                                     borderRadius: 2,
                                                     cursor: 'pointer',
                                                     '&:hover': { bgcolor: '#2a2a2a' }
                                                 }}
                                             >
-                                                <Avatar
-                                                    src={track.imgUrl}
-                                                    sx={{ width: 56, height: 56, bgcolor: '#333' }}
-                                                >
-                                                    {!track.imgUrl && track.title.charAt(0)}
-                                                </Avatar>
+                                                <Box sx={{ position: 'relative', width: 120, height: 68, borderRadius: 1, overflow: 'hidden', flexShrink: 0 }}>
+                                                    <Image src={track.thumbnail || '/default-thumbnail.png'} alt={track.title} fill style={{ objectFit: 'cover' }} />
+                                                </Box>
                                                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                                    <Typography
-                                                        variant="body1"
-                                                        sx={{
-                                                            color: '#fff',
-                                                            fontWeight: 500,
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap'
-                                                        }}
-                                                    >
+                                                    <Typography variant="body1" sx={{ color: '#fff', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                         {track.title}
                                                     </Typography>
-                                                    <Typography
-                                                        variant="body2"
-                                                        sx={{
-                                                            color: '#999',
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                            mt: 0.5
-                                                        }}
-                                                    >
-                                                        {track.uploader.name}
+                                                    <Typography variant="body2" sx={{ color: '#999', mt: 0.5 }}>
+                                                        {track.channel}
                                                     </Typography>
                                                 </Box>
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{ color: '#666', fontSize: '0.75rem' }}
-                                                >
-                                                    {track.countPlay} plays
-                                                </Typography>
+                                                <Box component="span" sx={{ fontSize: '0.75rem', bgcolor: '#f00', color: '#fff', px: 1, py: 0.5, borderRadius: 1, display: { xs: 'none', sm: 'block' } }}>
+                                                    YouTube
+                                                </Box>
                                             </Box>
-                                        ) : (
-                                            // Desktop: Full ProfileTrack with waveform
-                                            <ProfileTrack track={track} />
-                                        )}
-                                    </Box>
-                                ))}
+                                        );
+                                    }
+
+                                    return (
+                                        <Box key={track.id} sx={{ mb: 4 }}>
+                                            {isMobile ? (
+                                                // Mobile: Simplified track card (no waveform)
+                                                <Box
+                                                    onClick={() => {
+                                                        const keyword = "upload/";
+                                                        const index = track.trackUrl.indexOf(keyword);
+                                                        const trackUrlCut = track.trackUrl.substring(index + keyword.length);
+                                                        router.push(`/track/${track.id}?audio=${trackUrlCut}&id=${track.id}`);
+                                                    }}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        p: 2,
+                                                        bgcolor: '#1a1a1a',
+                                                        borderRadius: 2,
+                                                        cursor: 'pointer',
+                                                        '&:hover': { bgcolor: '#2a2a2a' }
+                                                    }}
+                                                >
+                                                    <Avatar
+                                                        src={track.imgUrl}
+                                                        sx={{ width: 56, height: 56, bgcolor: '#333' }}
+                                                    >
+                                                        {!track.imgUrl && track.title.charAt(0)}
+                                                    </Avatar>
+                                                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                                                        <Typography
+                                                            variant="body1"
+                                                            sx={{
+                                                                color: '#fff',
+                                                                fontWeight: 500,
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap'
+                                                            }}
+                                                        >
+                                                            {track.title}
+                                                        </Typography>
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                color: '#999',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                mt: 0.5
+                                                            }}
+                                                        >
+                                                            {track.uploader.name}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ color: '#666', fontSize: '0.75rem' }}
+                                                    >
+                                                        {track.countPlay} plays
+                                                    </Typography>
+                                                </Box>
+                                            ) : (
+                                                // Desktop: Full ProfileTrack with waveform
+                                                <ProfileTrack track={track} />
+                                            )}
+                                        </Box>
+                                    );
+                                })}
 
                                 {/* Load more trigger */}
                                 <div ref={loadMoreRef} style={{ height: 20 }} />

@@ -19,7 +19,7 @@ export const useSearchSuggestions = ({ query, enabled = true }: SearchSuggestion
         queryKey: ['search-suggestions', query],
         queryFn: async () => {
             if (!query || query.length < 2) return [];
-            const response = await axiosInstance.get<ISearchResult[]>(
+            const response = await axiosInstance.get<ISearchFallbackResponse<ISearchResult | IYoutubeSearchResult>>(
                 `/api/v1/search/suggestions`,
                 {
                     params: { q: query }
@@ -39,7 +39,7 @@ export const useSearchResults = ({ query, page, pageSize = 10, enabled = true }:
         queryKey: ['search-results', query, page],
         queryFn: async () => {
             if (!query) return null;
-            const response = await axiosInstance.get<IBackendRes<IModelPaginate<ITrack>>>(
+            const response = await axiosInstance.get<ISearchFallbackResponse<IModelPaginate<ITrack> | IYoutubeSearchResult>>(
                 `/api/v1/search`,
                 {
                     params: {

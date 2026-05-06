@@ -11,7 +11,7 @@ import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import Link from "next/link";
 import './home.css'
 import Image from "next/image";
-import { generateTrackUrl } from "@/utils/generate.slug";
+import {generateTrackUrl, generateTrackUrlUp} from "@/utils/generate.slug";
 import { useHistory } from "@/hooks/use.history";
 import { useLikes } from "@/hooks/use.likes";
 import { useCategories } from "@/hooks/use-category";
@@ -193,14 +193,19 @@ const MainSlider = (props: IProps) => {
                             <Slider {...settings}>
                                 {data.map((track) => (
                                     <div className="track" key={track.id}>
-                                        <Image
-                                            width={150}
-                                            height={150}
-                                            alt="Image"
-                                            className="img"
-                                            src={track.imgUrl}
-                                            style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
-                                        />
+                                        <Link
+                                            href={generateTrackUrlUp(Number(track.id), track.title)}
+                                        >
+                                            <Image
+                                                width={150}
+                                                height={150}
+                                                alt="Image"
+                                                className="img"
+                                                src={track.imgUrl}
+                                                style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
+                                            />
+                                        </Link>
+
                                         <Link
                                             href={generateTrackUrl(track)}
                                             style={{ textDecoration: "none", color: "white" }}
@@ -224,14 +229,18 @@ const MainSlider = (props: IProps) => {
                             <Slider {...settings}>
                                 {data.map((track) => (
                                     <div className="track" key={track.id}>
-                                        <Image
-                                            width={150}
-                                            height={150}
-                                            alt="Image"
-                                            className="img"
-                                            src={track.imgUrl}
-                                            style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
-                                        />
+                                        <Link
+                                            href={generateTrackUrlUp(Number(track.id), track.title)}
+                                        >
+                                            <Image
+                                                width={150}
+                                                height={150}
+                                                alt="Image"
+                                                className="img"
+                                                src={track.imgUrl}
+                                                style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
+                                            />
+                                        </Link>
                                         <Link
                                             href={generateTrackUrl(track)}
                                             style={{ textDecoration: "none", color: "white" }}
@@ -255,14 +264,18 @@ const MainSlider = (props: IProps) => {
                             <Slider {...settings}>
                                 {data.map((track) => (
                                     <div className="track" key={track.id}>
-                                        <Image
-                                            width={150}
-                                            height={150}
-                                            alt="Image"
-                                            className="img"
-                                            src={track.imgUrl}
-                                            style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
-                                        />
+                                        <Link
+                                            href={generateTrackUrlUp(Number(track.id), track.title)}
+                                        >
+                                            <Image
+                                                width={150}
+                                                height={150}
+                                                alt="Image"
+                                                className="img"
+                                                src={track.imgUrl}
+                                                style={{ width: "100%", height: "auto", aspectRatio: "1/1", borderRadius: 8, objectFit: "cover" }}
+                                            />
+                                        </Link>
                                         <Link
                                             href={generateTrackUrl(track)}
                                             style={{ textDecoration: "none", color: "white" }}

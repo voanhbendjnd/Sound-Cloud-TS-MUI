@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
-import { useTrackContext } from "@/lib/track.wrapper";
+import { useHistoryService } from "@/hooks/use.history.service";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import {Avatar, Tooltip, TextField, Button, Box, Modal, Typography, useTheme, useMediaQuery} from "@mui/material";
+import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography, useTheme, useMediaQuery } from "@mui/material";
 import './wave.scss';
 import { commentKeys, useFetchCommentsAxios, useCreateComment } from "@/hooks/use.comment";
 import LikeTrack from "@/components/track/like.track";
@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react";
 import PauseIcon from "@mui/icons-material/Pause";
 import Link from "next/link";
 import { generateProfileUrl } from "@/utils/generate.slug";
+import {useTrackContext} from "@/lib/track.wrapper";
 
 interface IProps {
     comments: IComment[];
@@ -63,6 +64,7 @@ const WaveTrack = (props: IProps) => {
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const queryClient = useQueryClient();
+    const { startTracking, endTracking } = useHistoryService();
     const { data: resComments } = useFetchCommentsAxios({
         current: 1,
         pageSize: 100,
@@ -151,10 +153,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top:isMobile ?79: 123, left: 0 },          // Tier 0: center (just below split line)
-            { top:isMobile ?79: 123, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile ?79 : 123, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile ?79 : 123, left: 0 },          // Tier 3: top (just above split line)
+            { top: isMobile ? 79 : 123, left: 0 },          // Tier 0: center (just below split line)
+            { top: isMobile ? 79 : 123, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile ? 79 : 123, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile ? 79 : 123, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -373,6 +375,8 @@ const WaveTrack = (props: IProps) => {
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
+                // Start history tracking
+                startTracking(Number(trackId));
                 // Also play wavesurfer
                 if (wavesurfer && !wavesurfer.isPlaying()) {
                     wavesurfer.play();
@@ -381,6 +385,8 @@ const WaveTrack = (props: IProps) => {
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
                 savedTimes.current[fullAudioUrl || ''] = audioRef.current.currentTime;
+                // End history tracking
+                endTracking();
                 // Also pause wavesurfer
                 if (wavesurfer && wavesurfer.isPlaying()) {
                     wavesurfer.pause();
@@ -408,6 +414,9 @@ const WaveTrack = (props: IProps) => {
 
             // Set current track first to ensure footer appears
             setCurrentTrack(newTrack as any);
+
+            // Start history tracking for new track
+            startTracking(Number(trackId));
 
             // Play immediately using wavesurfer
             if (wavesurfer) {
@@ -733,7 +742,7 @@ const WaveTrack = (props: IProps) => {
                             {displayComments.map(it => {
                                 const isActive = activeCommentId === it.id;
                                 const isHovered = hoveredCommentId === it.id;
-                                const position = avatarPositions[it.id] || { top:isMobile? 60:120, zIndex: 20 };
+                                const position = avatarPositions[it.id] || { top: isMobile ? 60 : 120, zIndex: 20 };
                                 const shouldShowTooltip = isActive || isHovered;
                                 const resContent = it.user?.name + ': ' + it.content;
 
@@ -753,8 +762,8 @@ const WaveTrack = (props: IProps) => {
                                                 position: 'absolute',
                                                 left: calculateLeft(it.moment),
                                                 top: position.top,
-                                                width:isMobile ?(isActive ? 15 : 15)  :(isActive ? 24 : 18),
-                                                height: isMobile ?(isActive ? 15 : 15)  :(isActive ? 24 : 18),
+                                                width: isMobile ? (isActive ? 15 : 15) : (isActive ? 24 : 18),
+                                                height: isMobile ? (isActive ? 15 : 15) : (isActive ? 24 : 18),
                                                 transform: position.left ? `translate(calc(-50% + ${position.left}px), -50%)` : 'translate(-50%, -50%)',
                                                 border: isActive ? '2px solid #ff5500' : '1px solid #333',
                                                 pointerEvents: 'auto',

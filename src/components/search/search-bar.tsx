@@ -6,6 +6,7 @@ import { Search as SearchIcon, Close as CloseIcon } from '@mui/icons-material';
 import { TextField, Box, Paper, IconButton, InputAdornment, CircularProgress } from '@mui/material';
 import { useSearchSuggestions } from '@/hooks/use-search';
 import Image from 'next/image';
+import { useTrackContext } from '@/lib/track.wrapper';
 
 const SearchBar = () => {
     const router = useRouter();
@@ -16,6 +17,8 @@ const SearchBar = () => {
     const inputRef = useRef<HTMLInputElement>(null);
     const [highlightIndex, setHighlightIndex] = useState(-1);
     const listRef = useRef<HTMLDivElement>(null);
+    const { setCurrentTrack, setPlaylistTracks } = useTrackContext() as ITrackContext;
+
     useEffect(() => {
         setHighlightIndex(-1);
     }, [debouncedKeyword]);
@@ -28,12 +31,17 @@ const SearchBar = () => {
         return () => clearTimeout(timer);
     }, [keyword]);
 
+    const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+
     // Fetch suggestions
-    const { data: suggestions, isLoading } = useSearchSuggestions({
+    const { data: suggestionsResponse, isLoading } = useSearchSuggestions({
         query: debouncedKeyword,
         enabled: showSuggestions && keyword.length >= 2
     });
-    const suggestionsList = suggestions ?? [];
+    const searchType = (suggestionsResponse as ISearchFallbackResponse<ISearchResult | IYoutubeSearchResult>)?.type ?? 'empty';
+    const suggestionsList = searchType === 'youtube'
+        ? ((suggestionsResponse as  ISearchFallbackResponse<ISearchResult | IYoutubeSearchResult>)?.data?.[0]?.result ?? [])
+        : ((suggestionsResponse as ISearchFallbackResponse<ISearchResult | IYoutubeSearchResult>)?.data ?? []);
 
     // Handle click outside to close suggestions
     useEffect(() => {
@@ -113,16 +121,44 @@ const SearchBar = () => {
             });
         }
     }, [highlightIndex]);
-    const handleSuggestionClick = (suggestion: ISearchResult) => {
+
+    const handleSuggestionClick = (suggestion: any) => {
+        if (searchType === 'youtube') {
+            setCurrentTrack({
+                id: suggestion.videoId,
+                title: suggestion.title,
+                description: "",
+                category: "",
+                imgUrl: suggestion.thumbnail,
+                trackUrl: suggestion.videoId,
+                countLike: 0,
+                countPlay: 0,
+                uploader: {
+                    id: "",
+                    name: suggestion.channel,
+                    avatar: suggestion.thumbnail
+                },
+                createdAt: "",
+                updatedAt: "",
+                peaks: "",
+                isPlaying: true,
+                isLiked: false,
+                isYoutube: true
+            });
+            setPlaylistTracks([suggestion]);
+            setShowSuggestions(false);
+            setKeyword('');
+            return;
+        }
         router.push(`/track/${suggestion.id}?audio=${suggestion.trackUrl}&id=${suggestion.id}`);
         setShowSuggestions(false);
         setKeyword('');
     };
 
-    // Check for exact match
-    const exactMatch = suggestionsList.find(s =>
+    // Check for exact match (only for local tracks)
+    const exactMatch = searchType === 'local' ? (suggestionsList as ISearchResult[]).find(s =>
         s.title.toLowerCase() === keyword.toLowerCase()
-    );
+    ) : undefined;
 
     return (
         <Box ref={searchRef} sx={{ position: 'relative', width: '100%', maxWidth: 550, height: '45' }}>
@@ -289,7 +325,7 @@ const SearchBar = () => {
             )}
 
             {/* Suggestions dropdown */}
-            {showSuggestions && suggestionsList.length > 0 && keyword.length >= 2 && (
+            {showSuggestions && suggestionsList.length > 0 && keyword.length >= 2 && searchType !== 'empty' && (
                 <Paper
                     elevation={3}
                     sx={{
@@ -303,57 +339,75 @@ const SearchBar = () => {
                         zIndex: 2000,
                         bgcolor: '#333',
                         '&::-webkit-scrollbar': {
-                            display: 'none', // Ẩn thanh cuộn trên Chrome, Safari, Edge
+                            display: 'none',
                         },
-                        msOverflowStyle: 'none', // Ẩn thanh cuộn trên IE và Edge cũ
-                        scrollbarWidth: 'none',  // Ẩn thanh cuộn trên Firefo
+                        msOverflowStyle: 'none',
+                        scrollbarWidth: 'none',
                     }}
                 >
-                    {suggestionsList.map((suggestion, index) => (
-                        <Box
-                            key={suggestion.id}
-                            sx={{
-                                p: 2,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 2,
-                                cursor: 'pointer',
+                    {suggestionsList.map((suggestion: any, index: number) => {
+                        const isYoutube = searchType === 'youtube';
+                        const id = isYoutube ? suggestion.videoId : suggestion.id;
+                        const title = suggestion.title;
+                        const imgUrl = isYoutube ? suggestion.thumbnail : suggestion.imgUrl;
+                        const subtitle = isYoutube ? suggestion.channel : suggestion.name;
 
-                                bgcolor: index === highlightIndex ? '#444' : 'transparent',
-
-                                '&:hover': {
-                                    bgcolor: '#444',
-                                },
-                            }}
-                            onMouseEnter={() => setHighlightIndex(index)} // sync mouse + keyboard
-                            onClick={() => handleSuggestionClick(suggestion)}
-                        >
+                        return (
                             <Box
+                                key={id}
                                 sx={{
-                                    width: 50,
-                                    height: 50,
-                                    position: 'relative',
-                                    borderRadius: 1,
-                                    overflow: 'hidden',
+                                    p: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 2,
+                                    cursor: 'pointer',
+                                    bgcolor: index === highlightIndex ? '#444' : 'transparent',
+                                    '&:hover': {
+                                        bgcolor: '#444',
+                                    },
                                 }}
+                                onMouseEnter={() => setHighlightIndex(index)}
+                                onClick={() => handleSuggestionClick(suggestion)}
                             >
-                                <Image
-                                    src={suggestion.imgUrl}
-                                    alt={suggestion.title}
-                                    fill
-                                    style={{ objectFit: 'cover' }}
-                                />
-                            </Box>
-                            <Box>
-                                <Box sx={{ fontWeight: 500, fontSize: '0.9rem', color: '#fff' }}>
-                                    {suggestion.title}
+                                <Box
+                                    sx={{
+                                        width: isYoutube ? 90 : 50,
+                                        height: 50,
+                                        position: 'relative',
+                                        borderRadius: 1,
+                                        overflow: 'hidden',
+                                    }}
+                                >
+                                    <Image
+                                        src={imgUrl || '/default-thumbnail.png'}
+                                        alt={title}
+                                        fill
+                                        style={{ objectFit: 'cover' }}
+                                    />
                                 </Box>
-                                <Box sx={{ color: '#999', fontSize: '0.8rem' }}>
-                                    {suggestion.name}
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Box sx={{ fontWeight: 500, fontSize: '0.9rem', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {title}
+                                    </Box>
+                                    <Box sx={{ color: '#999', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        {subtitle}
+                                        {isYoutube && (
+                                            <Box component="span" sx={{ fontSize: '0.7rem', bgcolor: '#f00', color: '#fff', px: 0.5, borderRadius: 1 }}>
+                                                YouTube
+                                            </Box>
+                                        )}
+                                    </Box>
                                 </Box>
                             </Box>
-                        </Box>
-                    ))}
+                        );
+                    })}
+                </Paper>
+            )}
+
+            {/* Empty State */}
+            {showSuggestions && searchType === 'empty' && keyword.length >= 2 && !isLoading && (
+                <Paper elevation={3} sx={{ position: 'absolute', top: '100%', left: 0, right: 0, mt: 1, p: 2, zIndex: 2000, bgcolor: '#333', color: '#999', textAlign: 'center' }}>
+                    No results found
                 </Paper>
             )}
         </Box>

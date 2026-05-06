@@ -9,10 +9,10 @@ const roboto = Roboto({
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark', // 🔥 QUAN TRỌNG
     background: {
-      default: 'white',
-      paper: 'white',
+      default: '#121212', // nền toàn app
+      paper: '#1a1a1a',   // card, modal
     },
   },
   typography: {

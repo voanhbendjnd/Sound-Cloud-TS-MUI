@@ -44,11 +44,11 @@ export async function generateMetadata(
     //
     // }
     return {
-        title: playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Playlist not found!',
-        description:playlist.isPublic ?  `Enjoy with ${playlist?.title}` : 'Playlist not found',
+        title: playlist.isPublic ? playlist.user?.name + '-' +playlist?.title : 'Private playlist',
+        description:playlist.isPublic ?  `Enjoy with ${playlist?.title}` : 'Private playlist',
         openGraph: {
-            title: playlist.isPublic ? playlist?.title : 'Playlist not found',
-            description:playlist.isPublic ? playlist.description :'Playlist not found',
+            title: playlist.isPublic ? playlist?.title : 'Private playlist',
+            description:playlist.isPublic ? playlist.description :'Private playlist',
             type: 'website',
             images: [`https://github.com/voanhbendjnd/sharing-host-files/blob/master/DjndMusic/images/genshin-impact-lumine-5k-8k-1920x1080-5163.jpg?raw=true`],
         }

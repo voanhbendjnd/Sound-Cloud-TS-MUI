@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useCallback } from 'react';
 import { Container, Typography, Box } from '@mui/material';
-import { useToggleTrackInPlaylist } from '@/hooks/use-playlist';
+import { useToggleTrackInPlaylist, usePlaylistById } from '@/hooks/use-playlist';
 import { useQueryClient } from "@tanstack/react-query";
 import { useTrackContext } from '@/lib/track.wrapper';
 import { toast } from "react-toastify";
@@ -17,9 +17,9 @@ interface IProps {
     playlistId: number;
 }
 
-const PlaylistDetailClient = ({ playlist, playlistId }: IProps) => {
-    const queryClient = useQueryClient();
-    const toggleTrackMutation = useToggleTrackInPlaylist();
+const PlaylistDetailClient = ({ playlist: initialPlaylist, playlistId }: IProps) => {
+    const { data: resPlaylist } = usePlaylistById(playlistId);
+    const playlist = resPlaylist?.data as unknown as IPlaylist || initialPlaylist;
     
     const {
         currentTrack,
@@ -73,6 +73,8 @@ const PlaylistDetailClient = ({ playlist, playlistId }: IProps) => {
         }
     }, [playlist, setCurrentPlaylist, setPlaylistTracks]);
 
+    const toggleTrackMutation = useToggleTrackInPlaylist();
+
     const handleToggleTrack = async (trackId: number) => {
         try {
             await toggleTrackMutation.mutateAsync({
@@ -80,7 +82,7 @@ const PlaylistDetailClient = ({ playlist, playlistId }: IProps) => {
                 trackId,
                 isAdded: false // removing
             });
-            queryClient.invalidateQueries({ queryKey: ['playlist', playlistId] });
+            // queryClient invalidation is handled by the hook
             toast.success('Track removed from playlist');
         } catch (error) {
             toast.error('Failed to update playlist');
@@ -114,7 +116,8 @@ const PlaylistDetailClient = ({ playlist, playlistId }: IProps) => {
     };
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#121212', py: 4 }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#121212', py: 4,                 marginBottom:15
+        }}>
             <Container maxWidth="lg">
                 <PlaylistHeader playlist={playlist} />
                 

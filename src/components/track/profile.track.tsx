@@ -307,10 +307,10 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: 70, left: 0 },          // Tier 0: center bottom
-            { top: 70, left: -4 },        // Tier 1: bottom-left
-            { top: 70, left: 4 },         // Tier 2: bottom-right
-            { top: 70, left: 0 },         // Tier 3: top
+            { top:isMobile? 40: 70, left: 0 },          // Tier 0: center bottom
+            { top: isMobile? 40: 70, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile? 40: 70, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile? 40: 70, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -517,7 +517,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
             >
                 <img
                     src={track.imgUrl}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: isMobile ? '20px': 0 }}
                 />
             </Box>
 

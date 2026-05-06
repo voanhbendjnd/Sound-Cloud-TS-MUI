@@ -63,8 +63,11 @@ export const useToggleTrackInPlaylist = () => {
             );
             return response.data;
         },
-        onSuccess: () => {
+        onSuccess: (res, variables) => {
             queryClient.invalidateQueries({ queryKey: ['playlists'] });
+            if (variables.playlistId) {
+                queryClient.invalidateQueries({ queryKey: ['playlist', variables.playlistId] });
+            }
         },
     });
 };
