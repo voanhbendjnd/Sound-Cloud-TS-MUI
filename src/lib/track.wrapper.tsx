@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useRef, useState, useCallback } from "react";
+import HistoryTrackingProvider from "@/lib/history.tracking.provider";
 
 const TrackContext = createContext<ITrackContext | null>(null);
 
@@ -114,7 +115,9 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
             playNextTrack,
             playPreviousTrack,
         }}>
-            {children}
+            <HistoryTrackingProvider>
+                {children}
+            </HistoryTrackingProvider>
         </TrackContext.Provider>
     );
 };

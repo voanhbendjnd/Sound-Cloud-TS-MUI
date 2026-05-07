@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWaveSurfer } from "@/utils/customHook";
-import { useHistoryService } from "@/hooks/use.history.service";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Avatar, Tooltip, TextField, Button, Box, Modal, Typography, useTheme, useMediaQuery } from "@mui/material";
@@ -64,7 +63,6 @@ const WaveTrack = (props: IProps) => {
     const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
     const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const queryClient = useQueryClient();
-    const { startTracking, endTracking } = useHistoryService();
     const { data: resComments } = useFetchCommentsAxios({
         current: 1,
         pageSize: 100,
@@ -375,8 +373,6 @@ const WaveTrack = (props: IProps) => {
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
-                // Start history tracking
-                startTracking(Number(trackId));
                 // Also play wavesurfer
                 if (wavesurfer && !wavesurfer.isPlaying()) {
                     wavesurfer.play();
@@ -385,8 +381,6 @@ const WaveTrack = (props: IProps) => {
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
                 savedTimes.current[fullAudioUrl || ''] = audioRef.current.currentTime;
-                // End history tracking
-                endTracking();
                 // Also pause wavesurfer
                 if (wavesurfer && wavesurfer.isPlaying()) {
                     wavesurfer.pause();
@@ -414,9 +408,6 @@ const WaveTrack = (props: IProps) => {
 
             // Set current track first to ensure footer appears
             setCurrentTrack(newTrack as any);
-
-            // Start history tracking for new track
-            startTracking(Number(trackId));
 
             // Play immediately using wavesurfer
             if (wavesurfer) {
