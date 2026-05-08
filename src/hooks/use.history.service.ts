@@ -12,7 +12,7 @@ interface HistoryEntry {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const API_URL        = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/v1/history`
+const API_URL        = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080'}/api/v1/histories`
 const DEBOUNCE_MS    = 15_000  // gom entries trong 15s rồi gửi 1 lần
 const MIN_DURATION_S = 3       // bỏ qua skip quá nhanh
 const MAX_RETRY_MS   = 30_000

@@ -27,7 +27,10 @@ const PlaylistDetailClient = ({ playlist: initialPlaylist, playlistId }: IProps)
         setCurrentPlaylist,
         setPlaylistTracks,
         setCurrentTrackIndex,
-        audioRef
+        audioRef,
+        setPlayMode,
+        setQueueType,
+        addToPlayedTracks
     } = useTrackContext() as ITrackContext;
 
     // Map backend track to context ITrack
@@ -107,6 +110,10 @@ const PlaylistDetailClient = ({ playlist: initialPlaylist, playlistId }: IProps)
                 }
             }
         } else {
+            setPlayMode('queue');
+            setQueueType('playlist');
+            addToPlayedTracks(track.id.toString());
+            
             setCurrentTrack({
                 ...mapTrack(track),
                 isPlaying: true

@@ -101,7 +101,7 @@ const ProfileTrackList = ({ userId, initialTracks, initialTotal, initialHasMore 
                     ) : (
                         // Show tracks after initial loading completes
                         allTracks.map(track => (
-                            <ProfileTrack key={track.id} track={track} />
+                            <ProfileTrack key={track.id} track={track} tracks={allTracks} />
                         ))
                     )}
                     {allTracks.length === 0 && !isLoading && !isInitialLoading && (

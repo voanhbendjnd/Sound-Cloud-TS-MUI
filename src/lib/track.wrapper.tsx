@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useRef, useState, useCallback } from "react";
+import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from "react";
 import HistoryTrackingProvider from "@/lib/history.tracking.provider";
+import axiosInstance from "@/utils/axios-instance";
 
 const TrackContext = createContext<ITrackContext | null>(null);
 
@@ -54,6 +55,54 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     const [playlistTracks,     setPlaylistTracks]     = useState<any[]>([]);
     const [currentTrackIndex,  setCurrentTrackIndex]  = useState(0);
 
+    // ── New playback states ──────────────────────────────────────────────────
+    const [isShuffle, setIsShuffle] = useState(false);
+    const [repeatMode, setRepeatMode] = useState<'none' | 'one' | 'all'>('none');
+    const [playMode, setPlayMode] = useState<'queue' | 'dynamic'>('queue');
+    const [queueType, setQueueType] = useState<any>(null);
+    const [shuffledIndexes, setShuffledIndexes] = useState<number[]>([]);
+    const [playedTrackIds, setPlayedTrackIds] = useState<Set<string>>(new Set());
+
+    const addToPlayedTracks = useCallback((trackId: string) => {
+        //@ts-ignore
+        setPlayedTrackIds(prev => new Set([...prev, trackId]));
+    }, []);
+
+    // ── Utilities ────────────────────────────────────────────────────────────
+    const generateShuffledIndexes = useCallback((length: number, currentIndex: number) => {
+        const indexes = Array.from({ length }, (_, i) => i).filter(i => i !== currentIndex);
+        // Fisher-Yates shuffle
+        for (let i = indexes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indexes[i], indexes[j]] = [indexes[j], indexes[i]];
+        }
+        return [currentIndex, ...indexes];
+    }, []);
+
+    // Effect to regenerate shuffled indexes when shuffle is toggled or tracks change
+    useEffect(() => {
+        if (isShuffle && playlistTracks.length > 0) {
+            setShuffledIndexes(generateShuffledIndexes(playlistTracks.length, currentTrackIndex));
+        } else {
+            setShuffledIndexes([]);
+        }
+    }, [isShuffle, playlistTracks.length]);
+
+    // ── Recommendation Logic ─────────────────────────────────────────────────
+    const fetchRecommendations = async (track: IShareTrack) => {
+        try {
+            const excludeIds = Array.from(playedTrackIds).join(',');
+            const res = await axiosInstance.get<any, IBackendRes<IModelPaginate<ITrack>>>(
+                `/api/v1/tracks/recommendations?category=${track.category}&size=5&excludeIds=${excludeIds}`
+            );
+            
+            return res?.data?.result ?? [];
+        } catch (error) {
+            console.error('Failed to fetch recommendations:', error);
+            return [];
+        }
+    };
+
     // ── Navigation ───────────────────────────────────────────────────────────
 
     // FIX #3 — Read index through a ref inside the callback so the closure
@@ -63,40 +112,96 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     const currentIndexRef = useRef(currentTrackIndex);
     currentIndexRef.current = currentTrackIndex;
 
-    const playNextTrack = useCallback(() => {
-        setPlaylistTracks(tracks => {
-            if (tracks.length === 0) return tracks;
+    const playNextTrack = useCallback(async () => {
+        if (repeatMode === 'one' && audioRef.current) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(e => console.log('Repeat play failed:', e));
+            return;
+        }
 
-            const nextIndex = (currentIndexRef.current + 1) % tracks.length;
-            const next = tracks[nextIndex];
+        const tracks = playlistTracks;
+        if (tracks.length === 0) return;
 
-            // FIX #1 — safe mapping, no more .toString() crash
-            if (next) {
-                setCurrentTrack(mapToShareTrack(next, true));
-                setCurrentTrackIndex(nextIndex);
-                currentIndexRef.current = nextIndex;
+        let nextIndex: number;
+
+        if (isShuffle && shuffledIndexes.length > 0) {
+            const currentShufflePos = shuffledIndexes.indexOf(currentIndexRef.current);
+            if (currentShufflePos !== -1 && currentShufflePos < shuffledIndexes.length - 1) {
+                nextIndex = shuffledIndexes[currentShufflePos + 1];
+            } else {
+                // End of shuffled list
+                if (repeatMode === 'all') {
+                    const newShuffled = generateShuffledIndexes(tracks.length, currentIndexRef.current);
+                    setShuffledIndexes(newShuffled);
+                    nextIndex = newShuffled[1] ?? newShuffled[0];
+                } else {
+                    nextIndex = -1;
+                }
             }
+        } else {
+            nextIndex = currentIndexRef.current + 1;
+            if (nextIndex >= tracks.length) {
+                nextIndex = (repeatMode === 'all') ? 0 : -1;
+            }
+        }
 
-            return tracks;   // no mutation, return same ref
-        });
-    }, []);                  // stable — zero deps
+        if (nextIndex !== -1) {
+            const next = tracks[nextIndex];
+            setCurrentTrack(mapToShareTrack(next, true));
+            setCurrentTrackIndex(nextIndex);
+            currentIndexRef.current = nextIndex;
+            addToPlayedTracks(String(next.id));
+        } else if (playMode === 'dynamic') {
+            // Fetch recommendations and append
+            const lastTrack = tracks[currentIndexRef.current];
+            const recommendations = await fetchRecommendations(mapToShareTrack(lastTrack));
+            if (recommendations.length > 0) {
+                const updatedTracks = [...tracks, ...recommendations];
+                setPlaylistTracks(updatedTracks);
+                
+                const nextIdx = tracks.length; // First new track
+                const next = updatedTracks[nextIdx];
+                setCurrentTrack(mapToShareTrack(next, true));
+                setCurrentTrackIndex(nextIdx);
+                currentIndexRef.current = nextIdx;
+                addToPlayedTracks(String(next.id));
+            }
+        }
+    }, [playlistTracks, isShuffle, shuffledIndexes, repeatMode, playMode, playedTrackIds]);
 
     const playPreviousTrack = useCallback(() => {
-        setPlaylistTracks(tracks => {
-            if (tracks.length === 0) return tracks;
+        if (audioRef.current && audioRef.current.currentTime > 3) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play().catch(e => console.log('Restart play failed:', e));
+            return;
+        }
 
-            const prevIndex = (currentIndexRef.current - 1 + tracks.length) % tracks.length;
-            const prev = tracks[prevIndex];
+        const tracks = playlistTracks;
+        if (tracks.length === 0) return;
 
-            if (prev) {
-                setCurrentTrack(mapToShareTrack(prev, true));
-                setCurrentTrackIndex(prevIndex);
-                currentIndexRef.current = prevIndex;
+        let prevIndex: number;
+
+        if (isShuffle && shuffledIndexes.length > 0) {
+            const currentShufflePos = shuffledIndexes.indexOf(currentIndexRef.current);
+            if (currentShufflePos > 0) {
+                prevIndex = shuffledIndexes[currentShufflePos - 1];
+            } else {
+                prevIndex = (repeatMode === 'all') ? shuffledIndexes[shuffledIndexes.length - 1] : currentIndexRef.current;
             }
+        } else {
+            prevIndex = currentIndexRef.current - 1;
+            if (prevIndex < 0) {
+                prevIndex = (repeatMode === 'all') ? tracks.length - 1 : 0;
+            }
+        }
 
-            return tracks;
-        });
-    }, []);                  // stable — zero deps
+        const prev = tracks[prevIndex];
+        if (prev) {
+            setCurrentTrack(mapToShareTrack(prev, true));
+            setCurrentTrackIndex(prevIndex);
+            currentIndexRef.current = prevIndex;
+        }
+    }, [playlistTracks, isShuffle, shuffledIndexes, repeatMode]);
 
     return (
         <TrackContext.Provider value={{
@@ -114,6 +219,18 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
             setCurrentTrackIndex,
             playNextTrack,
             playPreviousTrack,
+
+            isShuffle,
+            setIsShuffle,
+            repeatMode,
+            setRepeatMode,
+            playMode,
+            setPlayMode,
+            queueType,
+            setQueueType,
+            shuffledIndexes,
+            playedTrackIds,
+            addToPlayedTracks,
         }}>
             <HistoryTrackingProvider>
                 {children}

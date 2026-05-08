@@ -13,6 +13,8 @@ import IconButton from "@mui/material/IconButton";
 import AppBar from "@mui/material/AppBar";
 import { Container, useMediaQuery, useTheme } from "@mui/material";
 import ShuffleIcon from '@mui/icons-material/Shuffle';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import RepeatOneIcon from '@mui/icons-material/RepeatOne';
 import axiosInstance from "@/utils/axios-instance";
 import Link from "next/link";
 import { useLikeTrackMutation } from "@/hooks/use-track";
@@ -32,7 +34,12 @@ import {redirect, useRouter} from "next/navigation";
 import H5AudioPlayer from "react-h5-audio-player";
 
 const AppFooter = () => {
-    const { currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, playNextTrack, playPreviousTrack } = useTrackContext() as ITrackContext;
+    const { 
+        currentTrack, setCurrentTrack, audioRef, viewedTracks, markTrackAsViewed, 
+        playNextTrack, playPreviousTrack,
+        isShuffle, setIsShuffle,
+        repeatMode, setRepeatMode
+    } = useTrackContext() as ITrackContext;
     const playerRef = useRef<any>(null);
     const hasMounted = useHasMounted();
 
@@ -267,10 +274,36 @@ const AppFooter = () => {
                                 //     }
                                 // }}
                                 customProgressBarSection={[
-                                    RHAP_UI.MAIN_CONTROLS,
-                                    <ShuffleIcon key="shuffle" sx={{ color: '#ccc', fontSize: 22, mx: 0.5, cursor: 'pointer', '&:hover': { color: 'white' } }} />,
-                                    RHAP_UI.LOOP,
-                                    RHAP_UI.CURRENT_TIME,
+                                RHAP_UI.MAIN_CONTROLS,
+                                <IconButton
+                                    key="shuffle"
+                                    size="small"
+                                    onClick={() => setIsShuffle(!isShuffle)}
+                                    sx={{
+                                        color: isShuffle ? '#f50' : '#ccc',
+                                        transition: 'all 0.2s',
+                                        '&:hover': { color: 'white' }
+                                    }}
+                                >
+                                    <ShuffleIcon sx={{ fontSize: 22 }} />
+                                </IconButton>,
+                                <IconButton
+                                    key="repeat"
+                                    size="small"
+                                    onClick={() => {
+                                        if (repeatMode === 'none') setRepeatMode('all');
+                                        else if (repeatMode === 'all') setRepeatMode('one');
+                                        else setRepeatMode('none');
+                                    }}
+                                    sx={{
+                                        color: repeatMode !== 'none' ? '#f50' : '#ccc',
+                                        transition: 'all 0.2s',
+                                        '&:hover': { color: 'white' }
+                                    }}
+                                >
+                                    {repeatMode === 'one' ? <RepeatOneIcon sx={{ fontSize: 22 }} /> : <RepeatIcon sx={{ fontSize: 22 }} />}
+                                </IconButton>,
+                                RHAP_UI.CURRENT_TIME,
                                     RHAP_UI.PROGRESS_BAR,
                                     RHAP_UI.DURATION,
                                     RHAP_UI.VOLUME,

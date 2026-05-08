@@ -161,6 +161,10 @@ const SearchPage = () => {
                 isLiked: false,
                 isYoutube: true
             });
+            const { setPlayMode, setQueueType, addToPlayedTracks } = useTrackContext() as ITrackContext;
+            setPlayMode('dynamic');
+            setQueueType('search');
+            addToPlayedTracks(suggestion.videoId);
             setPlaylistTracks([suggestion]);
             return;
         }
@@ -382,6 +386,10 @@ const SearchPage = () => {
                                                         isLiked: false,
                                                         isYoutube: true
                                                     });
+                                                    const { setPlayMode, setQueueType, addToPlayedTracks } = useTrackContext() as ITrackContext;
+                                                    setPlayMode('dynamic');
+                                                    setQueueType('search');
+                                                    addToPlayedTracks(track.videoId);
                                                     setPlaylistTracks(allTracks);
                                                 }}
                                                 sx={{
@@ -477,7 +485,7 @@ const SearchPage = () => {
                                                 </Box>
                                             ) : (
                                                 // Desktop: Full ProfileTrack with waveform
-                                                <ProfileTrack track={track} />
+                                                <ProfileTrack track={track} tracks={allTracks} />
                                             )}
                                         </Box>
                                     );

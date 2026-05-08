@@ -367,13 +367,14 @@ const WaveTrack = (props: IProps) => {
     }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments, fileName]);
 
     const onPlayClick = useCallback(() => {
+        const { setPlayMode, setQueueType, setPlaylistTracks, setCurrentTrackIndex, addToPlayedTracks } = useTrackContext() as ITrackContext;
+
         if (isMatched && currentTrack.trackUrl) {
             // Toggle existing track
             const willPlay = !currentTrack.isPlaying;
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
-                // Also play wavesurfer
                 if (wavesurfer && !wavesurfer.isPlaying()) {
                     wavesurfer.play();
                     setIsWaveformPlaying(true);
@@ -381,19 +382,17 @@ const WaveTrack = (props: IProps) => {
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
                 savedTimes.current[fullAudioUrl || ''] = audioRef.current.currentTime;
-                // Also pause wavesurfer
                 if (wavesurfer && wavesurfer.isPlaying()) {
                     wavesurfer.pause();
                     setIsWaveformPlaying(false);
                 }
             }
         } else {
-            // Save old track's time if exists
+            // New track playback
             if (currentTrack.trackUrl && audioRef.current) {
                 savedTimes.current[currentTrack.trackUrl] = audioRef.current.currentTime;
             }
 
-            // Create new track object using fetched trackData (preferred) or context fallback
             const source = trackData || currentTrack;
             const newTrack = {
                 id: trackData?.id || fileName || `track-${Date.now()}`,
@@ -406,10 +405,16 @@ const WaveTrack = (props: IProps) => {
                 isLiked: isLiked || source.isLiked || false
             };
 
-            // Set current track first to ensure footer appears
+            // If we are on a detail page, we default to dynamic mode unless we came from a playlist/history
+            // (For now, just default to dynamic)
+            setPlayMode('dynamic');
+            setQueueType('trending');
+            setPlaylistTracks([newTrack]);
+            setCurrentTrackIndex(0);
+            addToPlayedTracks(String(newTrack.id));
+
             setCurrentTrack(newTrack as any);
 
-            // Play immediately using wavesurfer
             if (wavesurfer) {
                 const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
                 wavesurfer.setTime(savedTime);
@@ -417,7 +422,6 @@ const WaveTrack = (props: IProps) => {
                 setIsWaveformPlaying(true);
             }
 
-            // Also setup footer audio when ready
             if (audioRef.current) {
                 const savedTime = savedTimes.current[fullAudioUrl || ''] || 0;
                 audioRef.current.src = fullAudioUrl;
@@ -425,7 +429,7 @@ const WaveTrack = (props: IProps) => {
                 audioRef.current.play().catch(e => console.log('Audio play failed:', e));
             }
         }
-    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer, trackData]);
+    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer, trackData, fullAudioUrl]);
 
     // Extract color from track image using Canvas API
     useEffect(() => {

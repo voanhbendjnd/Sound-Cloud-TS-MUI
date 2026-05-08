@@ -35,7 +35,7 @@ const LikePage = () => {
             setIsLoading(true);
             try {
                 const res = await sendRequest<IBackendRes<IModelPaginate<ITrack>>>({
-                    url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/tracks/likes`,
+                    url: `${process.env.NEXT_PUBLIC_BE_URL}/api/v1/histories/main`,
                     method: "GET",
                     queryParams: {
                         page: currentPage,
@@ -104,10 +104,10 @@ const LikePage = () => {
     if (!session) return null;
 
     return (
-        <Box sx={{ minHeight: '100vh', background: '#121212', py: 4 }}>
-            <Container maxWidth="md">
+        <Container sx={{marginTop:5}}>
+            <div style={{backgroundColor:'#121212'}}>
                 <Typography sx={{ color: '#eee', mb: 3, fontSize: '1.2rem', fontWeight: 500 }}>
-                    My favourite track ({total})
+                    Hear the tracks you’ve played: ({total})
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -134,18 +134,19 @@ const LikePage = () => {
 
                     {allTracks.length === 0 && !isLoading && (
                         <Typography sx={{ color: '#666', textAlign: 'center', mt: 10 }}>
-                            You don't like any track
+                            You don't play any track
                         </Typography>
                     )}
 
                     {!hasMore && allTracks.length > 0 && (
                         <Typography variant="caption" sx={{ textAlign: 'center', color: '#444', py: 4 }}>
-                            All track your like
+                            All track
                         </Typography>
                     )}
                 </Box>
-            </Container>
-        </Box>
+            </div>
+
+        </Container>
     );
 }
 

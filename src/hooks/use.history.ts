@@ -30,7 +30,7 @@ export const useHistory = () => {
         }
 
         const response = await axios.get<IHistoryRes>(
-            "http://localhost:8080/api/v1/history",
+            "http://localhost:8080/api/v1/histories",
             {
                 headers: {
                     Authorization: `Bearer ${session.access_token}`

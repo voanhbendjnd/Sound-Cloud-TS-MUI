@@ -141,6 +141,20 @@ declare global{
         setCurrentTrackIndex: (index: number) => void;
         playNextTrack: () => void;
         playPreviousTrack: () => void;
+
+        // New playback states
+        isShuffle: boolean;
+        setIsShuffle: (val: boolean) => void;
+        repeatMode: 'none' | 'one' | 'all';
+        setRepeatMode: (mode: 'none' | 'one' | 'all') => void;
+        playMode: 'queue' | 'dynamic';
+        setPlayMode: (mode: 'queue' | 'dynamic') => void;
+        queueType?: 'history' | 'playlist' | 'profile' | 'likes' | 'search' | 'trending';
+        setQueueType: (type: any) => void;
+
+        shuffledIndexes: number[];
+        playedTrackIds: Set<string>;
+        addToPlayedTracks: (trackId: string) => void;
     }
     interface IShareTrack extends ITrack{
         isPlaying: boolean;

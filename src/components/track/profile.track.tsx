@@ -28,14 +28,19 @@ dayjs.extend(relativeTime);
 
 export interface ProfileTrackProps {
     track: ITrack;
+    tracks?: ITrack[]; // The full list of tracks on the current page
 }
 
-const ProfileTrack = ({ track }: ProfileTrackProps) => {
+const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
     const [wsReady, setWsReady] = useState(false);
     const [waveDuration, setWaveDuration] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const hoverRef = useRef<HTMLDivElement>(null);
-    const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
+    const { 
+        currentTrack, setCurrentTrack, audioRef, savedTimes,
+        setPlaylistTracks, setCurrentTrackIndex,
+        setPlayMode, setQueueType, addToPlayedTracks
+    } = useTrackContext() as ITrackContext;
     const { data: session } = useSession();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -450,41 +455,59 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
     }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, comments]);
 
     const onPlayClick = useCallback(() => {
+        // Determine playMode and queueType based on current URL
+        const pathname = window.location.pathname;
+        let mode: 'queue' | 'dynamic' = 'dynamic';
+        let type: any = null;
+
+        if (pathname.includes('/history')) { mode = 'queue'; type = 'history'; }
+        else if (pathname.includes('/like')) { mode = 'queue'; type = 'likes'; }
+        else if (pathname.includes('/playlist')) { mode = 'queue'; type = 'playlist'; }
+        else if (pathname.includes('/profile')) { mode = 'queue'; type = 'profile'; }
+        else if (pathname.includes('/search')) { mode = 'dynamic'; type = 'search'; }
+        else { mode = 'dynamic'; type = 'trending'; }
+
         if (isMatched) {
             // Toggle
             const willPlay = !currentTrack.isPlaying;
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
                 audioRef.current.play();
-                // Also play wavesurfer
-                if (wavesurfer) {
-                    wavesurfer.play();
-                }
+                if (wavesurfer) wavesurfer.play();
             } else if (!willPlay && audioRef.current) {
                 audioRef.current.pause();
-                // Also pause wavesurfer
-                if (wavesurfer) {
-                    wavesurfer.pause();
-                }
+                if (wavesurfer) wavesurfer.pause();
                 savedTimes.current[track.id] = audioRef.current.currentTime;
             }
         } else {
-            // Save old track's time if exists
+            // New track playback
             if (currentTrack.id && audioRef.current) {
                 savedTimes.current[currentTrack.id] = audioRef.current.currentTime;
             }
 
-            // Set current track first to ensure footer appears
-            setCurrentTrack({ ...track, trackUrl: fullAudioUrl, isPlaying: true } as any);
+            setPlayMode(mode);
+            setQueueType(type);
 
-            // Play immediately using wavesurfer (don't wait for footer)
+            // Populate queue with all tracks on the current page
+            if (tracks && tracks.length > 0) {
+                setPlaylistTracks(tracks);
+                const index = tracks.findIndex(t => String(t.id) === String(track.id));
+                if (index !== -1) setCurrentTrackIndex(index);
+            } else {
+                // Fallback: just this track
+                setPlaylistTracks([track]);
+                setCurrentTrackIndex(0);
+            }
+
+            setCurrentTrack({ ...track, trackUrl: fullAudioUrl, isPlaying: true } as any);
+            addToPlayedTracks(String(track.id));
+
             if (wavesurfer) {
                 const savedTime = savedTimes.current[track.id] || 0;
                 wavesurfer.setTime(savedTime);
                 wavesurfer.play();
             }
 
-            // Also setup footer audio when ready (async)
             setTimeout(() => {
                 if (audioRef.current) {
                     const savedTime = savedTimes.current[track.id] || 0;
@@ -493,7 +516,7 @@ const ProfileTrack = ({ track }: ProfileTrackProps) => {
                 }
             }, 100);
         }
-    }, [isMatched, currentTrack, track, setCurrentTrack, audioRef, savedTimes, wavesurfer]);
+    }, [isMatched, currentTrack, track, tracks, setCurrentTrack, audioRef, savedTimes, wavesurfer, setPlaylistTracks, setCurrentTrackIndex, setPlayMode, setQueueType, addToPlayedTracks]);
     return (
         <Box
             sx={{
