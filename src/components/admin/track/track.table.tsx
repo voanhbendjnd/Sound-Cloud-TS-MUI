@@ -12,6 +12,7 @@ import { toast } from 'react-toastify';
 import TrackModal from './track.modal';
 import { Dialog, DialogTitle, DialogContent, Stack, Divider } from '@mui/material';
 import ConfirmDialog from '../common/confirm.dialog';
+import { metadata } from "@/app/(user)/page";
 
 const TrackTable = () => {
     const [page, setPage] = useState(1);
@@ -62,7 +63,10 @@ const TrackTable = () => {
     };
 
     if (error) return <Typography color="error">Error loading tracks</Typography>;
-
+    //@ts-ignore
+    const tracks = data?.data?.data?.[0]?.result ?? [];
+    //@ts-ignore
+    const meta = data?.data?.data?.[0]?.meta;
     return (
         <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'center' }}>
@@ -115,7 +119,7 @@ const TrackTable = () => {
                                     <CircularProgress />
                                 </TableCell>
                             </TableRow>
-                        ) : data?.data?.result.map((track) => (
+                        ) : tracks.map((track) => (
                             <TableRow key={track.id}>
                                 <TableCell>{track.id}</TableCell>
                                 <TableCell>{track.title}</TableCell>
@@ -140,7 +144,7 @@ const TrackTable = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                 <Pagination
-                    count={data?.data?.meta.pages || 0}
+                    count={meta?.pages || 0}
                     page={page}
                     onChange={(e, v) => setPage(v)}
                     color="primary"

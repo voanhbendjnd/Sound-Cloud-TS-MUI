@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useRef, useState, useCallback, useEffect } from "react";
 import HistoryTrackingProvider from "@/lib/history.tracking.provider";
 import axiosInstance from "@/utils/axios-instance";
+import { audioEngine } from "@/lib/audio-engine";
 
 const TrackContext = createContext<ITrackContext | null>(null);
 
@@ -11,21 +12,21 @@ const TrackContext = createContext<ITrackContext | null>(null);
 // goes through the same null-safe path. No more scattered `|| ""` guards.
 
 const mapToShareTrack = (raw: any, isPlaying = true): IShareTrack => ({
-    id:          String(raw?.id          ?? ''),
-    title:       String(raw?.title       ?? ''),
+    id: String(raw?.id ?? ''),
+    title: String(raw?.title ?? ''),
     description: String(raw?.description ?? ''),
-    category:    String(raw?.category    ?? ''),
-    imgUrl:      String(raw?.imgUrl      ?? ''),
-    trackUrl:    String(raw?.trackUrl    ?? ''),
-    peaks:       String(raw?.peaks       ?? ''),
-    countLike:   Number(raw?.countLikes  ?? raw?.countLike ?? 0),
-    countPlay:   Number(raw?.countPlays  ?? raw?.countPlay ?? 0),
-    isLiked:     Boolean(raw?.isLiked),
-    isYoutube:   Boolean(raw?.isYoutube),
+    category: String(raw?.category ?? ''),
+    imgUrl: String(raw?.imgUrl ?? ''),
+    trackUrl: String(raw?.trackUrl ?? ''),
+    peaks: String(raw?.peaks ?? ''),
+    countLike: Number(raw?.countLikes ?? raw?.countLike ?? 0),
+    countPlay: Number(raw?.countPlays ?? raw?.countPlay ?? 0),
+    isLiked: Boolean(raw?.isLiked),
+    isYoutube: Boolean(raw?.isYoutube),
     isPlaying,
     uploader: {
-        id:     String(raw?.uploader?.id     ?? ''),
-        name:   String(raw?.uploader?.name   ?? ''),
+        id: String(raw?.uploader?.id ?? ''),
+        name: String(raw?.uploader?.name ?? ''),
         avatar: String(raw?.uploader?.avatar ?? ''),
     },
     createdAt: String(raw?.createdAt ?? ''),
@@ -40,7 +41,7 @@ const INIT_TRACK: IShareTrack = mapToShareTrack({});
 
 export const TrackContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [currentTrack, setCurrentTrack] = useState<IShareTrack>(INIT_TRACK);
-    const audioRef   = useRef<HTMLAudioElement | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(audioEngine.getAudioElement());
     const savedTimes = useRef<Record<string, number>>({});
 
     // FIX #2 — viewedTracks: spread into a new Set so React sees a new reference
@@ -51,9 +52,9 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
     }, []);
 
     // ── Playlist state ───────────────────────────────────────────────────────
-    const [currentPlaylist,    setCurrentPlaylist]    = useState<IPlaylist | null>(null);
-    const [playlistTracks,     setPlaylistTracks]     = useState<any[]>([]);
-    const [currentTrackIndex,  setCurrentTrackIndex]  = useState(0);
+    const [currentPlaylist, setCurrentPlaylist] = useState<IPlaylist | null>(null);
+    const [playlistTracks, setPlaylistTracks] = useState<any[]>([]);
+    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
     // ── New playback states ──────────────────────────────────────────────────
     const [isShuffle, setIsShuffle] = useState(false);
@@ -95,7 +96,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
             const res = await axiosInstance.get<any, IBackendRes<IModelPaginate<ITrack>>>(
                 `/api/v1/tracks/recommendations?category=${track.category}&size=5&excludeIds=${excludeIds}`
             );
-            
+
             return res?.data?.result ?? [];
         } catch (error) {
             console.error('Failed to fetch recommendations:', error);
@@ -158,7 +159,7 @@ export const TrackContextProvider = ({ children }: { children: React.ReactNode }
             if (recommendations.length > 0) {
                 const updatedTracks = [...tracks, ...recommendations];
                 setPlaylistTracks(updatedTracks);
-                
+
                 const nextIdx = tracks.length; // First new track
                 const next = updatedTracks[nextIdx];
                 setCurrentTrack(mapToShareTrack(next, true));

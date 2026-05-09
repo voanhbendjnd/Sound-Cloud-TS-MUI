@@ -60,8 +60,17 @@ const WaveTrack = (props: IProps) => {
     const [isWaveformPlaying, setIsWaveformPlaying] = useState(false);
     const [waveDuration, setWaveDuration] = useState(0); // Stable duration state for comment positioning
 
-    const { currentTrack, setCurrentTrack, audioRef, savedTimes } = useTrackContext() as ITrackContext;
-    const isMatched = currentTrack.trackUrl === fullAudioUrl;
+    const {
+        currentTrack,
+        setCurrentTrack,
+        audioRef,
+        savedTimes,
+        setPlayMode,          // ← thêm
+        setQueueType,         // ← thêm
+        setPlaylistTracks,    // ← thêm
+        setCurrentTrackIndex, // ← thêm
+        addToPlayedTracks     // ← thêm
+    } = useTrackContext() as ITrackContext;    const isMatched = currentTrack.trackUrl === fullAudioUrl;
     const queryClient = useQueryClient();
     const { data: resComments } = useFetchCommentsAxios({
         current: 1,
@@ -98,12 +107,12 @@ const WaveTrack = (props: IProps) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
 
-            gradient = ctx.createLinearGradient(0, 0, 0, 100);
-            gradient.addColorStop(0, '#444');
-            gradient.addColorStop(1, '#bbb');
+            gradient = ctx.createLinearGradient(0, 0, 0,  isMobile ?160 :160);
+            gradient.addColorStop(isMobile? 0.9:0.89,'#444' );
+            gradient.addColorStop(isMobile ? 1:1, '#bbb');
 
-            progressGradient = ctx.createLinearGradient(0, 0, 0, 100);
-            progressGradient.addColorStop(0, '#ff5500');
+            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile ?160 :160);
+            progressGradient.addColorStop(isMobile ?0.9 :0.7, '#ff5500');
             progressGradient.addColorStop(1, '#ffb199');
         }
 
@@ -111,12 +120,20 @@ const WaveTrack = (props: IProps) => {
         const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
-            height: isMobile ? 100 : 160,
-            barWidth: isMobile ? 1.5 : 2.4,
-            barGap: isMobile ? 1 : 1.5,
-            barHeight: isMobile ? 0.6 : 1,
-            normalize: true,
-            cursorWidth: 0, // bỏ line dọc
+
+            height: isMobile ? 70 : 160,
+
+            barWidth: isMobile ? 1 : 2.4,
+            barGap: isMobile ? 0.5 : 1.5,
+
+            barRadius: 4,
+
+            normalize: false,
+
+            cursorWidth: 0,
+
+            // responsive: true,
+
             url: fullAudioUrl!,
         };
 
@@ -151,10 +168,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: isMobile ? 79 : 123, left: 0 },          // Tier 0: center (just below split line)
-            { top: isMobile ? 79 : 123, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile ? 79 : 123, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile ? 79 : 123, left: 0 },          // Tier 3: top (just above split line)
+            { top: isMobile ? 55 : 123, left: 0 },          // Tier 0: center (just below split line)
+            { top: isMobile ? 55 : 123, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile ? 55 : 123, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile ? 55 : 123, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -367,10 +384,8 @@ const WaveTrack = (props: IProps) => {
     }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, displayComments, fileName]);
 
     const onPlayClick = useCallback(() => {
-        const { setPlayMode, setQueueType, setPlaylistTracks, setCurrentTrackIndex, addToPlayedTracks } = useTrackContext() as ITrackContext;
-
+        // No useTrackContext() here — just use the destructured values from above
         if (isMatched && currentTrack.trackUrl) {
-            // Toggle existing track
             const willPlay = !currentTrack.isPlaying;
             setCurrentTrack({ ...currentTrack, isPlaying: willPlay } as any);
             if (willPlay && audioRef.current) {
@@ -388,7 +403,6 @@ const WaveTrack = (props: IProps) => {
                 }
             }
         } else {
-            // New track playback
             if (currentTrack.trackUrl && audioRef.current) {
                 savedTimes.current[currentTrack.trackUrl] = audioRef.current.currentTime;
             }
@@ -405,14 +419,11 @@ const WaveTrack = (props: IProps) => {
                 isLiked: isLiked || source.isLiked || false
             };
 
-            // If we are on a detail page, we default to dynamic mode unless we came from a playlist/history
-            // (For now, just default to dynamic)
             setPlayMode('dynamic');
             setQueueType('trending');
             setPlaylistTracks([newTrack]);
             setCurrentTrackIndex(0);
             addToPlayedTracks(String(newTrack.id));
-
             setCurrentTrack(newTrack as any);
 
             if (wavesurfer) {
@@ -429,8 +440,9 @@ const WaveTrack = (props: IProps) => {
                 audioRef.current.play().catch(e => console.log('Audio play failed:', e));
             }
         }
-    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer, trackData, fullAudioUrl]);
-
+    }, [isMatched, currentTrack, fileName, setCurrentTrack, audioRef, savedTimes, wavesurfer,
+        trackData, fullAudioUrl, setPlayMode, setQueueType, setPlaylistTracks,
+        setCurrentTrackIndex, addToPlayedTracks]); // ← add new deps here
     // Extract color from track image using Canvas API
     useEffect(() => {
         const extractColor = () => {

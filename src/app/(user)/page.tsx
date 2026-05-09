@@ -46,7 +46,7 @@ export default async function HomePage() {
   // const tracks = (res?.data)?.data?.[0]?.result ?? []
   //@ts-ignore
   const tracks = res?.data?.data?.[0]?.result ?? [];
-  console.log("tracks:", tracks.data?.data.result);
+  // console.log("tracks:", tracks.data?.data.result);
   return (
     <div style={{ backgroundColor: '#121212' ,paddingTop:50}}>
       <Container>

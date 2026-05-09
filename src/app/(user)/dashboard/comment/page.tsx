@@ -7,7 +7,7 @@ export const metadata = {
 
 const ManageCommentPage = () => {
     return (
-        <div style={{ backgroundColor: '#ffffff', paddingTop: 50 }}>
+        <div style={{ paddingTop: 10,  marginBottom: 100 }}>
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
                 <CommentTable />
             </Container>

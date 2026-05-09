@@ -100,10 +100,10 @@ const SearchPage = () => {
         query: debouncedKeyword,
         enabled: isMobile && debouncedKeyword.length >= 2
     });
-    const suggestionsType = suggestionsResponse?.type ?? 'empty';
+    const suggestionsType = (suggestionsResponse as ISearchFallbackResponse<IModelPaginate<ITrack>>)?.type ?? 'empty';
     const suggestionsList = suggestionsType === 'youtube' 
-        ? (suggestionsResponse?.data?.[0]?.result ?? []) 
-        : (suggestionsResponse?.data ?? []);
+        ? ((suggestionsResponse as ISearchFallbackResponse<IModelPaginate<ITrack>>)?.data?.[0]?.result ?? [])
+        : ((suggestionsResponse as ISearchFallbackResponse<IModelPaginate<ITrack>>)?.data ?? []);
 
     // Update all tracks when data changes
     useEffect(() => {
@@ -153,7 +153,7 @@ const SearchPage = () => {
                 trackUrl: suggestion.videoId,
                 countLike: 0,
                 countPlay: 0,
-                uploader: { id: "", email: "", name: suggestion.channel, role: "", avatar: suggestion.thumbnail },
+                uploader: { id: "", name: suggestion.channel, avatar: suggestion.thumbnail },
                 createdAt: "",
                 updatedAt: "",
                 peaks: "",
@@ -378,7 +378,7 @@ const SearchPage = () => {
                                                         trackUrl: track.videoId,
                                                         countLike: 0,
                                                         countPlay: 0,
-                                                        uploader: { id: "", email: "", name: track.channel, role: "", avatar: track.thumbnail },
+                                                        uploader: { id: "", name: track.channel, avatar: track.thumbnail },
                                                         createdAt: "",
                                                         updatedAt: "",
                                                         peaks: "",
