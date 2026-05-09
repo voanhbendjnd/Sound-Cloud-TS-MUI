@@ -99,7 +99,44 @@ const WaveTrack = (props: IProps) => {
         const paddedSeconds = `0${secondsRemainder}`.slice(-2)
         return `${minutes}:${paddedSeconds}`
     }
+    const [waveformPeaks, setWaveformPeaks] = useState<number[] | null>(null);
+    useEffect(() => {
+        const loadWaveform = async () => {
+            try {
 
+                // ưu tiên waveform json
+                if (trackData?.waveform_url) {
+
+                    const waveformJson = await fetch(trackData.waveform_url)
+                        .then(res => res.json());
+                    const normalized = waveformJson.data.map(
+                        (v: number) => (v / 128)
+                    );
+                    setWaveformPeaks(normalized);
+
+                    return;
+                }
+
+                // fallback peaks cũ
+                if (trackData?.peaks) {
+
+                    const rawPeaks = JSON.parse(trackData.peaks);
+
+                    const peaksArray = Array.isArray(rawPeaks)
+                        ? rawPeaks
+                        : rawPeaks.data;
+
+                    setWaveformPeaks(peaksArray);
+                }
+
+            } catch (e) {
+                console.warn('Failed to load waveform', e);
+            }
+        };
+
+        loadWaveform();
+
+    }, [trackData]);
     const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
         let gradient, progressGradient;
 
@@ -107,11 +144,11 @@ const WaveTrack = (props: IProps) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
 
-            gradient = ctx.createLinearGradient(0, 0, 0,  isMobile ?160 :160);
-            gradient.addColorStop(isMobile? 0.9:0.89,'#444' );
+            gradient = ctx.createLinearGradient(0, 0, 0,  isMobile ?100 :100);
+            gradient.addColorStop(isMobile? 1:0.89,'#444' );
             gradient.addColorStop(isMobile ? 1:1, '#bbb');
 
-            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile ?160 :160);
+            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile ?100 :120);
             progressGradient.addColorStop(isMobile ?0.9 :0.7, '#ff5500');
             progressGradient.addColorStop(1, '#ffb199');
         }
@@ -120,37 +157,21 @@ const WaveTrack = (props: IProps) => {
         const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
-
-            height: isMobile ? 70 : 160,
-
+            height: isMobile ? 48: 100,
             barWidth: isMobile ? 1 : 2.4,
             barGap: isMobile ? 0.5 : 1.5,
-
             barRadius: 4,
-
             normalize: false,
-
             cursorWidth: 0,
-
             // responsive: true,
-
             url: fullAudioUrl!,
         };
 
-        // Add peaks if available from track data
-        if (trackData?.peaks) {
-            try {
-                const rawPeaks = JSON.parse(trackData.peaks);
-                const peaksArray = Array.isArray(rawPeaks) ? rawPeaks : rawPeaks.data;
-
-                options.peaks = [peaksArray];
-
-            } catch (e) {
-                console.warn('Failed to parse peaks data', e);
-            }
+        if (waveformPeaks) {
+            options.peaks = [waveformPeaks];
         }
         return options;
-    }, [fullAudioUrl, trackData?.peaks]);
+    }, [fullAudioUrl, waveformPeaks]);
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
 
@@ -168,10 +189,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: isMobile ? 55 : 123, left: 0 },          // Tier 0: center (just below split line)
-            { top: isMobile ? 55 : 123, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile ? 55 : 123, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile ? 55 : 123, left: 0 },          // Tier 3: top (just above split line)
+            { top: isMobile ? 41 : 81, left: 0 },          // Tier 0: center (just below split line)
+            { top: isMobile ? 41 : 81, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile ? 41 : 81, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile ? 41 : 81, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -715,14 +736,14 @@ const WaveTrack = (props: IProps) => {
                         ref={containerRef}
                         sx={{
                             position: 'relative',
-                            height: { xs: 100, md: 160 },
+                            height: { xs: 100, md: 140 },
                             mb: 2
                         }}
                     >
                         <div
                             style={{
                                 position: "absolute",
-                                top: "71%",
+                                top: "52%",
                                 // top: "71%",
 
                                 left: 0,

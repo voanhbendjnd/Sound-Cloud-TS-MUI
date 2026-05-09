@@ -313,7 +313,8 @@ const SecondTabs = (props: IProps) => {
                     >
                         {categoryOptions.map((option) => (
                             <MenuItem key={option.value} value={option.value}
-                                      style={{backgroundColor:'#fff'}}>
+
+                            >
                                 {option.label}
                             </MenuItem>
                         ))}

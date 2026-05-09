@@ -50,6 +50,7 @@ declare global{
         "countLike": number;
         "countPlay": number;
         "isLiked": boolean;
+        "waveform_url": string;
         "uploader": {
             "id": string;
             "name": string;
