@@ -3,7 +3,7 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import {Headphones, HeartBroken} from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useCountTrackMutation, useLikeTrackMutation } from "@/hooks/use-track";
 import { useSession } from "next-auth/react";
 import { useTrackContext } from "@/lib/track.wrapper";
@@ -11,6 +11,20 @@ import Button from "@mui/material/Button";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 import {useRouter} from "next/navigation";
+import IosShareIcon from "@mui/icons-material/IosShare";
+import {generateTrackUrlUp} from "@/utils/generate.slug";
+import {
+    Alert,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    Snackbar,
+    TextField,
+    useMediaQuery,
+    useTheme
+} from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface IProps {
     trackId: number;
@@ -34,7 +48,8 @@ const LikeTrack = (props: IProps) => {
     const [countLikes, setCountLikes] = useState<number>(initialLikes);
     const [isLiked, setIsLiked] = useState<boolean>(initialIsLiked);
     const [countPlays, setCountPlays] = useState<number>(initialCountPlays);
-
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     // Sync with TrackContext when track ID matches
     useEffect(() => {
         setCountLikes(initialLikes);
@@ -78,9 +93,23 @@ const LikeTrack = (props: IProps) => {
             }
         });
     };
+    const [openShare, setOpenShare] = useState<boolean>(false);
 
+    const [shareUrl, setShareUrl] = useState<string>('');
+    const [openToast, setOpenToast] = useState<boolean>(false);
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(shareUrl);
+        setOpenToast(true);
+        setOpenShare(false);
+    };
+    const handleOpenShare = (trackId :number, title:string) => {
+        const path = generateTrackUrlUp(trackId, title);
+        const fullUrl = `${window.location.origin}${path}`;
+        setShareUrl(fullUrl);
+        setOpenShare(true);
+    };
     return (
-        <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center', marginTop:'' }}>
+        <div style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
                     <Stack direction="row" spacing={1}>
                         <Chip
                             onClick={()=>{
@@ -124,7 +153,15 @@ const LikeTrack = (props: IProps) => {
 
                                 }}
                                 sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
-                            Playlist
+                            {!isMobile ?'Playlist' : ''}
+                        </Button>
+                        <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />}
+                                onClick={(e) => {
+                                    // e.stopPropagation();
+                                    handleOpenShare(trackId, title);
+                                }}
+                                sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
+                            {!isMobile ?'Share' : ''}
                         </Button>
                     </Stack>
 
@@ -146,6 +183,60 @@ const LikeTrack = (props: IProps) => {
                     />
                 </Stack>
             </div>
+            <Dialog
+                open={openShare}
+                onClose={() => setOpenShare(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: { bgcolor: '#1a1a1a', color: '#fff', borderRadius: 3 }
+                }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    Share Playlist
+                    <IconButton onClick={() => setOpenShare(false)}>
+                        <CloseIcon style={{ color: '#fff' }} />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: '#1a1a1a' }}>
+                    <TextField
+                        fullWidth
+                        value={shareUrl}
+                        variant="outlined"
+                        size="small"
+                        InputProps={{ readOnly: true }}
+                        sx={{
+                            mt: 1,
+                            mb: 2,
+                            input: { color: '#fff' },
+                            '& .MuiOutlinedInput-root': {
+                                '& fieldset': { borderColor: '#555' },
+                                '&:hover fieldset': { borderColor: '#f50' },
+                                '&.Mui-focused fieldset': { borderColor: '#f50' }
+                            }
+                        }}
+                    />
+                    <Button
+                        style={{ backgroundColor: '#f50' }}
+                        variant="contained"
+                        fullWidth
+                        onClick={handleCopy}
+                    >
+                        Copy Link
+                    </Button>
+                </DialogContent>
+            </Dialog>
+
+            <Snackbar
+                open={openToast}
+                autoHideDuration={2000}
+                onClose={() => setOpenToast(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert severity="success" sx={{ bgcolor: '#1a1a1a', color: '#fff' }}>
+                    Copied successfully!
+                </Alert>
+            </Snackbar>
             <AddToPlaylistModal
                 open={showPlaylistModal}
                 onClose={() => setShowPlaylistModal(false)}

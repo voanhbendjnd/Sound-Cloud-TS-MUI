@@ -503,7 +503,10 @@ const SidebarTrackRow = ({ track, subtitle }: { track: any; subtitle: string }) 
                 <Link href={generateTrackUrl(track)} style={{ textDecoration: 'none', color: 'white' }}>
                     <Typography
                         className="track-title" variant="body2"
-                        sx={{ color: isThisPlaying ? '#f50' : 'white', transition: 'color 0.2s' }}
+                        sx={{ color: isThisPlaying ? '#f50' : 'white', transition: 'color 0.2s',  fontWeight: 600,
+                            maxWidth: 250, whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis' }}
                     >
                         {track.title}
                     </Typography>

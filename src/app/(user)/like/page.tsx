@@ -105,7 +105,7 @@ const LikePage = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', background: '#121212', py: 4 }}>
-            <Container maxWidth="md">
+            <Container>
                 <Typography sx={{ color: '#eee', mb: 3, fontSize: '1.2rem', fontWeight: 500 }}>
                     My favourite track ({total})
                 </Typography>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useWaveSurfer } from "@/utils/customHook";
 import { WaveSurferOptions } from 'wavesurfer.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -8,7 +8,17 @@ import PauseIcon from '@mui/icons-material/Pause';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import IosShareIcon from '@mui/icons-material/IosShare';
 import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd';
-import { Avatar, Tooltip, TextField, Button as MuiButton, Box, Modal, Typography } from "@mui/material";
+import {
+    Avatar,
+    Tooltip,
+    TextField,
+    Button as MuiButton,
+    Box,
+    Modal,
+    Typography,
+    Dialog,
+    DialogTitle, IconButton, DialogContent, Snackbar, Alert
+} from "@mui/material";
 import Button from "@mui/material/Button";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -20,10 +30,11 @@ import { useSession } from "next-auth/react";
 import AddToPlaylistModal from "@/components/playlist/add-to-playlist-modal";
 import { useRouter } from "next/navigation";
 import { useTheme, useMediaQuery } from "@mui/material";
-import {generateProfileUrl, generateTrackUrlUp} from "@/utils/generate.slug";
+import {generatePlaylistUrl, generateProfileUrl, generateTrackUrl, generateTrackUrlUp} from "@/utils/generate.slug";
 import Link from "next/link";
 import {FavoriteBorder, Hearing, HeartBroken} from "@mui/icons-material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import CloseIcon from "@mui/icons-material/Close";
 dayjs.extend(relativeTime);
 
 export interface ProfileTrackProps {
@@ -208,7 +219,13 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
         sort: "updatedAt,desc"
     };
 
-
+    const [shareUrl, setShareUrl] = useState<string>('');
+    const [openToast, setOpenToast] = useState<boolean>(false);
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(shareUrl);
+        setOpenToast(true);
+        setOpenShare(false);
+    };
     // 2. Khai báo mutation hook
     const createCommentMutation = useCreateComment(commentParams);
     const handleSubmitComment = async () => {
@@ -248,20 +265,20 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
 
-            gradient = ctx.createLinearGradient(0, 0, 0, 100);
-            gradient.addColorStop(0, '#444');
-            gradient.addColorStop(1, '#bbb');
+            gradient = ctx.createLinearGradient(0, 0, 0, isMobile?60 :80);
+            gradient.addColorStop(0.89, '#fff');
+            gradient.addColorStop(1, '#ffffff');
 
-            progressGradient = ctx.createLinearGradient(0, 0, 0, 100);
-            progressGradient.addColorStop(0, '#ff5500');
-            progressGradient.addColorStop(1, '#ffb199');
+            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile?100: 80);
+            progressGradient.addColorStop(0.86, '#ff5500');
+            progressGradient.addColorStop(1, '#ffd2c7');
         }
 
         return {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
 
-            height: isMobile ? 60 : 100, // 🔥 FIX
+            height: isMobile ? 60 : 80, // 🔥 FIX
             barWidth: isMobile ? 1.5 : 2,
             barGap: isMobile ? 0.8 : 1,
 
@@ -270,33 +287,10 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
         };
     }, [fullAudioUrl,track?.peaks]);
 
-    // const optionsMemo = useMemo((): Omit<WaveSurferOptions, 'container'> => {
-    //     let gradient;
-    //     if (typeof window !== "undefined") {
-    //         const canvas = document.createElement('canvas');
-    //         const ctx = canvas.getContext('2d')!;
-    //         gradient = ctx.createLinearGradient(0, 0, 0, 150);
-    //         gradient.addColorStop(0, '#ccc');
-    //         gradient.addColorStop(1, '#666');
-    //     }
-    //
-    //     return {
-    //         waveColor: gradient || '#999',
-    //         progressColor: '#f50',
-    //         height: 60,
-    //         barWidth: 1.8,
-    //         barGap: 1,
-    //         // barRadius: 2,
-    //
-    //         // barWidth: 2.3,
-    //         // barGap: 1,
-    //
-    //         normalize: true,
-    //         url: fullAudioUrl || '',
-    //     }
-    // }, [fullAudioUrl]);
+
 
     const wavesurfer = useWaveSurfer(containerRef, optionsMemo);
+    const [openShare, setOpenShare] = useState<boolean>(false);
 
     // Calculate stacking positions for avatars to avoid overlap
     const avatarPositions = useMemo(() => {
@@ -312,10 +306,10 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top:isMobile? 40: 70, left: 0 },          // Tier 0: center bottom
-            { top: isMobile? 40: 70, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile? 40: 70, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile? 40: 70, left: 0 },         // Tier 3: top
+            { top:isMobile? 40: 57, left: 0 },          // Tier 0: center bottom
+            { top: isMobile? 40: 57, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile? 40: 57, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile? 40: 57, left: 0 },         // Tier 3: top
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -453,7 +447,12 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
             wavesurfer.pause();
         }
     }, [currentTrack.trackUrl, currentTrack.isPlaying, isMatched, wavesurfer, audioRef, comments]);
-
+    const handleOpenShare = (track: ITrack) => {
+        const path = generateTrackUrl(track);
+        const fullUrl = `${window.location.origin}${path}`;
+        setShareUrl(fullUrl);
+        setOpenShare(true);
+    };
     const onPlayClick = useCallback(() => {
         // Determine playMode and queueType based on current URL
         const pathname = window.location.pathname;
@@ -785,12 +784,9 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                         Playlist
                     </Button>
                     <Button variant="outlined" size="small" startIcon={<IosShareIcon fontSize="small" />}
-                            onClick={()=>{
-                                if(session) {
-                                    setShowPlaylistModal(true)
-                                }
-                                else router.push('/auth/signin');
-
+                            onClick={(e) => {
+                                // e.stopPropagation();
+                                handleOpenShare(track);
                             }}
                             sx={{ color: 'white', borderColor: '#444', textTransform: 'none', padding: '2px 8px', minWidth: 0, '&:hover': { borderColor: '#ccc' } }}>
                         Share
@@ -968,6 +964,60 @@ const ProfileTrack = ({ track, tracks }: ProfileTrackProps) => {
                     </Box>
                 </Box>
             </Modal>
+            <Dialog
+                open={openShare}
+                onClose={() => setOpenShare(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{
+                    sx: { bgcolor: '#1a1a1a', color: '#fff', borderRadius: 3 }
+                }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    Share Playlist
+                    <IconButton onClick={() => setOpenShare(false)}>
+                        <CloseIcon style={{ color: '#fff' }} />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ bgcolor: '#1a1a1a' }}>
+                    <TextField
+                        fullWidth
+                        value={shareUrl}
+                        variant="outlined"
+                        size="small"
+                        InputProps={{ readOnly: true }}
+                        sx={{
+                            mt: 1,
+                            mb: 2,
+                            input: { color: '#fff' },
+                            '& .MuiOutlinedInput-root': {
+                                '& fieldset': { borderColor: '#555' },
+                                '&:hover fieldset': { borderColor: '#f50' },
+                                '&.Mui-focused fieldset': { borderColor: '#f50' }
+                            }
+                        }}
+                    />
+                    <Button
+                        style={{ backgroundColor: '#f50' }}
+                        variant="contained"
+                        fullWidth
+                        onClick={handleCopy}
+                    >
+                        Copy Link
+                    </Button>
+                </DialogContent>
+            </Dialog>
+
+            <Snackbar
+                open={openToast}
+                autoHideDuration={2000}
+                onClose={() => setOpenToast(false)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+                <Alert severity="success" sx={{ bgcolor: '#1a1a1a', color: '#fff' }}>
+                    Copied successfully!
+                </Alert>
+            </Snackbar>
         </Box>
 
     );

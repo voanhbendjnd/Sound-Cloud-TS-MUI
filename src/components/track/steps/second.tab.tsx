@@ -169,166 +169,247 @@ const SecondTabs = (props: IProps) => {
             }
         });
     };
-
+    const inputStyle = {
+        "& .MuiInputLabel-root": {
+            color: "#aaa",
+        },
+        "& .MuiInputLabel-root.Mui-focused": {
+            color: "#ff5500",
+        },
+        "& .MuiInputBase-input": {
+            color: "#fff",
+        },
+        "& .MuiInput-underline:before": {
+            borderBottomColor: "#444",
+        },
+        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
+            borderBottomColor: "#777",
+        },
+        "& .MuiInput-underline:after": {
+            borderBottomColor: "#ff5500",
+        },
+    };
     return (
         <div>
-            <div>
-                <div style={{color:'white'}}>
-                    Uploading track: <strong>{trackAudio ? trackAudio.name : "None"}</strong>
-                </div>
-                {progress > 0 && <LinearProgressWithLabel value={progress} />}
-            </div>
+            {/*<div>*/}
+            {/*    <div style={{color:'white'}}>*/}
+            {/*        Uploading track: <strong>{trackAudio ? trackAudio.name : "None"}</strong>*/}
+            {/*    </div>*/}
+            {/*    {progress > 0 && <LinearProgressWithLabel value={progress} />}*/}
+            {/*</div>*/}
 
-            <Grid container spacing={2} mt={5}>
-                <Grid item xs={6} md={4}
-                      sx={{
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          flexDirection: "column",
-                          gap: "10px"
-                      }}
+            <Grid container spacing={3} mt={2}>
+                {/* LEFT SIDE */}
+                <Grid
+                    item
+                    xs={12}
+                    md={4}
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        flexDirection: "column",
+                        gap: "16px",
+                    }}
                 >
-                    <div style={{ height: 250, width: 250, background: "#ccc", display: "flex", justifyContent: "center", alignItems: "center", overflow: "hidden" }}>
-                        {imgPreview ? (
-                            <img src={imgPreview} alt="Preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : (
-                            <div>No Image</div>
-                        )}
-                    </div>
-                    <div>
-                        <Button
-                            component="label" variant="contained" startIcon={<CloudUploadIcon />}>
-                            Upload Image
-                            <VisuallyHiddenInput type="file" accept="image/*" onChange={handleImgChange} />
-                        </Button>
-                    </div>
-
-                </Grid>
-                <Grid item xs={6} md={8}>
-                    <TextField 
-                        id="track-title" 
-                        label="Title"
-                        variant="standard"
-                        fullWidth 
-                        margin="dense" 
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                    <Box
                         sx={{
-                            // 1. Đổi màu Label lúc bình thường
-                            "& .MuiInputLabel-root": {
-                                color: "white",
-                            },
-                            // 2. Đổi màu Label khi đang focus (click vào)
-                            "& .MuiInputLabel-root.Mui-focused": {
-                                color: "white",
-                            },
-                            // 3. Đổi màu Nội dung nhập vào (Input text)
-                            "& .MuiInputBase-input": {
-                                color: "white",
-                            },
-                            // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
-                            "& .MuiInput-underline:before": {
-                                borderBottomColor: "white",
-                            },
-                            // 5. Đổi màu đường gạch chân khi hover
-                            "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
-                                borderBottomColor: "white",
-                            },
-                            // 6. Đổi màu đường gạch chân khi đang focus
-                            "& .MuiInput-underline:after": {
-                                borderBottomColor: "white",
-                            },
+                            height: { xs: 220, sm: 260, md: 300 },
+                            width: "100%",
+                            maxWidth: 300,
+                            background: "#1e1e1e",
+                            border: "1px solid #333",
+                            borderRadius: "16px",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            overflow: "hidden",
                         }}
-                    />
-                    <TextField 
-                        id="track-desc" 
-                        label="Description" 
-                        variant="standard" 
-                        fullWidth 
-                        margin="dense"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}sx={{
-                        // 1. Đổi màu Label lúc bình thường
-                        "& .MuiInputLabel-root": {
-                            color: "white",
-                        },
-                        // 2. Đổi màu Label khi đang focus (click vào)
-                        "& .MuiInputLabel-root.Mui-focused": {
-                            color: "white",
-                        },
-                        // 3. Đổi màu Nội dung nhập vào (Input text)
-                        "& .MuiInputBase-input": {
-                            color: "white",
-                        },
-                        // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
-                        "& .MuiInput-underline:before": {
-                            borderBottomColor: "white",
-                        },
-                        // 5. Đổi màu đường gạch chân khi hover
-                        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
-                            borderBottomColor: "white",
-                        },
-                        // 6. Đổi màu đường gạch chân khi đang focus
-                        "& .MuiInput-underline:after": {
-                            borderBottomColor: "white",
-                        },
-                    }}
-                    />
-                    <TextField
-                        id="track-category"
-                        select
-                        label="Category"
-                        fullWidth
-                        variant="standard"
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        sx={{
-                            mt: 3,
-                            // 1. Đổi màu Label lúc bình thường
-                        "& .MuiInputLabel-root": {
-                            color: "white",
-                        },
-                        // 2. Đổi màu Label khi đang focus (click vào)
-                        "& .MuiInputLabel-root.Mui-focused": {
-                            color: "white",
-                        },
-                        // 3. Đổi màu Nội dung nhập vào (Input text)
-                        "& .MuiInputBase-input": {
-                            color: "white",
-                        },
-                        // 4. Đổi màu đường gạch chân (Underline) lúc bình thường
-                        "& .MuiInput-underline:before": {
-                            borderBottomColor: "white",
-                        },
-                        // 5. Đổi màu đường gạch chân khi hover
-                        "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
-                            borderBottomColor: "white",
-                        },
-                        // 6. Đổi màu đường gạch chân khi đang focus
-                        "& .MuiInput-underline:after": {
-                            borderBottomColor: "white",
-                        },
-                    }}
                     >
-                        {categoryOptions.map((option) => (
-                            <MenuItem key={option.value} value={option.value}
+                        {imgPreview ? (
+                            <img
+                                src={imgPreview}
+                                alt="Preview"
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                }}
+                            />
+                        ) : (
+                            <Typography sx={{ color: "#777" }}>
+                                No Image
+                            </Typography>
+                        )}
+                    </Box>
 
-                            >
-                                {option.label}
-                            </MenuItem>
-                        ))}
-                    </TextField>
                     <Button
-                        variant="outlined"
-                        onClick={handleSave}
-                        style={{color:'#fff', backgroundColor:'#ce4812'}}
-
-                        disabled={isCreatePending || progress < 100 || !uploadedFileName}
-                        sx={{ mt: 5 }}
+                        component="label"
+                        variant="contained"
+                        startIcon={<CloudUploadIcon />}
+                        sx={{
+                            background: "#ff5500",
+                            borderRadius: "999px",
+                            px: 3,
+                            py: 1,
+                            textTransform: "none",
+                            fontWeight: 600,
+                            '&:hover': {
+                                background: "#ff6a1a",
+                            }
+                        }}
                     >
-                        {isCreatePending ? 'Saving...' : 'Save'}
+                        Upload Image
+                        <VisuallyHiddenInput
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImgChange}
+                        />
                     </Button>
+                </Grid>
+
+                {/* RIGHT SIDE */}
+                <Grid item xs={12} md={8}>
+                    <Box
+                        sx={{
+                            background: "#121212",
+                            border: "1px solid #2a2a2a",
+                            borderRadius: "20px",
+                            p: { xs: 2, md: 4 },
+                        }}
+                    >
+                        <Typography
+                            variant="h5"
+                            sx={{
+                                color: "#fff",
+                                mb: 3,
+                                fontWeight: 700,
+                                fontSize: { xs: "1.4rem", md: "2rem" }
+                            }}
+                        >
+                            Track Information
+                        </Typography>
+
+                        <TextField
+                            id="track-title"
+                            label="Title"
+                            variant="standard"
+                            fullWidth
+                            margin="dense"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            sx={inputStyle}
+                        />
+
+                        <TextField
+                            id="track-desc"
+                            label="Description"
+                            variant="standard"
+                            fullWidth
+                            margin="dense"
+                            multiline
+                            rows={3}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            sx={{
+                                ...inputStyle,
+                                mt: 3
+                            }}
+                        />
+
+                        <TextField
+                            id="track-category"
+                            select
+                            label="Category"
+                            fullWidth
+                            variant="standard"
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            sx={{
+                                ...inputStyle,
+                                mt: 3
+                            }}
+                        >
+                            {categoryOptions.map((option) => (
+                                <MenuItem
+                                    key={option.value}
+                                    value={option.value}
+                                >
+                                    {option.label}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+
+                        {/* PROGRESS */}
+                        {progress > 0 && (
+                            <Box mt={4}>
+                                <Typography
+                                    sx={{
+                                        color: "#999",
+                                        mb: 1,
+                                        fontSize: "0.9rem"
+                                    }}
+                                >
+                                    Uploading: {progress}%
+                                </Typography>
+
+                                <LinearProgressWithLabel value={progress} />
+                            </Box>
+                        )}
+
+                        {/* BUTTONS */}
+                        <Box
+                            sx={{
+                                mt: 5,
+                                display: "flex",
+                                gap: 2,
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <Button
+                                variant="outlined"
+                                onClick={() => setValue(0)}
+                                sx={{
+                                    borderColor: "#555",
+                                    color: "#fff",
+                                    borderRadius: "999px",
+                                    px: 4,
+                                    py: 1,
+                                    textTransform: "none",
+                                }}
+                            >
+                                Back
+                            </Button>
+
+                            <Button
+                                variant="contained"
+                                onClick={handleSave}
+                                disabled={
+                                    isCreatePending ||
+                                    progress < 100 ||
+                                    !uploadedFileName
+                                }
+                                sx={{
+                                    background: "#ff5500",
+                                    color: "#fff",
+                                    borderRadius: "999px",
+                                    px: 4,
+                                    py: 1,
+                                    textTransform: "none",
+                                    fontWeight: 700,
+                                    '&:hover': {
+                                        background: "#ff6a1a",
+                                    },
+                                    '&.Mui-disabled': {
+                                        background: "#333",
+                                        color: "#777"
+                                    }
+                                }}
+                            >
+                                {isCreatePending ? 'Saving...' : 'Save Track'}
+                            </Button>
+                        </Box>
+                    </Box>
                 </Grid>
             </Grid>
         </div>

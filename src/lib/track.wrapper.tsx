@@ -23,6 +23,7 @@ const mapToShareTrack = (raw: any, isPlaying = true): IShareTrack => ({
     countPlay: Number(raw?.countPlays ?? raw?.countPlay ?? 0),
     isLiked: Boolean(raw?.isLiked),
     isYoutube: Boolean(raw?.isYoutube),
+    waveform_url:String(raw?.waveform_url ?? ''),
     isPlaying,
     uploader: {
         id: String(raw?.uploader?.id ?? ''),

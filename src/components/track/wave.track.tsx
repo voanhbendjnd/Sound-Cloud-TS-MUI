@@ -144,12 +144,12 @@ const WaveTrack = (props: IProps) => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d')!;
 
-            gradient = ctx.createLinearGradient(0, 0, 0,  isMobile ?100 :100);
-            gradient.addColorStop(isMobile? 1:0.89,'#444' );
-            gradient.addColorStop(isMobile ? 1:1, '#bbb');
+            gradient = ctx.createLinearGradient(0, 0, 0,  isMobile ?135 :90);
+            gradient.addColorStop(isMobile? 1:0.8, '#ffffff');
+            gradient.addColorStop(isMobile ? 1:1, 'rgb(229 218 218 / 0.74)');
 
-            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile ?100 :120);
-            progressGradient.addColorStop(isMobile ?0.9 :0.7, '#ff5500');
+            progressGradient = ctx.createLinearGradient(0, 0, 0, isMobile ?135 :100);
+            progressGradient.addColorStop(isMobile ?0.9 :0.7, 'rgb(255 85 0)');
             progressGradient.addColorStop(1, '#ffb199');
         }
 
@@ -157,7 +157,7 @@ const WaveTrack = (props: IProps) => {
         const options: Omit<WaveSurferOptions, 'container'> = {
             waveColor: gradient || '#999',
             progressColor: progressGradient || '#ff5500',
-            height: isMobile ? 48: 100,
+            height: isMobile ? 48: 90,
             barWidth: isMobile ? 1 : 2.4,
             barGap: isMobile ? 0.5 : 1.5,
             barRadius: 4,
@@ -189,10 +189,10 @@ const WaveTrack = (props: IProps) => {
 
         // Pattern cho từng tier để phân bố avatar đều nhau
         const tierPattern = [
-            { top: isMobile ? 41 : 81, left: 0 },          // Tier 0: center (just below split line)
-            { top: isMobile ? 41 : 81, left: -4 },        // Tier 1: bottom-left
-            { top: isMobile ? 41 : 81, left: 4 },         // Tier 2: bottom-right
-            { top: isMobile ? 41 : 81, left: 0 },          // Tier 3: top (just above split line)
+            { top: isMobile ? 38 : 75, left: 0 },          // Tier 0: center (just below split line)
+            { top: isMobile ? 38 : 75, left: -4 },        // Tier 1: bottom-left
+            { top: isMobile ? 38 : 75, left: 4 },         // Tier 2: bottom-right
+            { top: isMobile ? 38 : 75, left: 0 },          // Tier 3: top (just above split line)
         ];
 
         sortedComments.forEach((comment, index) => {
@@ -311,7 +311,6 @@ const WaveTrack = (props: IProps) => {
                 if (isMatched && audioRef.current) {
                     audioRef.current.currentTime = newTime;
                     savedTimes.current[fullAudioUrl || ''] = newTime;
-                    // Only auto-play on seek if already playing, don't start playback on seek
                     if (currentTrack.isPlaying) {
                         audioRef.current.play();
                         setIsWaveformPlaying(true);
@@ -736,14 +735,15 @@ const WaveTrack = (props: IProps) => {
                         ref={containerRef}
                         sx={{
                             position: 'relative',
-                            height: { xs: 100, md: 140 },
-                            mb: 2
+                            height: { xs: 80, md: 130 },
+                            mb: 2,
+                            // paddingTop:isMobile? "0" : 2
                         }}
                     >
                         <div
                             style={{
                                 position: "absolute",
-                                top: "52%",
+                                top:isMobile? "41%": "50%",
                                 // top: "71%",
 
                                 left: 0,
@@ -790,8 +790,8 @@ const WaveTrack = (props: IProps) => {
                                                 position: 'absolute',
                                                 left: calculateLeft(it.moment),
                                                 top: position.top,
-                                                width: isMobile ? (isActive ? 15 : 15) : (isActive ? 24 : 18),
-                                                height: isMobile ? (isActive ? 15 : 15) : (isActive ? 24 : 18),
+                                                width: isMobile ? (isActive ? 12 : 10) : (isActive ? 20 : 22),
+                                                height: isMobile ? (isActive ? 12 : 10) : (isActive ? 20 : 22),
                                                 transform: position.left ? `translate(calc(-50% + ${position.left}px), -50%)` : 'translate(-50%, -50%)',
                                                 border: isActive ? '2px solid #ff5500' : '1px solid #333',
                                                 pointerEvents: 'auto',

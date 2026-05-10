@@ -159,7 +159,7 @@ const CommentSection = (props: IProps) => {
                 px: { xs: 1, md: 2 },
                 maxWidth: 1200,
                 mx: 'auto',
-                marginBottom:20
+                marginBottom:30
             }}
         >
 
